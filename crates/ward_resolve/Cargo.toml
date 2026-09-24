@@ -9,6 +9,8 @@ publish.workspace = true
 
 [dependencies]
 la-arena.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 ward_syntax.workspace = true
 
 [lints]

@@ -1,0 +1,59 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/tools_bad_lock/main.ward
+---
+exit: Some(1)
+--- human ---
+[W0300] Error: cannot read `tests/ui/tools_bad_lock/ward.lock`: unsupported version 2; this `ward` reads version 1
+   ╭─[ tests/ui/tools_bad_lock/main.ward:2:12 ]
+   │
+ 2 │ import mcp "gmail" as mail
+   │            ───┬───  
+   │               ╰───── this tool's schema would come from there
+   │ 
+   │ Help: run `ward lock` to write it again
+───╯
+error: could not check `tests/ui/tools_bad_lock/main.ward` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0300",
+      "file": "tests/ui/tools_bad_lock/main.ward",
+      "help": "run `ward lock` to write it again",
+      "labels": [
+        {
+          "message": "this tool's schema would come from there",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 2,
+              "offset": 85
+            },
+            "start": {
+              "column": 12,
+              "line": 2,
+              "offset": 78
+            }
+          }
+        }
+      ],
+      "message": "cannot read `tests/ui/tools_bad_lock/ward.lock`: unsupported version 2; this `ward` reads version 1",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 19,
+          "line": 2,
+          "offset": 85
+        },
+        "start": {
+          "column": 12,
+          "line": 2,
+          "offset": 78
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/tools_bad_lock/main.ward"
+}

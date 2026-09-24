@@ -45,14 +45,16 @@ Early development. Done: the parser, name resolution and type checker
 (`ward check`), the Python backend with its runtime (`ward build`, `ward run`), and
 trust labels, effects, budgets and the Rule of Two, and the runtime's Rust core,
 audit trace, model providers, runtime sink checks, OTLP export, async code and
-streaming (`ward trace`, `ward run --model`, `ward build --async`). Next: typed MCP
-tool imports (M7). See [PLAN.md](PLAN.md) for the milestones and
+streaming (`ward trace`, `ward run --model`, `ward build --async`), and typed MCP
+tool imports pinned in `ward.lock` (`ward lock`; see [examples/inbox](examples/inbox)).
+Next: model fallbacks and retry policies (M8). See [PLAN.md](PLAN.md) for the milestones and
 [docs/spec](docs/spec/README.md) for the language specification.
 
 ```bash
 cargo run -p ward_cli -- check examples/support.wardscript
 cargo run -p ward_cli -- build examples/triage.wardscript -o build
 cargo run -p ward_cli -- run examples/triage.wardscript route '"My order never came"' --mock answers.json
+cargo run -p ward_cli -- lock examples/inbox/mcp.json       # pin the MCP servers' tool schemas
 ```
 
 ## License

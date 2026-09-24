@@ -1,0 +1,10 @@
+// `@not_sink` frees one parameter, not the whole tool: the subject is still a sink.
+@not_sink(send_email.body, reason = "the body is shown to the owner only")
+import mcp "gmail" as mail
+
+pub fn notify(id: String, owner: String) throws String
+    uses {mail}
+{
+    let message = mail.read_message(id)?
+    mail.send_email(owner, message, "see subject")?
+}

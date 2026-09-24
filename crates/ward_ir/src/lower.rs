@@ -37,7 +37,9 @@ pub fn lower(analysis: &Analysis) -> Result<Program, LowerError> {
             let types = checked.types.get(m.0 as usize);
             let res = analysis.resolution.modules.get(m.0 as usize);
             match (types, res) {
-                (Some(types), Some(res)) => lower_module(m, data, res, types, checked),
+                (Some(types), Some(res)) => {
+                    lower_module(&analysis.program, m, data, res, types, checked)
+                }
                 _ => Err(LowerError::Internal {
                     module: data.name.clone(),
                     message: "module was not checked".into(),
@@ -49,6 +51,7 @@ pub fn lower(analysis: &Analysis) -> Result<Program, LowerError> {
 }
 
 fn lower_module(
+    program: &ward_resolve::Program,
     m: ModuleId,
     data: &ModuleData,
     res: &ModuleRes,
@@ -126,6 +129,7 @@ fn lower_module(
                     internal(format!("function `{}` has no signature", f.name.name))
                 })?;
                 let mut cx = FnLower {
+                    program,
                     ast: &data.ast,
                     res,
                     types,
@@ -205,6 +209,7 @@ fn site_path(data: &ModuleData) -> String {
 }
 
 struct FnLower<'a> {
+    program: &'a ward_resolve::Program,
     ast: &'a ast::Module,
     res: &'a ModuleRes,
     types: &'a ModuleTypes,
@@ -523,11 +528,23 @@ impl FnLower<'_> {
                 let ast::ExprKind::Field { name, .. } = &ast.exprs[callee].kind else {
                     return Err(self.bug("tool member without a name"));
                 };
+                let schema = self
+                    .program
+                    .tool_schema(tool)
+                    .and_then(|s| s.function(&name.name))
+                    .map(|f| ToolSchema {
+                        mcp_name: f.mcp_name.clone(),
+                        params: f.params.iter().map(|p| p.name.clone()).collect(),
+                        sinks: ward_check::tools::tool_sinks(self.program, tool, &name.name)
+                            .unwrap_or_default(),
+                        returns: Ty::from_tool(&f.result),
+                    });
                 ExprKind::ToolCall {
                     tool,
                     name: name.name.clone(),
                     args: self.exprs(args)?,
                     site: self.site(span),
+                    schema,
                 }
             }
             _ => return Err(self.bug("call of something that isn't a function")),

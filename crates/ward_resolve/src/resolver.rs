@@ -364,7 +364,24 @@ impl BodyResolver<'_> {
                     ItemRes::Module(_) | ItemRes::Tool(_) => None,
                 }
             }
-            ValueRes::Tool(def) | ValueRes::ToolMember(def) => Some(ValueRes::ToolMember(def)),
+            ValueRes::Tool(def) => {
+                if let Some(server) = self.program.tool_schema(def) {
+                    if server.function(&name.name).is_none() {
+                        let d = Diagnostic::error(
+                            codes::NO_SUCH_MEMBER,
+                            format!("tool `{}` has no function `{}`", server.source, name.name),
+                            name.span,
+                        )
+                        .with_label("unknown tool function");
+                        let names = server.functions.iter().map(|f| f.name.as_str()).collect();
+                        let d = Self::with_suggestion(d, &name.name, names);
+                        self.error(d);
+                        return None;
+                    }
+                }
+                Some(ValueRes::ToolMember(def))
+            }
+            ValueRes::ToolMember(def) => Some(ValueRes::ToolMember(def)),
             ValueRes::Local(_) | ValueRes::Fn(_) | ValueRes::Variant(..) | ValueRes::Builtin(_) => {
                 None
             }

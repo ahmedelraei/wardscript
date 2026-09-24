@@ -1,0 +1,13 @@
+// Tool calls are typed from `ward.lock`.
+import mcp "gmail" as mail
+
+pub fn f(id: String) -> Int throws String
+    uses {mail}
+{
+    mail.send_mail("a@example.com", "s", "b")?
+    mail.send_email("a@example.com", "s")?
+    mail.send_email("a@example.com", "s", 3)?
+    mail.label_message(id, "x")
+    let text: Int = mail.read_message(id)?
+    text
+}

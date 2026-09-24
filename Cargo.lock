@@ -829,6 +829,8 @@ name = "ward_resolve"
 version = "0.0.1"
 dependencies = [
  "la-arena",
+ "serde",
+ "serde_json",
  "ward_syntax",
 ]
 

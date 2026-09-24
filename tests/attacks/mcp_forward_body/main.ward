@@ -1,0 +1,9 @@
+// With a schema from `ward.lock`: a message read over MCP is forwarded verbatim.
+import mcp "gmail" as mail
+
+pub fn forward(id: String, to: String) throws String
+    uses {mail}
+{
+    let message = mail.read_message(id)?
+    mail.send_email(to, "Fwd", message)?
+}

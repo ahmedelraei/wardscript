@@ -505,7 +505,15 @@ impl Parser<'_> {
     }
 
     fn annotation_arg(&mut self) -> PResult<AnnotationArg> {
-        let name = self.ident()?;
+        let mut name = self.ident()?;
+        // `send.body`: a dotted path, kept as one name.
+        while self.eat(T::Dot).is_some() {
+            let part = self.ident()?;
+            name = Ident {
+                name: format!("{}.{}", name.name, part.name),
+                span: name.span.to(part.span),
+            };
+        }
         let value = match self.eat(T::Eq) {
             Some(_) => {
                 if !matches!(self.peek(), T::Str | T::UnterminatedStr) {

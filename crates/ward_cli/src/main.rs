@@ -1,3 +1,4 @@
+mod lock;
 mod render;
 
 use std::io::{IsTerminal, Write};
@@ -66,6 +67,18 @@ enum Command {
         /// Don't write an audit trace
         #[arg(long, conflicts_with = "trace_dir")]
         no_trace: bool,
+    },
+    /// Pin the tool schemas of the MCP servers in `mcp.json` to `ward.lock`
+    Lock {
+        /// The MCP config listing the servers
+        #[arg(default_value = "mcp.json")]
+        config: PathBuf,
+        /// Fail if `ward.lock` is out of date instead of writing it (for CI)
+        #[arg(long)]
+        check: bool,
+        /// Seconds to wait for each server's answer
+        #[arg(long, default_value_t = 30)]
+        timeout: u64,
     },
     /// Read the audit traces `ward run` and the runtime write
     Trace {
@@ -144,6 +157,11 @@ fn main() -> ExitCode {
                 trace_dir: (!no_trace).then_some(trace_dir),
             },
         ),
+        Command::Lock {
+            config,
+            check,
+            timeout,
+        } => lock_command(&config, check, timeout),
         Command::Trace { command } => trace(command),
     }
 }
@@ -303,7 +321,11 @@ fn run(file: &Path, function: &str, args: &[String], opts: &RunOptions) -> ExitC
         .env("PYTHONDONTWRITEBYTECODE", "1")
         .env_remove("WARD_MOCK")
         .env_remove("WARD_MODEL")
-        .env_remove("WARD_TRACE_DIR");
+        .env_remove("WARD_TRACE_DIR")
+        .env_remove("WARD_MCP_CONFIG");
+    if let Some(config) = find_mcp_config(file) {
+        cmd.env("WARD_MCP_CONFIG", config);
+    }
     if let Some(mock) = &mock {
         cmd.env("WARD_MOCK", mock);
     }
@@ -329,6 +351,41 @@ fn run(file: &Path, function: &str, args: &[String], opts: &RunOptions) -> ExitC
             ExitCode::from(exit::INTERNAL)
         }
     }
+}
+
+fn lock_command(config: &Path, check: bool, timeout: u64) -> ExitCode {
+    match lock::lock(config, check, std::time::Duration::from_secs(timeout)) {
+        Ok(out) => {
+            for (name, tools) in &out.servers {
+                eprintln!("  {name}: {}", count(*tools, "tool"));
+            }
+            let path = out.path.display();
+            if out.unchanged {
+                eprintln!("ok: `{path}` is up to date");
+                ExitCode::SUCCESS
+            } else if check {
+                eprintln!("error: `{path}` is out of date; run `ward lock`");
+                ExitCode::from(exit::DIAGNOSTICS)
+            } else {
+                eprintln!("wrote `{path}`");
+                ExitCode::SUCCESS
+            }
+        }
+        Err(e) => {
+            eprintln!("error: {e}");
+            ExitCode::from(exit::INTERNAL)
+        }
+    }
+}
+
+/// `mcp.json` in the program's directory or the nearest parent that has one, so `ward
+/// run` connects its tool imports to those servers.
+fn find_mcp_config(file: &Path) -> Option<PathBuf> {
+    let file = std::path::absolute(file).ok()?;
+    file.ancestors()
+        .skip(1)
+        .map(|d| d.join("mcp.json"))
+        .find(|p| p.is_file())
 }
 
 fn count(n: usize, what: &str) -> String {

@@ -77,6 +77,10 @@ pub mod codes {
     pub const INVALID_ANNOTATION: Code = Code("W0221");
     pub const UNNECESSARY_ALLOW: Code = Code("W0222");
 
+    // W03xx: tools
+    pub const INVALID_LOCK: Code = Code("W0300");
+    pub const TOOL_NOT_LOCKED: Code = Code("W0301");
+
     pub const ALL: &[Code] = &[
         UNEXPECTED_CHAR,
         UNTERMINATED_STRING,
@@ -137,6 +141,8 @@ pub mod codes {
         RULE_OF_TWO,
         INVALID_ANNOTATION,
         UNNECESSARY_ALLOW,
+        INVALID_LOCK,
+        TOOL_NOT_LOCKED,
     ];
 }
 

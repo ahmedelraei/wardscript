@@ -1,0 +1,9 @@
+// Tool annotations are checked against the schema.
+@readonly(send_mail)
+@sink(read_message.ids)
+@not_sink(send_email.body)
+@sink(label_message)
+@not_sink(send_email.cc, reason = "copies only go to colleagues", why = "no")
+import mcp "gmail" as mail
+
+pub fn f() {}

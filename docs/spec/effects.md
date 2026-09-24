@@ -83,8 +83,9 @@ A function may not have all three of these capabilities, counting its callees:
 | reads private data | a call to a tool function marked `private` |
 | changes external state or communicates | a call to a tool function not marked `private` or `readonly` |
 
-Until tool schemas arrive (M7), tool functions are classified with annotations on the
-import. Anything unlisted is assumed to change external state.
+Tool functions are classified with annotations on the import, else by their schema
+in `ward.lock` (`readOnlyHint: true` is read-only; see [tools](tools.md)). Anything
+else is assumed to change external state.
 
 ```ward
 @readonly(get_issue, search)
@@ -114,3 +115,4 @@ A missing or empty reason, or an unknown annotation or argument, is W0221. An
 |---|---|
 | `@allow(rule_of_two, reason = "...")` | functions |
 | `@private(f, ...)`, `@readonly(f, ...)` | tool imports |
+| `@sink(f.p, ...)`, `@not_sink(f.p, ..., reason = "...")` | tool imports with a schema ([tools](tools.md#trust)) |

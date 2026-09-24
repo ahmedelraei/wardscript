@@ -105,7 +105,14 @@ fn unreadable_file_is_an_internal_error() {
 
 #[test]
 fn examples_check_ok() {
-    for file in common::wardscript_files("examples") {
+    let mut files = common::wardscript_files("examples");
+    for entry in std::fs::read_dir(common::repo_root().join("examples")).expect("read examples") {
+        let main = entry.expect("dir entry").path().join("main.ward");
+        if main.is_file() {
+            files.push(main);
+        }
+    }
+    for file in files {
         let out = common::ward(&["check", file.to_str().expect("utf-8 path")]);
         assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
     }
@@ -159,4 +166,73 @@ fn readme_examples_check_ok() {
             common::render(&out)
         );
     }
+}
+
+#[test]
+fn lock_is_up_to_date() {
+    let out = common::ward(&["lock", "--check", "examples/inbox/mcp.json"]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("gmail: 4 tools"));
+}
+
+#[test]
+fn lock_writes_and_checks() {
+    let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("lock");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("mkdir");
+    let example = common::repo_root().join("examples/inbox");
+    for f in ["mcp.json", "gmail_server.py"] {
+        std::fs::copy(example.join(f), dir.join(f)).expect("copy");
+    }
+    let config = dir.join("mcp.json");
+    let config = config.to_str().expect("utf-8 path");
+
+    let out = common::ward(&["lock", "--check", config]);
+    assert_eq!(
+        out.status.code(),
+        Some(common::EXIT_DIAGNOSTICS),
+        "{}",
+        common::render(&out)
+    );
+    assert!(!dir.join("ward.lock").exists());
+
+    let out = common::ward(&["lock", config]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+    let written = std::fs::read_to_string(dir.join("ward.lock")).expect("lock written");
+    let expected = std::fs::read_to_string(example.join("ward.lock")).expect("example lock");
+    assert_eq!(written, expected);
+
+    let out = common::ward(&["lock", "--check", config]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+}
+
+#[test]
+fn lock_reports_a_broken_server() {
+    let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("lock_broken");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("mkdir");
+    std::fs::write(
+        dir.join("mcp.json"),
+        r#"{"mcpServers": {"x": {"command": "/no/such/server"}}}"#,
+    )
+    .expect("write config");
+    let out = common::ward(&["lock", dir.join("mcp.json").to_str().expect("utf-8")]);
+    assert_eq!(out.status.code(), Some(2), "{}", common::render(&out));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("server `x` didn't start"));
+}
+
+#[test]
+fn run_connects_to_mcp_servers() {
+    let answers = mock("inbox.json", r#"{"classify": "Other"}"#);
+    let out = common::ward(&[
+        "run",
+        "examples/inbox/main.ward",
+        "triage_inbox",
+        "\"owner@example.com\"",
+        "--mock",
+        &answers,
+        "--no-trace",
+    ]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+    assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "3");
 }

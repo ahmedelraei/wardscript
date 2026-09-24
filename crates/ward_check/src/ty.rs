@@ -25,6 +25,30 @@ pub enum Ty {
 }
 
 impl Ty {
+    /// The type of a tool parameter or result, from its schema.
+    pub fn from_tool(t: &ward_resolve::tools::ToolTy) -> Ty {
+        use ward_resolve::tools::ToolTy;
+        match t {
+            ToolTy::String => Ty::String,
+            ToolTy::Int => Ty::Int,
+            ToolTy::Float => Ty::Float,
+            ToolTy::Bool => Ty::Bool,
+            ToolTy::List(t) => Ty::list(Ty::from_tool(t)),
+            ToolTy::Option(t) => Ty::option(Ty::from_tool(t)),
+            ToolTy::Any => Ty::Dynamic,
+        }
+    }
+
+    /// A tool parameter's type: an optional one is an `Option`, which may be left out.
+    pub fn tool_param(p: &ward_resolve::tools::ToolParam) -> Ty {
+        let t = Ty::from_tool(&p.ty);
+        if p.required || matches!(t, Ty::Option(_) | Ty::Dynamic) {
+            t
+        } else {
+            Ty::option(t)
+        }
+    }
+
     pub fn list(t: Ty) -> Ty {
         Ty::List(Box::new(t))
     }

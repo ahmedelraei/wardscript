@@ -557,9 +557,48 @@ impl Cx<'_, '_> {
                 t
             }
             ValueRes::Builtin(b) => self.builtin_call(b, args, span, callee_span),
-            ValueRes::ToolMember(_) => {
-                self.infer_all(args);
-                Ty::Dynamic
+            ValueRes::ToolMember(d) => {
+                let program = self.c.program;
+                let func = match &ast.exprs[callee].kind {
+                    ExprKind::Field { name, .. } => {
+                        program.tool_schema(d).and_then(|s| s.function(&name.name))
+                    }
+                    _ => None,
+                };
+                let Some(func) = func else {
+                    self.infer_all(args);
+                    return Ty::Dynamic;
+                };
+                let params: Vec<Ty> = func.params.iter().map(Ty::tool_param).collect();
+                let required = func.params.iter().filter(|p| p.required).count();
+                let what = format!("tool function `{callee_text}`");
+                if (required..=params.len()).contains(&args.len()) {
+                    // Optional parameters at the end may be left out.
+                    self.args(args, &params[..args.len()], &what, span);
+                } else if args.len() < required && required < params.len() {
+                    self.err(
+                        Diagnostic::error(
+                            codes::WRONG_ARG_COUNT,
+                            format!(
+                                "{what} takes {required} to {} arguments but {} {} given",
+                                params.len(),
+                                args.len(),
+                                if args.len() == 1 { "was" } else { "were" }
+                            ),
+                            span,
+                        )
+                        .with_label(format!(
+                            "expected at least {}",
+                            plural(required, "argument")
+                        )),
+                    );
+                    self.infer_all(args);
+                } else {
+                    self.args(args, &params, &what, span);
+                }
+                // A tool reports failure with a message (MCP's `isError`).
+                self.call_throws(e, Ty::String, &callee_text, span);
+                Ty::from_tool(&func.result)
             }
             ValueRes::Local(id) => {
                 self.infer_all(args);
