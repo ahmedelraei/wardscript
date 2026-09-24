@@ -1,6 +1,6 @@
 # Syntax
 
-Status: implemented in M1 (`ws_syntax`). This covers the grammar only; what the
+Status: implemented in M1 (`ward_syntax`). This covers the grammar only; what the
 constructs *mean* (types, trust labels, effects) is specified in later sections.
 
 ## Lexical structure
@@ -117,7 +117,7 @@ ai fn triage(email: Untrusted<String>) -> Ticket
 
 ## Canonical formatting
 
-`ws_syntax::printer::print` turns an AST back into canonical source (4-space indent,
+`ward_syntax::printer::print` turns an AST back into canonical source (4-space indent,
 trailing commas on multi-line lists; `uses` and `budget` clauses on their own
 lines, with the body's `{` on the next line). Printing
 is a fixed point: parsing the printed output and printing again yields the same

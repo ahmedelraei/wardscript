@@ -1,6 +1,6 @@
 # Names, modules and imports
 
-Status: implemented in M2 (`ws_resolve`).
+Status: implemented in M2 (`ward_resolve`).
 
 ## Modules
 

@@ -7,4 +7,4 @@ and **must be rejected** by `ward check` (exit code 1). An internal error
 Put the fixed, accepted version of an attack in `tests/ui/` so false positives
 are caught too.
 
-- Harness: `crates/ws_cli/tests/attacks.rs`
+- Harness: `crates/ward_cli/tests/attacks.rs`

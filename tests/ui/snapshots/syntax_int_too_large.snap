@@ -1,5 +1,5 @@
 ---
-source: crates/ws_cli/tests/ui.rs
+source: crates/ward_cli/tests/ui.rs
 description: tests/ui/syntax_int_too_large.wardscript
 ---
 exit: Some(1)

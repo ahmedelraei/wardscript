@@ -32,28 +32,28 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 **Done when:** `examples/support.ward` parses; round-trip tests pass; there are 20+ ui snapshots of syntax errors with good messages.
 
 **Prompt**
-> Implement M1 from PLAN.md in `ws_syntax`. Hand-written recursive-descent parser, Pratt parsing for expressions, arena-allocated AST, error recovery. Add a pretty-printer and round-trip tests, plus ui snapshot tests for syntax errors.
+> Implement M1 from PLAN.md in `ward_syntax`. Hand-written recursive-descent parser, Pratt parsing for expressions, arena-allocated AST, error recovery. Add a pretty-printer and round-trip tests, plus ui snapshot tests for syntax errors.
 
 ---
 
 ## M2: Name resolution and base types (3–5 days)
 **Tasks**
-- `ws_resolve`: scopes, modules (one file = one module), `pub`, imports. Unknown-name errors with "did you mean" suggestions.
-- `ws_check` (types only for now): bidirectional checking; primitives, records, enums, generics (List, Map, Option, Result), exhaustive `match`, `?`.
+- `ward_resolve`: scopes, modules (one file = one module), `pub`, imports. Unknown-name errors with "did you mean" suggestions.
+- `ward_check` (types only for now): bidirectional checking; primitives, records, enums, generics (List, Map, Option, Result), exhaustive `match`, `?`.
 - Check that `ai fn` functions have a return type that can be turned into a JSON schema.
 - `ward check` with human output and `--format json` output.
 
 **Done when:** type-error ui tests pass (mismatch, non-exhaustive match, unknown field…); JSON diagnostics have stable codes.
 
 **Prompt**
-> Implement M2: name resolution in `ws_resolve` and base type checking in `ws_check` (bidirectional, generics, exhaustive match). Wire up `ward check` with ariadne output and `--format json` using stable W-codes. Update docs/spec.
+> Implement M2: name resolution in `ward_resolve` and base type checking in `ward_check` (bidirectional, generics, exhaustive match). Wire up `ward check` with ariadne output and `--format json` using stable W-codes. Update docs/spec.
 
 ---
 
 ## M3: WIR + Python backend + minimal runtime (4–6 days) ← first end-to-end
 **Tasks**
-- `ws_ir`: lower the checked AST into WIR (typed, explicit, no syntax sugar).
-- `ws_codegen_py`: WIR → readable Python module + `.pyi` stubs. Records become dataclasses; enums become `Enum`.
+- `ward_ir`: lower the checked AST into WIR (typed, explicit, no syntax sugar).
+- `ward_codegen_py`: WIR → readable Python module + `.pyi` stubs. Records become dataclasses; enums become `Enum`.
 - Runtime (Python side first, a thin package `wardscript`):
   - `runtime.configure(model=..., approver=...)`
   - LLM call for `ai fn`: build the prompt, derive a JSON schema from the return type, validate the output, retry N times, then raise a typed error.
@@ -69,7 +69,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 
 ## M4: Trust labels (the core, 1–2 weeks)
 **Tasks**
-- Label lattice `Trusted < Untrusted` in `ws_check`, with automatic label inference inside function bodies (developers annotate signatures only).
+- Label lattice `Trusted < Untrusted` in `ward_check`, with automatic label inference inside function bodies (developers annotate signatures only).
 - Explicit flows: operators, calls, fields, collections combine labels.
 - Implicit flows: branches or loops depending on untrusted data raise the label of everything written inside them (pc-label).
 - Sources: `ai fn` outputs, imported tools, and host-language inputs are `Untrusted` by default.
@@ -81,7 +81,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 **Done when:** 30+ `tests/attacks/` cases fail to compile (direct, via string concatenation, via collections, via branches, via helper functions); the fixed versions compile; no false positives on examples.
 
 **Prompt**
-> Implement M4: trust labels in ws_check. Signatures carry labels and bodies are inferred. Track explicit flows plus implicit flows through a pc-label. Add sources and sinks, plus the validate/approve/declassify built-ins. W0107 must show the full flow path. Write the attack test suite first, then make it pass.
+> Implement M4: trust labels in ward_check. Signatures carry labels and bodies are inferred. Track explicit flows plus implicit flows through a pc-label. Add sources and sinks, plus the validate/approve/declassify built-ins. W0107 must show the full flow path. Write the attack test suite first, then make it pass.
 
 ---
 
@@ -98,7 +98,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 
 ## M6: Runtime completion + audit trace (1 week)
 **Tasks**
-- Move the runtime core to Rust (`ws_runtime`) with a PyO3 binding (built with maturin); keep the Python API the same.
+- Move the runtime core to Rust (`ward_runtime`) with a PyO3 binding (built with maturin); keep the Python API the same.
 - Approval hooks (sync and async), budget counters, typed errors.
 - Audit trace per run: calls, labels, validations, approvals, declassifications → JSON Lines + OpenTelemetry export.
 - `ward trace show <run_id>`.
@@ -118,7 +118,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 ---
 
 ## M8: Proof and polish (ongoing)
-- TypeScript backend (`ws_codegen_ts`) + napi-rs runtime binding.
+- TypeScript backend (`ward_codegen_ts`) + napi-rs runtime binding.
 - AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility).
 - LSP (`tower-lsp`) + VS Code extension (syntax highlighting for `.ward`).
 - `salsa` for incremental checking.

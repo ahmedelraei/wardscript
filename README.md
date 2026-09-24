@@ -45,7 +45,7 @@ See [PLAN.md](PLAN.md) for the milestones and [docs/spec](docs/spec/README.md)
 for the language specification.
 
 ```bash
-cargo run -p ws_cli -- check examples/support.wardscript
+cargo run -p ward_cli -- check examples/support.wardscript
 ```
 
 ## License

@@ -1,5 +1,5 @@
 ---
-source: crates/ws_cli/tests/ui.rs
+source: crates/ward_cli/tests/ui.rs
 description: tests/ui/types_ai_return_not_schema.wardscript
 ---
 exit: Some(1)

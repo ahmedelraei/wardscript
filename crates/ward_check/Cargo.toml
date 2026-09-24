@@ -1,0 +1,19 @@
+[package]
+name = "ward_check"
+description = "Type, trust-label, effect and budget checking for Wardscript."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+la-arena.workspace = true
+ward_syntax.workspace = true
+ward_resolve.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+
+[lints]
+workspace = true

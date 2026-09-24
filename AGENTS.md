@@ -8,18 +8,18 @@ Wardscript is a small, typed language for trustworthy AI functions and agents. W
 - First backend: Python. Then TypeScript, then WASM through `wasm-encoder`. **No LLVM or Cranelift.**
 
 ## Guiding principle
-The checker is the product; backends are plumbing. When in doubt, spend effort on `ws_check` and on diagnostics.
+The checker is the product; backends are plumbing. When in doubt, spend effort on `ward_check` and on diagnostics.
 
 ## Workspace layout
 ```
 crates/
-  ws_syntax      # logos lexer, hand-written recursive-descent parser, AST (arena + IDs)
-  ws_resolve     # name resolution, modules, imports (incl. MCP tools)
-  ws_check       # types + trust labels + effects + budgets
-  ws_ir          # WIR: fully typed IR with explicit labels + provenance metadata
-  ws_codegen_py  # WIR -> Python (+ .pyi stubs)
-  ws_runtime     # runtime core (Rust) + bindings: py/ (PyO3/maturin), node/ (napi-rs, later)
-  ws_cli         # `ward` binary
+  ward_syntax      # logos lexer, hand-written recursive-descent parser, AST (arena + IDs)
+  ward_resolve     # name resolution, modules, imports (incl. MCP tools)
+  ward_check       # types + trust labels + effects + budgets
+  ward_ir          # WIR: fully typed IR with explicit labels + provenance metadata
+  ward_codegen_py  # WIR -> Python (+ .pyi stubs)
+  ward_runtime     # runtime core (Rust) + bindings: py/ (PyO3/maturin), node/ (napi-rs, later)
+  ward_cli         # `ward` binary
 tests/
   ui/            # .ward programs + expected diagnostics (insta snapshots)
   attacks/       # injection programs that MUST fail to compile
@@ -42,7 +42,7 @@ docs/spec/       # language spec, kept up to date with the implementation
 cargo build
 cargo test                      # all unit + ui + attack tests
 cargo insta review              # accept snapshot changes deliberately
-cargo run -p ws_cli -- check examples/support.ward
+cargo run -p ward_cli -- check examples/support.ward
 cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 ```
