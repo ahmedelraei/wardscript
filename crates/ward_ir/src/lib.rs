@@ -76,6 +76,15 @@ pub struct Module {
     pub tools: Vec<Tool>,
     /// Not in `fns`: they aren't Wardscript functions and have no `DefId` of their own.
     pub refinements: Vec<RefinementFn>,
+    /// `test "..." { ... }`, run by `ward test`.
+    pub tests: Vec<Test>,
+}
+
+pub struct Test {
+    pub name: String,
+    pub site: Site,
+    /// A function with no parameters; its `name` is the generated Python name.
+    pub func: Fn,
 }
 
 pub struct Record {
@@ -248,6 +257,12 @@ pub enum Stmt {
     While {
         cond: ExprId,
         body: Block,
+    },
+    /// `assert cond => "message"` in a test. `message` defaults to the condition.
+    Assert {
+        cond: ExprId,
+        message: String,
+        site: Site,
     },
 }
 

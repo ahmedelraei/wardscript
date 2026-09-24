@@ -2,7 +2,7 @@
 
 Work through one milestone at a time. Each milestone lists its tasks, the checks it must pass before moving on ("Done when") Read `AGENTS.md` and `docs/spec/` first.
 
-Status: M0–M7 done, including M6 additions (runtime sink checks, OTLP collectors, async code, text streaming; decision 010), unknown model cost failing closed (decision 011) MCP imports with `ward.lock` (decision 012) model fallbacks and retry policies (decision 013), and refinements and output checks (decision 014). Next: M10.
+Status: M0–M7 done, including M6 additions (runtime sink checks, OTLP collectors, async code, text streaming; decision 010), unknown model cost failing closed (decision 011) MCP imports with `ward.lock` (decision 012) model fallbacks and retry policies (decision 013), refinements and output checks (decision 014), and tests with recorded responses (decision 015). Next: M11.
 
 ---
 

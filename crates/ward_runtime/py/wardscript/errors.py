@@ -111,6 +111,15 @@ class DecodeError(WardError):
         self.message = message
 
 
+class TestFailure(WardError):
+    """An `assert` in a `test` block didn't hold."""
+
+    def __init__(self, message: str, site: str) -> None:
+        super().__init__(f"assertion failed at {site}: {message}")
+        self.message = message
+        self.site = site
+
+
 class PanicError(WardError):
     """An operation with no defined result: an index out of bounds, division by zero."""
 

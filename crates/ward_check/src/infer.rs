@@ -69,6 +69,33 @@ pub(crate) fn check_fn(c: &mut Checker, def: DefId, f: &FnDecl, out: &mut Module
     cx.finish(out);
 }
 
+/// A test body: like a function that returns nothing and may throw anything, since a
+/// thrown error just fails the test.
+pub(crate) fn check_test(c: &mut Checker, m: ModuleId, t: &TestDecl, out: &mut ModuleTypes) {
+    let program = c.program;
+    let mres = c.res.module(m);
+    let mut cx = Cx {
+        c,
+        m,
+        ast: &program.module(m).ast,
+        src: &program.module(m).src,
+        mres,
+        u: Unifier::default(),
+        locals: ArenaMap::default(),
+        exprs: Vec::new(),
+        ret: Ty::Unit,
+        fn_name: format!("test \"{}\"", t.name),
+        generics: Vec::new(),
+        lets: Vec::new(),
+        throws: Some(Ty::Dynamic),
+        handlers: Vec::new(),
+        propagating: None,
+        thrown: ArenaMap::default(),
+    };
+    cx.block(&t.body, Some(&Ty::Unit));
+    cx.finish(out);
+}
+
 /// A refinement's condition, with `it` of type `base`.
 pub(crate) fn check_refinement(
     c: &mut Checker,
@@ -1194,6 +1221,10 @@ impl Cx<'_, '_> {
                 self.assign(*target, *value);
                 false
             }
+            StmtKind::Assert { cond, .. } => {
+                self.check(*cond, &Ty::Bool);
+                false
+            }
             StmtKind::Expr { expr, .. } => {
                 let t = self.infer(*expr);
                 matches!(self.u.shallow(&t), Ty::Never)
@@ -1505,5 +1536,6 @@ fn item_name(item: &Item) -> &str {
         Item::Alias(a) => &a.name.name,
         Item::Enum(e) => &e.name.name,
         Item::Import(_) => "import",
+        Item::Test(t) => &t.name,
     }
 }

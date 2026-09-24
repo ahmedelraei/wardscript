@@ -52,9 +52,11 @@ Early development, but usable end to end. Done:
 - typed MCP tool imports pinned in `ward.lock` (`ward lock`; see
   [examples/inbox](examples/inbox));
 - refinement types (`String where it.len() <= 80`) and `check {...}` clauses on
-  model answers, retried with the reason when they fail.
+  model answers, retried with the reason when they fail;
+- `test` blocks, run by `ward test` from recorded model answers and tool results
+  (`ward test --record` records them).
 
-Next: `test` blocks and `ward test` (M10). See [PLAN.md](PLAN.md) for the milestones
+Next: proof and polish (M11): typed streaming, the TypeScript backend, an LSP. See [PLAN.md](PLAN.md) for the milestones
 and [docs/spec](docs/spec/README.md) for the language specification.
 
 ```bash
@@ -62,6 +64,7 @@ cargo run -p ward_cli -- check examples/support.wardscript
 cargo run -p ward_cli -- build examples/triage.wardscript -o build
 cargo run -p ward_cli -- run examples/triage.wardscript route '"My order never came"' --mock answers.json
 cargo run -p ward_cli -- lock examples/inbox/mcp.json       # pin the MCP servers' tool schemas
+cargo run -p ward_cli -- test examples/triage.wardscript      # replay the recorded tests
 ```
 
 ## License

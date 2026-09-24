@@ -37,6 +37,7 @@ pub enum Item {
     Alias(AliasDecl),
     Enum(EnumDecl),
     Import(Import),
+    Test(TestDecl),
 }
 
 impl Item {
@@ -47,8 +48,18 @@ impl Item {
             Item::Alias(d) => d.span,
             Item::Enum(d) => d.span,
             Item::Import(d) => d.span,
+            Item::Test(d) => d.span,
         }
     }
+}
+
+/// `test "triage finds refunds" { ... }`: run by `ward test`, not part of the program.
+#[derive(Debug, PartialEq)]
+pub struct TestDecl {
+    pub name: String,
+    pub name_span: Span,
+    pub body: Block,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq)]
@@ -284,6 +295,11 @@ pub enum StmtKind {
     While {
         cond: ExprId,
         body: Block,
+    },
+    /// `assert cond => "why"`, only in tests.
+    Assert {
+        cond: ExprId,
+        message: Option<(String, Span)>,
     },
 }
 

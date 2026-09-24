@@ -14,6 +14,8 @@ mod exit {
     pub const INTERNAL: u8 = 2;
     /// `ward run`: the program threw, or failed in the runtime.
     pub const RUNTIME: u8 = 3;
+    /// `ward test`: a test failed.
+    pub const TESTS_FAILED: u8 = 4;
 }
 
 #[derive(Parser)]
@@ -81,6 +83,27 @@ enum Command {
         /// Seconds to wait for each server's answer
         #[arg(long, default_value_t = 30)]
         timeout: u64,
+    },
+    /// Run the program's `test` blocks against their recorded model answers
+    Test {
+        file: PathBuf,
+        /// Only run tests whose names contain one of these
+        filters: Vec<String>,
+        /// Run against a model and write the recordings, instead of replaying them
+        #[arg(long)]
+        record: bool,
+        /// With `--record`: answer from a JSON file, `{"fn_name": answer, ...}`
+        #[arg(long, requires = "record", conflicts_with = "model")]
+        mock: Option<PathBuf>,
+        /// With `--record`: the model to ask, as for `ward run --model`
+        #[arg(long, requires = "record")]
+        model: Vec<String>,
+        /// The recordings file (default: `<file>.recordings.json` next to the program)
+        #[arg(long)]
+        recordings: Option<PathBuf>,
+        /// Where to write each test's audit trace
+        #[arg(long)]
+        trace_dir: Option<PathBuf>,
     },
     /// Read the audit traces `ward run` and the runtime write
     Trace {
@@ -164,6 +187,25 @@ fn main() -> ExitCode {
             check,
             timeout,
         } => lock_command(&config, check, timeout),
+        Command::Test {
+            file,
+            filters,
+            record,
+            mock,
+            model,
+            recordings,
+            trace_dir,
+        } => test(
+            &file,
+            &TestOptions {
+                filters,
+                record,
+                mock,
+                model,
+                recordings,
+                trace_dir,
+            },
+        ),
         Command::Trace { command } => trace(command),
     }
 }
@@ -227,7 +269,13 @@ fn build(file: &Path, target: Target, out: &Path, asyncio: bool) -> ExitCode {
         Ok(p) => p,
         Err(code) => return code,
     };
-    let files = ward_codegen_py::generate_with(&program, ward_codegen_py::Options { asyncio });
+    let files = ward_codegen_py::generate_with(
+        &program,
+        ward_codegen_py::Options {
+            asyncio,
+            tests: false,
+        },
+    );
     if let Err(e) = write_files(
         out,
         files.iter().map(|f| (f.path.clone(), f.contents.as_str())),
@@ -295,11 +343,50 @@ fn run(file: &Path, function: &str, args: &[String], opts: &RunOptions) -> ExitC
         }
     };
 
+    let mut env: Vec<(&str, std::ffi::OsString)> = Vec::new();
+    if let Some(mock) = &mock {
+        env.push(("WARD_MOCK", mock.into()));
+    }
+    if !opts.model.is_empty() {
+        env.push(("WARD_MODEL", model_specs(&opts.model).into()));
+    }
+    if let Some(dir) = &trace_dir {
+        env.push(("WARD_TRACE_DIR", dir.into()));
+    }
+    let generated = ward_codegen_py::generate(&program);
+    match run_python(file, &generated, &runner.script, args, env) {
+        Ok(Some(0)) => ExitCode::SUCCESS,
+        Ok(Some(2)) => ExitCode::from(exit::INTERNAL),
+        Ok(_) => ExitCode::from(exit::RUNTIME),
+        Err(code) => code,
+    }
+}
+
+/// `--model` flags as `{"": default, "alias": spec}`, for the runner scripts.
+fn model_specs(models: &[String]) -> String {
+    let specs: serde_json::Map<String, serde_json::Value> = models
+        .iter()
+        .map(|m| match m.split_once('=') {
+            Some((alias, spec)) => (alias.to_owned(), spec.into()),
+            None => (String::new(), m.as_str().into()),
+        })
+        .collect();
+    serde_json::Value::Object(specs).to_string()
+}
+
+/// Writes the generated modules, the runtime and `script` to a temporary directory and
+/// runs the script with Python; returns its exit code.
+fn run_python(
+    file: &Path,
+    generated: &[ward_codegen_py::OutputFile],
+    script: &str,
+    args: &[String],
+    env: Vec<(&str, std::ffi::OsString)>,
+) -> Result<Option<i32>, ExitCode> {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.subsec_nanos());
     let dir = std::env::temp_dir().join(format!("ward-run-{}-{nanos}", std::process::id()));
-    let generated = ward_codegen_py::generate(&program);
     let files = generated
         .iter()
         .map(|f| (f.path.clone(), f.contents.as_str()))
@@ -308,11 +395,11 @@ fn run(file: &Path, function: &str, args: &[String], opts: &RunOptions) -> ExitC
                 .iter()
                 .map(|(p, c)| (PathBuf::from(p), *c)),
         )
-        .chain([(PathBuf::from("__ward_run__.py"), runner.script.as_str())]);
+        .chain([(PathBuf::from("__ward_run__.py"), script)]);
     if let Err(e) = write_files(&dir, files) {
         eprintln!("error: cannot write to `{}`: {e}", dir.display());
         let _ = std::fs::remove_dir_all(&dir);
-        return ExitCode::from(exit::INTERNAL);
+        return Err(ExitCode::from(exit::INTERNAL));
     }
 
     let python = std::env::var_os("WARD_PYTHON").unwrap_or_else(|| "python3".into());
@@ -320,47 +407,104 @@ fn run(file: &Path, function: &str, args: &[String], opts: &RunOptions) -> ExitC
     cmd.arg(dir.join("__ward_run__.py"))
         .args(args)
         .env("PYTHONPATH", &dir)
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .env_remove("WARD_MOCK")
-        .env_remove("WARD_MODEL")
-        .env_remove("WARD_TRACE_DIR")
-        .env_remove("WARD_MCP_CONFIG");
+        .env("PYTHONDONTWRITEBYTECODE", "1");
+    for var in [
+        "WARD_MOCK",
+        "WARD_MODEL",
+        "WARD_TRACE_DIR",
+        "WARD_MCP_CONFIG",
+        "WARD_RECORD",
+        "WARD_RECORDINGS",
+        "WARD_FILTERS",
+    ] {
+        cmd.env_remove(var);
+    }
     if let Some(config) = find_mcp_config(file) {
         cmd.env("WARD_MCP_CONFIG", config);
     }
-    if let Some(mock) = &mock {
-        cmd.env("WARD_MOCK", mock);
-    }
-    if !opts.model.is_empty() {
-        // `{"": default, "alias": spec}`
-        let specs: serde_json::Map<String, serde_json::Value> = opts
-            .model
-            .iter()
-            .map(|m| match m.split_once('=') {
-                Some((alias, spec)) => (alias.to_owned(), spec.into()),
-                None => (String::new(), m.as_str().into()),
-            })
-            .collect();
-        cmd.env("WARD_MODEL", serde_json::Value::Object(specs).to_string());
-    }
-    if let Some(dir) = &trace_dir {
-        cmd.env("WARD_TRACE_DIR", dir);
-    }
+    cmd.envs(env);
     let status = cmd.status();
     let _ = std::fs::remove_dir_all(&dir);
     match status {
-        Ok(s) => match s.code() {
-            Some(0) => ExitCode::SUCCESS,
-            Some(2) => ExitCode::from(exit::INTERNAL),
-            _ => ExitCode::from(exit::RUNTIME),
-        },
+        Ok(s) => Ok(s.code()),
         Err(e) => {
             eprintln!(
                 "error: cannot run `{}`: {e} (set WARD_PYTHON to a Python 3.10+ interpreter)",
                 python.to_string_lossy()
             );
-            ExitCode::from(exit::INTERNAL)
+            Err(ExitCode::from(exit::INTERNAL))
         }
+    }
+}
+
+struct TestOptions {
+    filters: Vec<String>,
+    record: bool,
+    mock: Option<PathBuf>,
+    model: Vec<String>,
+    recordings: Option<PathBuf>,
+    trace_dir: Option<PathBuf>,
+}
+
+/// `ward test`: runs the file's `test` blocks against their recordings, or records them.
+fn test(file: &Path, opts: &TestOptions) -> ExitCode {
+    if opts.record && opts.mock.is_none() && opts.model.is_empty() {
+        eprintln!(
+            "error: `--record` needs a model to ask: `--model <provider>` or `--mock <answers.json>`"
+        );
+        return ExitCode::from(exit::INTERNAL);
+    }
+    let program = match compile(file, "test") {
+        Ok(p) => p,
+        Err(code) => return code,
+    };
+    let Some(script) = ward_codegen_py::test_runner(&program) else {
+        return ExitCode::from(exit::INTERNAL);
+    };
+    let recordings = opts
+        .recordings
+        .clone()
+        .unwrap_or_else(|| file.with_extension("recordings.json"));
+    let absolute = |p: &Path| std::path::absolute(p).unwrap_or_else(|_| p.to_owned());
+    let mut env: Vec<(&str, std::ffi::OsString)> = vec![
+        ("WARD_RECORDINGS", absolute(&recordings).into()),
+        (
+            "WARD_FILTERS",
+            serde_json::Value::from(opts.filters.clone())
+                .to_string()
+                .into(),
+        ),
+    ];
+    if opts.record {
+        env.push(("WARD_RECORD", "1".into()));
+        if let Some(mock) = &opts.mock {
+            env.push(("WARD_MOCK", absolute(mock).into()));
+        }
+        if !opts.model.is_empty() {
+            env.push(("WARD_MODEL", model_specs(&opts.model).into()));
+        }
+    }
+    if let Some(dir) = &opts.trace_dir {
+        env.push(("WARD_TRACE_DIR", absolute(dir).into()));
+    }
+    let generated = ward_codegen_py::generate_with(
+        &program,
+        ward_codegen_py::Options {
+            asyncio: false,
+            tests: true,
+        },
+    );
+    match run_python(file, &generated, &script, &[], env) {
+        Ok(Some(0)) => {
+            if opts.record {
+                eprintln!("recorded to `{}`", recordings.display());
+            }
+            ExitCode::SUCCESS
+        }
+        Ok(Some(4)) => ExitCode::from(exit::TESTS_FAILED),
+        Ok(Some(2)) => ExitCode::from(exit::INTERNAL),
+        Ok(_) => ExitCode::from(exit::RUNTIME),
+        Err(code) => code,
     }
 }
 

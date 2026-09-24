@@ -1,0 +1,21 @@
+// A test may call anything, use `?` on throwing calls, and catch errors.
+fn half(n: Int) -> Int throws String {
+    if n % 2 == 1 {
+        throw "odd"
+    }
+    n / 2
+}
+
+test "halves even numbers" {
+    assert half(4)? == 2 => "4 / 2 is 2"
+}
+
+test "throws on odd numbers" {
+    let caught = try {
+        half(3)?
+        ""
+    } catch e {
+        e
+    }
+    assert caught == "odd"
+}

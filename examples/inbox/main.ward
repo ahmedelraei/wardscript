@@ -45,3 +45,9 @@ pub fn triage_inbox(owner: String) -> Int throws String
     mail.send_email(owner, "Inbox triage", "{n} messages labeled")?
     n
 }
+
+// Recorded against the example server and a mock model: `ward test` replays the
+// tools' results too, so it runs without the server.
+test "every unread message is labeled, and the owner gets a count" {
+    assert triage_inbox("owner@example.com")? == 3
+}

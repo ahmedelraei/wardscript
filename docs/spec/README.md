@@ -3,7 +3,7 @@
 This is the normative description of Wardscript. It is kept in sync with the
 implementation: every language feature lands together with its section here.
 
-Status: **M9 (refinements and output checks)**.
+Status: **M10 (tests)**.
 
 ## Contents
 
@@ -17,6 +17,7 @@ Status: **M9 (refinements and output checks)**.
 | [Effects, budgets, Rule of Two](effects.md) | implemented (M5) |
 | [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5), audit trace, providers, sink checks, async and streaming (M6), model policies (M8) |
 | [Tools and MCP imports](tools.md) (`ward.lock`, typed tool calls, sink parameters) | implemented (M7) |
+| [Tests](testing.md) (`test` blocks, `assert`, `ward test`, recordings) | implemented (M10) |
 
 ## Diagnostics
 
@@ -39,3 +40,4 @@ it is assigned; retired codes are not reused.
 | 1 | the program has errors (diagnostics were reported) |
 | 2 | usage error or internal failure |
 | 3 | `ward run`: the program threw, or failed at runtime |
+| 4 | `ward test`: a test failed |

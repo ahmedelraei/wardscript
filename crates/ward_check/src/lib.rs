@@ -131,8 +131,12 @@ pub fn check(program: &Program, resolution: &Resolution) -> Checked {
         .map(|m| {
             let mut types = ModuleTypes::default();
             for (item, it) in program.module(m).ast.items.iter().enumerate() {
-                if let Item::Fn(f) = it {
-                    infer::check_fn(&mut c, DefId { module: m, item }, f, &mut types);
+                match it {
+                    Item::Fn(f) => {
+                        infer::check_fn(&mut c, DefId { module: m, item }, f, &mut types)
+                    }
+                    Item::Test(t) => infer::check_test(&mut c, m, t, &mut types),
+                    _ => {}
                 }
             }
             types

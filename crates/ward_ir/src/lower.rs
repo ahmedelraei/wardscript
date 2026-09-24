@@ -98,6 +98,7 @@ fn lower_module(
         fns: Vec::new(),
         tools: Vec::new(),
         refinements: Vec::new(),
+        tests: Vec::new(),
     };
     for (item, it) in data.ast.items.iter().enumerate() {
         let def = DefId { module: m, item };
@@ -157,6 +158,7 @@ fn lower_module(
                 })?;
                 let mut cx = FnLower {
                     program,
+                    src: &data.src,
                     ast: &data.ast,
                     res,
                     types,
@@ -240,6 +242,49 @@ fn lower_module(
                     body,
                 });
             }
+            Item::Test(t) => {
+                let name = format!("_test_{item}");
+                let mut cx = FnLower {
+                    program,
+                    src: &data.src,
+                    ast: &data.ast,
+                    res,
+                    types,
+                    checked,
+                    lines: &lines,
+                    file: &file,
+                    module: &data.name,
+                    fn_name: &name,
+                    locals: Arena::default(),
+                    local_map: HashMap::new(),
+                    exprs: Arena::default(),
+                    stmts: Arena::default(),
+                    pats: Arena::default(),
+                };
+                let body = Body::Block(cx.block(&t.body)?);
+                let site = cx.site(t.name_span);
+                module.tests.push(Test {
+                    name: t.name.clone(),
+                    site,
+                    func: Fn {
+                        def,
+                        name: name.clone(),
+                        is_pub: false,
+                        generics: Vec::new(),
+                        params: Vec::new(),
+                        trusted: Vec::new(),
+                        budget: Vec::new(),
+                        model: None,
+                        ret: Ty::Unit,
+                        throws: None,
+                        locals: cx.locals,
+                        exprs: cx.exprs,
+                        stmts: cx.stmts,
+                        pats: cx.pats,
+                        body,
+                    },
+                });
+            }
             Item::Alias(_) | Item::Import(_) => {}
         }
     }
@@ -250,6 +295,7 @@ fn lower_module(
         let name = format!("_refine_{}", id.into_raw().into_u32());
         let mut cx = FnLower {
             program,
+            src: &data.src,
             ast: &data.ast,
             res,
             types,
@@ -315,6 +361,7 @@ fn site_path(data: &ModuleData) -> String {
 
 struct FnLower<'a> {
     program: &'a ward_resolve::Program,
+    src: &'a str,
     ast: &'a ast::Module,
     res: &'a ModuleRes,
     types: &'a ModuleTypes,
@@ -420,6 +467,18 @@ impl FnLower<'_> {
                 cond: self.expr(*cond)?,
                 body: self.block(body)?,
             },
+            ast::StmtKind::Assert { cond, message } => {
+                let span = ast.exprs[*cond].span;
+                let message = match message {
+                    Some((m, _)) => m.clone(),
+                    None => format!("`{}`", self.src.get(span.range()).unwrap_or("?")),
+                };
+                Stmt::Assert {
+                    cond: self.expr(*cond)?,
+                    message,
+                    site: self.site(ast.stmts[id].span),
+                }
+            }
         };
         Ok(self.stmts.alloc(stmt))
     }

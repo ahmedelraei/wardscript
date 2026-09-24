@@ -267,3 +267,52 @@ fn run_rejects_an_unused_model_alias() {
     assert_eq!(out.status.code(), Some(2), "{}", common::render(&out));
     assert!(String::from_utf8_lossy(&out.stderr).contains("alias `fastest`"));
 }
+
+#[test]
+fn test_replays_the_examples_offline() {
+    for file in ["examples/triage.wardscript", "examples/inbox/main.ward"] {
+        let out = common::ward(&["test", file]);
+        assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        assert!(stdout.contains(" 0 failed"), "{stdout}");
+    }
+}
+
+#[test]
+fn test_fails_on_a_failed_assertion() {
+    let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("ward_test_fails");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("mkdir");
+    let examples = common::repo_root().join("examples");
+    let src = std::fs::read_to_string(examples.join("triage.wardscript")).expect("read example");
+    let src = src.replace(
+        "assert queue(ticket) == \"billing\"",
+        "assert queue(ticket) == \"support\" => \"billing goes to support\"",
+    );
+    std::fs::write(dir.join("triage.wardscript"), src).expect("write");
+    std::fs::copy(
+        examples.join("triage.recordings.json"),
+        dir.join("triage.recordings.json"),
+    )
+    .expect("copy recordings");
+    let file = dir.join("triage.wardscript");
+    let out = common::ward(&["test", file.to_str().expect("utf-8")]);
+    assert_eq!(out.status.code(), Some(4), "{}", common::render(&out));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("test a double charge goes to billing ... FAILED"),
+        "{stdout}"
+    );
+    assert!(stdout.contains("billing goes to support"), "{stdout}");
+    assert!(stdout.contains("1 passed, 1 failed"), "{stdout}");
+
+    // A filter picks tests by name.
+    let out = common::ward(&["test", file.to_str().expect("utf-8"), "crash"]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+}
+
+#[test]
+fn test_record_needs_a_model() {
+    let out = common::ward(&["test", "examples/triage.wardscript", "--record"]);
+    assert_eq!(out.status.code(), Some(2), "{}", common::render(&out));
+}

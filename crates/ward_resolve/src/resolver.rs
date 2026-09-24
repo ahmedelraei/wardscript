@@ -82,9 +82,21 @@ fn collect_items(
 ) -> ModuleScope {
     let module = program.module(m);
     let mut scope = ModuleScope::default();
+    let mut tests: HashMap<&str, Span> = HashMap::new();
     for (item, it) in module.ast.items.iter().enumerate() {
         let def = DefId { module: m, item };
         let (name, res, is_pub) = match it {
+            // Tests have no name in scope, but two with the same name would be confusing.
+            Item::Test(t) => {
+                if let Some(&first) = tests.get(t.name.as_str()) {
+                    diags.push(ProgramDiagnostic {
+                        module: m,
+                        diagnostic: duplicate(&t.name, t.name_span, first, "the test"),
+                    });
+                }
+                tests.insert(&t.name, t.name_span);
+                continue;
+            }
             Item::Fn(f) => (&f.name, ItemRes::Fn(def), f.is_pub),
             Item::Record(r) => (&r.name, ItemRes::Type(def), r.is_pub),
             Item::Alias(a) => (&a.name, ItemRes::Type(def), a.is_pub),
@@ -195,6 +207,10 @@ impl BodyResolver<'_> {
                     }
                 }
                 Item::Import(_) => {}
+                Item::Test(t) => {
+                    self.set_generics(&[]);
+                    self.block(&t.body);
+                }
             }
         }
     }
@@ -481,6 +497,7 @@ impl BodyResolver<'_> {
                 self.expr(*cond);
                 self.block(body);
             }
+            StmtKind::Assert { cond, .. } => self.expr(*cond),
         }
     }
 
