@@ -59,7 +59,10 @@ Early development, but usable end to end. Done:
 Next: proof and polish (M11): typed streaming, the TypeScript backend, an LSP. See [PLAN.md](PLAN.md) for the milestones
 and [docs/spec](docs/spec/README.md) for the language specification.
 
+[docs/guide.md](docs/guide.md) gets you started: install, `ward init`, and a tour.
+
 ```bash
+cargo run -p ward_cli -- init hello                         # a first project
 cargo run -p ward_cli -- check examples/support.wardscript
 cargo run -p ward_cli -- build examples/triage.wardscript -o build
 cargo run -p ward_cli -- run examples/triage.wardscript route '"My order never came"' --mock answers.json
