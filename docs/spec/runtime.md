@@ -1,9 +1,9 @@
 # Python backend and runtime
 
 Status: implemented in M3 (`ward_ir`, `ward_codegen_py`, `crates/ward_runtime/py`);
-trust at the host boundary in M4, budgets in M5; the Rust core, audit trace and
-model providers in M6. The design is recorded in decisions
-[006](../decisions/006-python-backend.md) and
+trust at the host boundary in M4, budgets in M5; the Rust core, audit trace,
+model providers and collectors in M6. The design is recorded in
+decisions [006](../decisions/006-python-backend.md) and
 [009](../decisions/009-runtime-core-and-trace.md).
 
 ## Building
@@ -128,6 +128,15 @@ its children, and checks, approvals and declassifications events on the root),
 `--format jsonl` the trace as written. Both read `--dir`, else `WARD_TRACE_DIR`,
 else `.ward/traces`.
 
+### Sending runs to a collector
+
+`ward trace export [RUN] --endpoint http://localhost:4318` POSTs the spans to an
+OTLP/HTTP collector (at `/v1/traces`, JSON encoding) instead of printing them. A
+program can send each run itself as it ends, with
+`runtime.configure(otlp_endpoint=...)` or `OTEL_EXPORTER_OTLP_ENDPOINT`. If the
+collector can't be reached, the runtime warns and the run carries on; the trace
+file still has everything.
+
 ## Model providers
 
 `wardscript.providers` has `Model`s for real APIs, which report the tokens used (and,
@@ -213,6 +222,8 @@ defaults.
 - **`trace_dir`**: where each run's audit trace is written; else `WARD_TRACE_DIR`,
   else nowhere. `runtime.last_run()` has the last run's `id`, `path` and `records`
   either way.
+- **`otlp_endpoint`**: an OTLP/HTTP collector each run is also sent to
+  ([above](#sending-runs-to-a-collector)).
 
 ### `ai fn` calls
 

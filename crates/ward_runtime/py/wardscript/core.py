@@ -11,5 +11,6 @@ Budget = impl.Budget
 Recorder = impl.Recorder
 digest = impl.digest
 leaves = impl.leaves
+otlp = impl.otlp
 
-__all__ = ["IMPLEMENTATION", "Budget", "Recorder", "digest", "leaves"]
+__all__ = ["IMPLEMENTATION", "Budget", "Recorder", "digest", "leaves", "otlp"]

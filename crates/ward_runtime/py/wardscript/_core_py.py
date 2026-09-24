@@ -125,6 +125,11 @@ class Recorder:
             self.path = os.path.join(os.fspath(dir), f"{self.run}.jsonl")
             self._file = open(self.path, "w", encoding="utf-8")  # noqa: SIM115
 
+    def close(self) -> None:
+        if self._file is not None:
+            self._file.close()
+            self._file = None
+
     def record(self, event: str) -> str:
         e = json.loads(event)
         kind = e.get("kind")
@@ -142,3 +147,105 @@ class Recorder:
             self._file.write(line + "\n")
             self._file.flush()
         return line
+
+
+def _attr(key: str, value: Any) -> dict[str, Any]:
+    if isinstance(value, str):
+        v: dict[str, Any] = {"stringValue": value}
+    elif isinstance(value, bool):
+        v = {"boolValue": value}
+    elif isinstance(value, int):
+        v = {"intValue": str(value)}
+    elif isinstance(value, float):
+        v = {"doubleValue": value}
+    else:
+        v = {"stringValue": json.dumps(value, separators=(",", ":"), ensure_ascii=False)}
+    return {"key": key, "value": v}
+
+
+def _status(error: str | None) -> dict[str, Any]:
+    return {"code": 1} if error is None else {"code": 2, "message": error}
+
+
+def otlp(records: str) -> str:
+    """A run's records (a JSON list) as OTLP/JSON spans; see `ward_runtime::otlp`."""
+    recs = json.loads(records)
+    run = recs[0]["run"] if recs else ""
+    trace_id = _digest(run) + _digest([run])
+    root = _digest([run, 0])
+    spans: list[dict[str, Any]] = []
+    events: list[dict[str, Any]] = []
+    name, start, end, status = "", 0, 0, {}
+    for r in recs:
+        kind, t = r["kind"], str(r["time"])
+        if kind == "run_start":
+            name, start = f"run {r['function']}", r["time"]
+        elif kind == "run_end":
+            end = r["time"]
+            status = {"code": 1} if r["status"] == "ok" else {"code": 2, "message": r["error"] or ""}
+            usage = [_attr("ward.tokens", r["tokens"]), _attr("ward.calls", r["calls"]), _attr("ward.cost", r["cost"])]
+            events.append({"timeUnixNano": t, "name": "usage", "attributes": usage})
+        elif kind in ("ai_call", "tool_call"):
+            if kind == "ai_call":
+                span_name = f"ai fn {r['function']}"
+                attrs = [
+                    _attr("ward.attempt", r["attempt"]),
+                    _attr("gen_ai.usage.total_tokens", r["tokens"]),
+                    _attr("ward.cost", r["cost"]),
+                ]
+            else:
+                span_name = f"{r['tool']}.{r['function']}"
+                attrs = [_attr("ward.site", r["site"])]
+            spans.append(
+                {
+                    "traceId": trace_id,
+                    "spanId": _digest([run, r["seq"]]),
+                    "parentSpanId": root,
+                    "name": span_name,
+                    "kind": 3,
+                    "startTimeUnixNano": str(r["started"]),
+                    "endTimeUnixNano": t,
+                    "attributes": attrs,
+                    "status": _status(r["error"]),
+                }
+            )
+        elif kind == "validate":
+            attrs = [_attr("ward.rule", r["rule"]), _attr("ward.site", r["site"]), _attr("ward.passed", r["passed"])]
+            events.append({"timeUnixNano": t, "name": "validate", "attributes": attrs})
+        elif kind == "approve":
+            attrs = [_attr("ward.site", r["site"]), _attr("ward.approved", r["approved"])]
+            events.append({"timeUnixNano": t, "name": "approve", "attributes": attrs})
+        elif kind == "declassify":
+            attrs = [_attr("ward.site", r["site"]), _attr("ward.reason", r["reason"])]
+            events.append({"timeUnixNano": t, "name": "declassify", "attributes": attrs})
+        elif kind == "budget_exceeded":
+            attrs = [
+                _attr("ward.function", r["function"]),
+                _attr("ward.resource", r["resource"]),
+                _attr("ward.limit", r["limit"]),
+                _attr("ward.used", r["used"]),
+            ]
+            events.append({"timeUnixNano": t, "name": "budget_exceeded", "attributes": attrs})
+    spans.insert(
+        0,
+        {
+            "traceId": trace_id,
+            "spanId": root,
+            "name": name,
+            "kind": 1,
+            "startTimeUnixNano": str(start),
+            "endTimeUnixNano": str(max(end, start)),
+            "attributes": [_attr("ward.run", run)],
+            "events": events,
+            "status": status,
+        },
+    )
+    out = {
+        "resourceSpans": [
+            {
+                "resource": {"attributes": [_attr("service.name", "wardscript")]},
+                "scopeSpans": [{"scope": {"name": "wardscript"}, "spans": spans}],
+            }
+        ]
+    }
+    return json.dumps(out, separators=(",", ":"), ensure_ascii=False)
