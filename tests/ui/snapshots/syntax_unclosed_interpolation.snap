@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_unclosed_interpolation.wardscript` due t
   "diagnostics": [
     {
       "code": "W0004",
+      "file": "tests/ui/syntax_unclosed_interpolation.wardscript",
       "help": "close it with `}`, or write `{{` for a literal brace",
       "labels": [
         {

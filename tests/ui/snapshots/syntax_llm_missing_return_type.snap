@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_llm_missing_return_type.wardscript` due 
   "diagnostics": [
     {
       "code": "W0017",
+      "file": "tests/ui/syntax_llm_missing_return_type.wardscript",
       "help": "the model's answer is parsed and validated against the return type, e.g. `-> Ticket`",
       "labels": [
         {

@@ -1,0 +1,11 @@
+enum Shape {
+    Point,
+    Circle(Float),
+}
+
+fn area(s: Shape) -> Float {
+    match s {
+        Shape.Point(x) => 0.0,
+        Shape.Circle => 1.0,
+    }
+}

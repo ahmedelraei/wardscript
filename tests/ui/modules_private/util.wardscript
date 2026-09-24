@@ -1,0 +1,7 @@
+fn secret() -> Int {
+    42
+}
+
+pub fn helper() -> Int {
+    1
+}

@@ -1,0 +1,57 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/names_unknown_record.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0101] Error: cannot find record type `Tikcet`
+   ╭─[ tests/ui/names_unknown_record.wardscript:2:13 ]
+   │
+ 2 │     let t = Tikcet { title: "x" };
+   │             ───┬──  
+   │                ╰──── not found
+───╯
+error: could not check `tests/ui/names_unknown_record.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0101",
+      "file": "tests/ui/names_unknown_record.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "not found",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 2,
+              "offset": 34
+            },
+            "start": {
+              "column": 13,
+              "line": 2,
+              "offset": 28
+            }
+          }
+        }
+      ],
+      "message": "cannot find record type `Tikcet`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 19,
+          "line": 2,
+          "offset": 34
+        },
+        "start": {
+          "column": 13,
+          "line": 2,
+          "offset": 28
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/names_unknown_record.wardscript"
+}

@@ -17,6 +17,7 @@ error: could not check `tests/ui/syntax_bad_interpolation_expr.wardscript` due t
   "diagnostics": [
     {
       "code": "W0012",
+      "file": "tests/ui/syntax_bad_interpolation_expr.wardscript",
       "help": null,
       "labels": [
         {

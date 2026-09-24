@@ -34,6 +34,14 @@ fn draft_reply(ticket: Ticket) -> Reply
     budget {tokens: 4000}
     by llm "Write a short, polite reply to {ticket.customer} about: {ticket.summary}"
 
+fn single_line(text: String) -> Bool {
+    !text.contains("\n")
+}
+
+fn no_links(text: String) -> Bool {
+    !text.contains("http://") && !text.contains("https://")
+}
+
 fn needs_human(ticket: Ticket) -> Bool {
     match ticket.priority {
         Priority.Urgent => true,
@@ -67,7 +75,7 @@ pub fn handle_all(inbox: List<Untrusted<String>>, to: String) -> Int
             Ok(_) => {
                 sent = sent + 1;
             }
-            Err(reason) => log("skipped: {reason}"),
+            Err(_) => {}
         }
     }
     sent

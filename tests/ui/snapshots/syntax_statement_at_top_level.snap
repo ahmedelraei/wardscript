@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_statement_at_top_level.wardscript` due t
   "diagnostics": [
     {
       "code": "W0011",
+      "file": "tests/ui/syntax_statement_at_top_level.wardscript",
       "help": "statements must be inside a function body",
       "labels": [
         {

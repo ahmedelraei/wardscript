@@ -53,6 +53,7 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
   "diagnostics": [
     {
       "code": "W0015",
+      "file": "tests/ui/syntax_many_errors.wardscript",
       "help": "statements end with `;`",
       "labels": [
         {
@@ -89,6 +90,7 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
     },
     {
       "code": "W0013",
+      "file": "tests/ui/syntax_many_errors.wardscript",
       "help": null,
       "labels": [
         {
@@ -125,6 +127,7 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
     },
     {
       "code": "W0016",
+      "file": "tests/ui/syntax_many_errors.wardscript",
       "help": "write the prompt inline; use `{...}` to insert values: `by llm \"Summarize: {text}\"`",
       "labels": [
         {
@@ -161,6 +164,7 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
     },
     {
       "code": "W0019",
+      "file": "tests/ui/syntax_many_errors.wardscript",
       "help": "split it with `&&`, e.g. `a < b && b < c`",
       "labels": [
         {
@@ -213,6 +217,7 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
     },
     {
       "code": "W0012",
+      "file": "tests/ui/syntax_many_errors.wardscript",
       "help": null,
       "labels": [
         {

@@ -1,0 +1,7 @@
+fn parse(s: String) -> Result<Int, String> {
+    Ok(1)
+}
+
+fn f(s: String) -> Result<Int, Int> {
+    Ok(parse(s)?)
+}

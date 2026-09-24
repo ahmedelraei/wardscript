@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_non_exhaustive_int.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0117] Error: non-exhaustive match: `_` not covered
+   ╭─[ tests/ui/types_non_exhaustive_int.wardscript:2:11 ]
+   │
+ 2 │     match n {
+   │           ┬  
+   │           ╰── pattern `_` not covered
+   │ 
+   │ Help: add an arm for it, or a catch-all arm `_ => ...`
+───╯
+error: could not check `tests/ui/types_non_exhaustive_int.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0117",
+      "file": "tests/ui/types_non_exhaustive_int.wardscript",
+      "help": "add an arm for it, or a catch-all arm `_ => ...`",
+      "labels": [
+        {
+          "message": "pattern `_` not covered",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 12,
+              "line": 2,
+              "offset": 39
+            },
+            "start": {
+              "column": 11,
+              "line": 2,
+              "offset": 38
+            }
+          }
+        }
+      ],
+      "message": "non-exhaustive match: `_` not covered",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 12,
+          "line": 2,
+          "offset": 39
+        },
+        "start": {
+          "column": 11,
+          "line": 2,
+          "offset": 38
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_non_exhaustive_int.wardscript"
+}

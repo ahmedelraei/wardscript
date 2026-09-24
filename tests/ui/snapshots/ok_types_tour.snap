@@ -1,0 +1,12 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/ok_types_tour.wardscript
+---
+exit: Some(0)
+--- human ---
+ok: tests/ui/ok_types_tour.wardscript
+--- json ---
+{
+  "diagnostics": [],
+  "file": "tests/ui/ok_types_tour.wardscript"
+}

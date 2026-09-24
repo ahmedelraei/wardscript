@@ -29,7 +29,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 - Error recovery: report several syntax errors per file.
 - Pretty-printer (AST → source) for round-trip tests.
 
-**Done when:** `examples/support.wardscript` parses; round-trip tests pass; there are 20+ ui snapshots of syntax errors with good messages.
+**Done when:** `examples/support.ward` parses; round-trip tests pass; there are 20+ ui snapshots of syntax errors with good messages.
 
 **Prompt**
 > Implement M1 from PLAN.md in `ws_syntax`. Hand-written recursive-descent parser, Pratt parsing for expressions, arena-allocated AST, error recovery. Add a pretty-printer and round-trip tests, plus ui snapshot tests for syntax errors.
@@ -58,9 +58,9 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
   - `runtime.configure(model=..., approver=...)`
   - LLM call for `by llm`: build the prompt, derive a JSON schema from the return type, validate the output, retry N times, then raise a typed error.
   - A mock model provider for tests.
-- `ward build --target python`, `ward run file.wardscript fn args`.
+- `ward build --target python`, `ward run file.ward fn args`.
 
-**Done when:** e2e test: `examples/triage.wardscript` builds, Python imports it, and the mock LLM returns a correctly typed `Ticket`.
+**Done when:** e2e test: `examples/triage.ward` builds, Python imports it, and the mock LLM returns a correctly typed `Ticket`.
 
 **Prompt**
 > Implement M3: lower to WIR, generate Python + .pyi, and a minimal Python runtime package with configure(), schema-validated LLM calls with retries, and a mock provider. Add e2e tests under tests/e2e.
@@ -120,7 +120,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 ## M8: Proof and polish (ongoing)
 - TypeScript backend (`ws_codegen_ts`) + napi-rs runtime binding.
 - AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility).
-- LSP (`tower-lsp`) + VS Code extension (syntax highlighting for `.wardscript`).
+- LSP (`tower-lsp`) + VS Code extension (syntax highlighting for `.ward`).
 - `salsa` for incremental checking.
 - WASM backend via `wasm-encoder` (sandboxed execution).
 

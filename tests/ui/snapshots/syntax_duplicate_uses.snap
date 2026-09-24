@@ -25,6 +25,7 @@ error: could not check `tests/ui/syntax_duplicate_uses.wardscript` due to 1 erro
   "diagnostics": [
     {
       "code": "W0018",
+      "file": "tests/ui/syntax_duplicate_uses.wardscript",
       "help": "merge them into a single `uses { ... }`",
       "labels": [
         {

@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_unclosed_paren_at_eof.wardscript` due to
   "diagnostics": [
     {
       "code": "W0021",
+      "file": "tests/ui/syntax_unclosed_paren_at_eof.wardscript",
       "help": "add a matching `)`",
       "labels": [
         {

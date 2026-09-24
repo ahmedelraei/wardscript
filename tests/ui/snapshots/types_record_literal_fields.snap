@@ -1,0 +1,147 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_record_literal_fields.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0113] Error: missing field in `Ticket`: `priority`
+    ╭─[ tests/ui/types_record_literal_fields.wardscript:12:5 ]
+    │
+ 12 │     Ticket { title: "a", title: "b", urgency: 3 }
+    │     ───┬──  
+    │        ╰──── some fields aren't set
+    │ 
+    │ Help: every field of a record must be given a value
+────╯
+[W0114] Error: field `title` is set more than once
+    ╭─[ tests/ui/types_record_literal_fields.wardscript:12:26 ]
+    │
+ 12 │     Ticket { title: "a", title: "b", urgency: 3 }
+    │                          ──┬──  
+    │                            ╰──── already set earlier
+────╯
+[W0111] Error: record `Ticket` has no field `urgency`
+    ╭─[ tests/ui/types_record_literal_fields.wardscript:12:38 ]
+    │
+ 12 │     Ticket { title: "a", title: "b", urgency: 3 }
+    │                                      ───┬───  
+    │                                         ╰───── unknown field
+────╯
+error: could not check `tests/ui/types_record_literal_fields.wardscript` due to 3 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0113",
+      "file": "tests/ui/types_record_literal_fields.wardscript",
+      "help": "every field of a record must be given a value",
+      "labels": [
+        {
+          "message": "some fields aren't set",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 11,
+              "line": 12,
+              "offset": 135
+            },
+            "start": {
+              "column": 5,
+              "line": 12,
+              "offset": 129
+            }
+          }
+        }
+      ],
+      "message": "missing field in `Ticket`: `priority`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 11,
+          "line": 12,
+          "offset": 135
+        },
+        "start": {
+          "column": 5,
+          "line": 12,
+          "offset": 129
+        }
+      }
+    },
+    {
+      "code": "W0114",
+      "file": "tests/ui/types_record_literal_fields.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "already set earlier",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 31,
+              "line": 12,
+              "offset": 155
+            },
+            "start": {
+              "column": 26,
+              "line": 12,
+              "offset": 150
+            }
+          }
+        }
+      ],
+      "message": "field `title` is set more than once",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 31,
+          "line": 12,
+          "offset": 155
+        },
+        "start": {
+          "column": 26,
+          "line": 12,
+          "offset": 150
+        }
+      }
+    },
+    {
+      "code": "W0111",
+      "file": "tests/ui/types_record_literal_fields.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "unknown field",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 45,
+              "line": 12,
+              "offset": 169
+            },
+            "start": {
+              "column": 38,
+              "line": 12,
+              "offset": 162
+            }
+          }
+        }
+      ],
+      "message": "record `Ticket` has no field `urgency`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 45,
+          "line": 12,
+          "offset": 169
+        },
+        "start": {
+          "column": 38,
+          "line": 12,
+          "offset": 162
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_record_literal_fields.wardscript"
+}

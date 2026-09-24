@@ -457,6 +457,8 @@ dependencies = [
 name = "ws_check"
 version = "0.0.1"
 dependencies = [
+ "insta",
+ "la-arena",
  "ws_resolve",
  "ws_syntax",
 ]
@@ -494,6 +496,7 @@ dependencies = [
 name = "ws_resolve"
 version = "0.0.1"
 dependencies = [
+ "la-arena",
  "ws_syntax",
 ]
 

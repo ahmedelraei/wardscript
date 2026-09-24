@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_llm_prompt_not_string.wardscript` due to
   "diagnostics": [
     {
       "code": "W0016",
+      "file": "tests/ui/syntax_llm_prompt_not_string.wardscript",
       "help": "write the prompt inline; use `{...}` to insert values: `by llm \"Summarize: {text}\"`",
       "labels": [
         {

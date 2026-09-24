@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_cyclic_alias.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0125] Error: type alias `A` refers to itself
+   ╭─[ tests/ui/types_cyclic_alias.wardscript:1:6 ]
+   │
+ 1 │ type A = List<B>
+   │      ┬  
+   │      ╰── cyclic alias
+   │ 
+   │ Help: use a record or enum to define a recursive type
+───╯
+error: could not check `tests/ui/types_cyclic_alias.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0125",
+      "file": "tests/ui/types_cyclic_alias.wardscript",
+      "help": "use a record or enum to define a recursive type",
+      "labels": [
+        {
+          "message": "cyclic alias",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "start": {
+              "column": 6,
+              "line": 1,
+              "offset": 5
+            }
+          }
+        }
+      ],
+      "message": "type alias `A` refers to itself",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 7,
+          "line": 1,
+          "offset": 6
+        },
+        "start": {
+          "column": 6,
+          "line": 1,
+          "offset": 5
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_cyclic_alias.wardscript"
+}

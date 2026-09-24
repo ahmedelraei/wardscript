@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_missing_semicolon.wardscript` due to 1 e
   "diagnostics": [
     {
       "code": "W0015",
+      "file": "tests/ui/syntax_missing_semicolon.wardscript",
       "help": "statements end with `;`",
       "labels": [
         {

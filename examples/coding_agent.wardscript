@@ -39,6 +39,16 @@ fn write_patch(goal: String, path: String, source: Untrusted<String>) -> Patch
     budget {tokens: 16000}
     by llm "Goal: {goal}\n\nRewrite {path} to reach the goal. Current contents:\n{source}"
 
+// Only the project's own test runner, with no shell tricks appended.
+fn allowed_test_command(command: String) -> Bool {
+    let safe = !command.contains(";") && !command.contains("&") && !command.contains("|");
+    safe && (command == "cargo test" || command.starts_with("cargo test -p "))
+}
+
+fn inside_repo(path: String) -> Bool {
+    !path.starts_with("/") && !path.contains("..")
+}
+
 fn run_tests(command: String) -> Result<Verdict, String>
     uses {sh.run}
 {

@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_unterminated_string.wardscript` due to 1
   "diagnostics": [
     {
       "code": "W0002",
+      "file": "tests/ui/syntax_unterminated_string.wardscript",
       "help": "add a closing `\"`",
       "labels": [
         {

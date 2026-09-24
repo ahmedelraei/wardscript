@@ -1,0 +1,57 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/names_value_as_type.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0106] Error: `helper` is not a type
+   ╭─[ tests/ui/names_value_as_type.wardscript:5:9 ]
+   │
+ 5 │ fn f(x: helper) -> Int {
+   │         ───┬──  
+   │            ╰──── expected a type
+───╯
+error: could not check `tests/ui/names_value_as_type.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0106",
+      "file": "tests/ui/names_value_as_type.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected a type",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 15,
+              "line": 5,
+              "offset": 44
+            },
+            "start": {
+              "column": 9,
+              "line": 5,
+              "offset": 38
+            }
+          }
+        }
+      ],
+      "message": "`helper` is not a type",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 15,
+          "line": 5,
+          "offset": 44
+        },
+        "start": {
+          "column": 9,
+          "line": 5,
+          "offset": 38
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/names_value_as_type.wardscript"
+}

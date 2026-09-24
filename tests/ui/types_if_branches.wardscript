@@ -1,0 +1,7 @@
+fn f(ok: Bool) -> Int {
+    if ok {
+        1
+    } else {
+        "no"
+    }
+}

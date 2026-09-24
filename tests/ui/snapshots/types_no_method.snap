@@ -1,0 +1,57 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_no_method.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0122] Error: no method `lenght` on type `String`
+   ╭─[ tests/ui/types_no_method.wardscript:2:7 ]
+   │
+ 2 │     s.lenght()
+   │       ───┬──  
+   │          ╰──── unknown method
+───╯
+error: could not check `tests/ui/types_no_method.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0122",
+      "file": "tests/ui/types_no_method.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "unknown method",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 13,
+              "line": 2,
+              "offset": 37
+            },
+            "start": {
+              "column": 7,
+              "line": 2,
+              "offset": 31
+            }
+          }
+        }
+      ],
+      "message": "no method `lenght` on type `String`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 13,
+          "line": 2,
+          "offset": 37
+        },
+        "start": {
+          "column": 7,
+          "line": 2,
+          "offset": 31
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_no_method.wardscript"
+}

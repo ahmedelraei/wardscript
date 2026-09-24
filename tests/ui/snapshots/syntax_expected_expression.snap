@@ -17,6 +17,7 @@ error: could not check `tests/ui/syntax_expected_expression.wardscript` due to 1
   "diagnostics": [
     {
       "code": "W0012",
+      "file": "tests/ui/syntax_expected_expression.wardscript",
       "help": null,
       "labels": [
         {

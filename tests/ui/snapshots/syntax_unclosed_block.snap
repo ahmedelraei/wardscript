@@ -21,6 +21,7 @@ error: could not check `tests/ui/syntax_unclosed_block.wardscript` due to 1 erro
   "diagnostics": [
     {
       "code": "W0021",
+      "file": "tests/ui/syntax_unclosed_block.wardscript",
       "help": null,
       "labels": [
         {

@@ -1,0 +1,105 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/modules_private/main.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0104] Error: `secret` is private
+   ╭─[ tests/ui/modules_private/main.wardscript:4:10 ]
+   │
+ 4 │     util.secret() + util.helpr()
+   │          ───┬──  
+   │             ╰──── not visible outside its module
+   │ 
+   │ Help: mark it `pub` in `tests/ui/modules_private/util.wardscript`
+───╯
+[W0105] Error: cannot find `helpr` in module `util`
+   ╭─[ tests/ui/modules_private/main.wardscript:4:26 ]
+   │
+ 4 │     util.secret() + util.helpr()
+   │                          ──┬──  
+   │                            ╰──── not found in that module
+   │ 
+   │ Help: a similar name exists: `helper`
+───╯
+error: could not check `tests/ui/modules_private/main.wardscript` due to 2 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0104",
+      "file": "tests/ui/modules_private/main.wardscript",
+      "help": "mark it `pub` in `tests/ui/modules_private/util.wardscript`",
+      "labels": [
+        {
+          "message": "not visible outside its module",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 16,
+              "line": 4,
+              "offset": 44
+            },
+            "start": {
+              "column": 10,
+              "line": 4,
+              "offset": 38
+            }
+          }
+        }
+      ],
+      "message": "`secret` is private",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 16,
+          "line": 4,
+          "offset": 44
+        },
+        "start": {
+          "column": 10,
+          "line": 4,
+          "offset": 38
+        }
+      }
+    },
+    {
+      "code": "W0105",
+      "file": "tests/ui/modules_private/main.wardscript",
+      "help": "a similar name exists: `helper`",
+      "labels": [
+        {
+          "message": "not found in that module",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 31,
+              "line": 4,
+              "offset": 59
+            },
+            "start": {
+              "column": 26,
+              "line": 4,
+              "offset": 54
+            }
+          }
+        }
+      ],
+      "message": "cannot find `helpr` in module `util`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 31,
+          "line": 4,
+          "offset": 59
+        },
+        "start": {
+          "column": 26,
+          "line": 4,
+          "offset": 54
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/modules_private/main.wardscript"
+}

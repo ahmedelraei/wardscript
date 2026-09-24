@@ -1,0 +1,7 @@
+type A = List<B>
+
+type B = A
+
+fn f(x: A) -> Int {
+    1
+}

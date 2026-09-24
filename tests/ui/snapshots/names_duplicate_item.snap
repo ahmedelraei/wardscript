@@ -1,0 +1,79 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/names_duplicate_item.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0103] Error: the name `helper` is defined more than once
+   ╭─[ tests/ui/names_duplicate_item.wardscript:5:4 ]
+   │
+ 5 │ fn helper() -> Int {
+   │    ───┬──  
+   │       ╰──── redefined here
+   │
+   ├─[ tests/ui/names_duplicate_item.wardscript:5:4 ]
+   │
+ 1 │ fn helper() -> Int {
+   │    ───┬──  
+   │       ╰──── first defined here
+───╯
+error: could not check `tests/ui/names_duplicate_item.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0103",
+      "file": "tests/ui/names_duplicate_item.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "redefined here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 10,
+              "line": 5,
+              "offset": 39
+            },
+            "start": {
+              "column": 4,
+              "line": 5,
+              "offset": 33
+            }
+          }
+        },
+        {
+          "message": "first defined here",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "column": 4,
+              "line": 1,
+              "offset": 3
+            }
+          }
+        }
+      ],
+      "message": "the name `helper` is defined more than once",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 10,
+          "line": 5,
+          "offset": 39
+        },
+        "start": {
+          "column": 4,
+          "line": 5,
+          "offset": 33
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/names_duplicate_item.wardscript"
+}

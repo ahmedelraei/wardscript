@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_empty_interpolation.wardscript` due to 1
   "diagnostics": [
     {
       "code": "W0004",
+      "file": "tests/ui/syntax_empty_interpolation.wardscript",
       "help": "put an expression inside, e.g. `{name}`, or write `{{}}` for literal braces",
       "labels": [
         {

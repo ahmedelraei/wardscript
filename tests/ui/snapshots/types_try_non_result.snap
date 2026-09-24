@@ -1,0 +1,57 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_try_non_result.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0118] Error: `?` needs a `Result` or `Option`, found `Int`
+   ╭─[ tests/ui/types_try_non_result.wardscript:2:8 ]
+   │
+ 2 │     Ok(x?)
+   │        ─┬  
+   │         ╰── can't use `?` here
+───╯
+error: could not check `tests/ui/types_try_non_result.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0118",
+      "file": "tests/ui/types_try_non_result.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "can't use `?` here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 10,
+              "line": 2,
+              "offset": 47
+            },
+            "start": {
+              "column": 8,
+              "line": 2,
+              "offset": 45
+            }
+          }
+        }
+      ],
+      "message": "`?` needs a `Result` or `Option`, found `Int`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 10,
+          "line": 2,
+          "offset": 47
+        },
+        "start": {
+          "column": 8,
+          "line": 2,
+          "offset": 45
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_try_non_result.wardscript"
+}

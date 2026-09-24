@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_expected_pattern.wardscript` due to 1 er
   "diagnostics": [
     {
       "code": "W0014",
+      "file": "tests/ui/syntax_expected_pattern.wardscript",
       "help": "patterns are `_`, a name, a literal, or a variant like `Some(x)`",
       "labels": [
         {

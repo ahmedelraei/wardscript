@@ -1,0 +1,4 @@
+fn f() -> Int {
+    let x: Int = "forty-two";
+    x
+}

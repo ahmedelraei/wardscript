@@ -1,0 +1,5 @@
+import util
+
+fn f() -> Int {
+    util.secret() + util.helpr()
+}

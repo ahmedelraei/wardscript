@@ -4,9 +4,12 @@ use crate::span::Span;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Code(pub &'static str);
 
-/// Syntax diagnostics (W00xx). Documented in `docs/spec/diagnostics.md`.
+/// Every diagnostic code, in one registry so numbers can't collide.
+/// Documented in `docs/spec/diagnostics.md`.
 pub mod codes {
     use super::Code;
+
+    // W00xx: syntax
 
     pub const UNEXPECTED_CHAR: Code = Code("W0001");
     pub const UNTERMINATED_STRING: Code = Code("W0002");
@@ -27,6 +30,82 @@ pub mod codes {
     pub const UNCLOSED_DELIMITER: Code = Code("W0021");
     pub const INTERPOLATION_NOT_ALLOWED: Code = Code("W0022");
     pub const PUB_IMPORT: Code = Code("W0023");
+
+    // W010x: names and modules. W0107 is reserved for "untrusted data reaches sink" (M4).
+    pub const UNRESOLVED_VALUE: Code = Code("W0100");
+    pub const UNRESOLVED_TYPE: Code = Code("W0101");
+    pub const UNRESOLVED_MODULE: Code = Code("W0102");
+    pub const DUPLICATE_DEFINITION: Code = Code("W0103");
+    pub const PRIVATE_ITEM: Code = Code("W0104");
+    pub const NO_SUCH_MEMBER: Code = Code("W0105");
+    pub const WRONG_KIND_OF_NAME: Code = Code("W0106");
+
+    // W011x-W012x: types
+    pub const TYPE_MISMATCH: Code = Code("W0110");
+    pub const NO_SUCH_FIELD: Code = Code("W0111");
+    pub const WRONG_TYPE_ARG_COUNT: Code = Code("W0112");
+    pub const MISSING_FIELDS: Code = Code("W0113");
+    pub const DUPLICATE_FIELD: Code = Code("W0114");
+    pub const WRONG_ARG_COUNT: Code = Code("W0115");
+    pub const NOT_CALLABLE: Code = Code("W0116");
+    pub const NON_EXHAUSTIVE_MATCH: Code = Code("W0117");
+    pub const INVALID_TRY: Code = Code("W0118");
+    pub const INVALID_OPERANDS: Code = Code("W0119");
+    pub const LLM_RETURN_NOT_SCHEMA: Code = Code("W0120");
+    pub const ANNOTATION_NEEDED: Code = Code("W0121");
+    pub const NO_SUCH_METHOD: Code = Code("W0122");
+    pub const INVALID_VALIDATE_RULE: Code = Code("W0123");
+    pub const NOT_A_VALUE: Code = Code("W0124");
+    pub const CYCLIC_ALIAS: Code = Code("W0125");
+    pub const INVALID_ASSIGNMENT: Code = Code("W0126");
+    pub const UNREACHABLE_PATTERN: Code = Code("W0127");
+
+    pub const ALL: &[Code] = &[
+        UNEXPECTED_CHAR,
+        UNTERMINATED_STRING,
+        INVALID_ESCAPE,
+        BAD_INTERPOLATION,
+        INVALID_NUMBER,
+        EXPECTED_TOKEN,
+        EXPECTED_ITEM,
+        EXPECTED_EXPR,
+        EXPECTED_TYPE,
+        EXPECTED_PATTERN,
+        MISSING_SEMICOLON,
+        LLM_PROMPT_NOT_STRING,
+        LLM_FN_WITHOUT_RETURN_TYPE,
+        DUPLICATE_CLAUSE,
+        CHAINED_COMPARISON,
+        INVALID_ASSIGN_TARGET,
+        UNCLOSED_DELIMITER,
+        INTERPOLATION_NOT_ALLOWED,
+        PUB_IMPORT,
+        UNRESOLVED_VALUE,
+        UNRESOLVED_TYPE,
+        UNRESOLVED_MODULE,
+        DUPLICATE_DEFINITION,
+        PRIVATE_ITEM,
+        NO_SUCH_MEMBER,
+        WRONG_KIND_OF_NAME,
+        TYPE_MISMATCH,
+        NO_SUCH_FIELD,
+        WRONG_TYPE_ARG_COUNT,
+        MISSING_FIELDS,
+        DUPLICATE_FIELD,
+        WRONG_ARG_COUNT,
+        NOT_CALLABLE,
+        NON_EXHAUSTIVE_MATCH,
+        INVALID_TRY,
+        INVALID_OPERANDS,
+        LLM_RETURN_NOT_SCHEMA,
+        ANNOTATION_NEEDED,
+        NO_SUCH_METHOD,
+        INVALID_VALIDATE_RULE,
+        NOT_A_VALUE,
+        CYCLIC_ALIAS,
+        INVALID_ASSIGNMENT,
+        UNREACHABLE_PATTERN,
+    ];
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -91,6 +170,13 @@ impl Diagnostic {
             message: Some(message.into()),
         });
         self
+    }
+
+    pub fn warning(code: Code, message: impl Into<String>, span: Span) -> Self {
+        Diagnostic {
+            severity: Severity::Warning,
+            ..Diagnostic::error(code, message, span)
+        }
     }
 
     pub fn with_help(mut self, help: impl Into<String>) -> Self {

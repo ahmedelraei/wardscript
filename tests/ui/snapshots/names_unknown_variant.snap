@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/names_unknown_variant.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0105] Error: no variant `Hgh` in enum `Priority`
+    ╭─[ tests/ui/names_unknown_variant.wardscript:12:14 ]
+    │
+ 12 │     Priority.Hgh
+    │              ─┬─  
+    │               ╰─── unknown variant
+    │ 
+    │ Help: a similar name exists: `High`
+────╯
+error: could not check `tests/ui/names_unknown_variant.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0105",
+      "file": "tests/ui/names_unknown_variant.wardscript",
+      "help": "a similar name exists: `High`",
+      "labels": [
+        {
+          "message": "unknown variant",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 12,
+              "offset": 143
+            },
+            "start": {
+              "column": 14,
+              "line": 12,
+              "offset": 140
+            }
+          }
+        }
+      ],
+      "message": "no variant `Hgh` in enum `Priority`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 12,
+          "offset": 143
+        },
+        "start": {
+          "column": 14,
+          "line": 12,
+          "offset": 140
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/names_unknown_variant.wardscript"
+}

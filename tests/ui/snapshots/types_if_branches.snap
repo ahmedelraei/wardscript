@@ -1,0 +1,57 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_if_branches.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0110] Error: mismatched types: expected `Int`, found `String`
+   ╭─[ tests/ui/types_if_branches.wardscript:5:9 ]
+   │
+ 5 │         "no"
+   │         ──┬─  
+   │           ╰─── expected `Int`, found `String`
+───╯
+error: could not check `tests/ui/types_if_branches.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0110",
+      "file": "tests/ui/types_if_branches.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Int`, found `String`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 13,
+              "line": 5,
+              "offset": 71
+            },
+            "start": {
+              "column": 9,
+              "line": 5,
+              "offset": 67
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Int`, found `String`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 13,
+          "line": 5,
+          "offset": 71
+        },
+        "start": {
+          "column": 9,
+          "line": 5,
+          "offset": 67
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_if_branches.wardscript"
+}

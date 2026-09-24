@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_invalid_escape.wardscript` due to 1 erro
   "diagnostics": [
     {
       "code": "W0003",
+      "file": "tests/ui/syntax_invalid_escape.wardscript",
       "help": "valid escapes are \\n \\r \\t \\0 \\\\ \\\"",
       "labels": [
         {

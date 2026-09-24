@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_int_too_large.wardscript` due to 1 error
   "diagnostics": [
     {
       "code": "W0005",
+      "file": "tests/ui/syntax_int_too_large.wardscript",
       "help": "the largest integer is 9223372036854775807",
       "labels": [
         {

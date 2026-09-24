@@ -1,0 +1,16 @@
+fn f(pair: Result<Int, Int>) -> Int {
+    match pair {
+        Ok(x) => x,
+        Err(x) => x,
+    }
+}
+
+enum Pair {
+    Two(Int, Int),
+}
+
+fn g(p: Pair) -> Int {
+    match p {
+        Pair.Two(a, a) => a,
+    }
+}

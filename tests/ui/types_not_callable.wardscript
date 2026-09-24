@@ -1,0 +1,3 @@
+fn f(limit: Int) -> Int {
+    limit(3)
+}

@@ -1,0 +1,57 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_not_callable.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0116] Error: `limit` is not a function
+   ╭─[ tests/ui/types_not_callable.wardscript:2:5 ]
+   │
+ 2 │     limit(3)
+   │     ──┬──  
+   │       ╰──── this has type `Int`
+───╯
+error: could not check `tests/ui/types_not_callable.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0116",
+      "file": "tests/ui/types_not_callable.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "this has type `Int`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 10,
+              "line": 2,
+              "offset": 35
+            },
+            "start": {
+              "column": 5,
+              "line": 2,
+              "offset": 30
+            }
+          }
+        }
+      ],
+      "message": "`limit` is not a function",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 10,
+          "line": 2,
+          "offset": 35
+        },
+        "start": {
+          "column": 5,
+          "line": 2,
+          "offset": 30
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_not_callable.wardscript"
+}

@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/modules_missing.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0102] Error: cannot find module `support.tickets`
+   ╭─[ tests/ui/modules_missing.wardscript:1:8 ]
+   │
+ 1 │ import support.tickets
+   │        ───────┬───────  
+   │               ╰───────── no such module
+   │ 
+   │ Help: looked for `tests/ui/support/tickets.wardscript`
+───╯
+error: could not check `tests/ui/modules_missing.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0102",
+      "file": "tests/ui/modules_missing.wardscript",
+      "help": "looked for `tests/ui/support/tickets.wardscript`",
+      "labels": [
+        {
+          "message": "no such module",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 23,
+              "line": 1,
+              "offset": 22
+            },
+            "start": {
+              "column": 8,
+              "line": 1,
+              "offset": 7
+            }
+          }
+        }
+      ],
+      "message": "cannot find module `support.tickets`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 23,
+          "line": 1,
+          "offset": 22
+        },
+        "start": {
+          "column": 8,
+          "line": 1,
+          "offset": 7
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/modules_missing.wardscript"
+}

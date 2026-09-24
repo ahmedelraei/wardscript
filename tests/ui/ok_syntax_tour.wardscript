@@ -1,5 +1,4 @@
 // Every syntactic form the parser accepts.
-import support.tickets as t
 import mcp "gmail" as mail
 
 pub type Page<T> {
@@ -44,6 +43,13 @@ fn sum_positive(xs: List<Int>) -> Int {
         total = total % 1_000;
     }
     total
+}
+
+fn first_item<T>(page: Page<T>) -> Result<T, String> {
+    match page.items.first() {
+        Some(item) => Ok(item),
+        None => Err("empty page"),
+    }
 }
 
 fn lookup(pages: List<Page<Id>>, i: Int) -> Result<Id, String> {

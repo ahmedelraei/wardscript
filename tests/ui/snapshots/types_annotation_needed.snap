@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_annotation_needed.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0121] Error: type annotations needed for `items`
+   ╭─[ tests/ui/types_annotation_needed.wardscript:2:5 ]
+   │
+ 2 │     let items = [];
+   │     ───────┬───────  
+   │            ╰───────── the type `List<_>` isn't fully known
+   │ 
+   │ Help: add a type, e.g. `let items: List<String> = ...`
+───╯
+error: could not check `tests/ui/types_annotation_needed.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0121",
+      "file": "tests/ui/types_annotation_needed.wardscript",
+      "help": "add a type, e.g. `let items: List<String> = ...`",
+      "labels": [
+        {
+          "message": "the type `List<_>` isn't fully known",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 20,
+              "line": 2,
+              "offset": 35
+            },
+            "start": {
+              "column": 5,
+              "line": 2,
+              "offset": 20
+            }
+          }
+        }
+      ],
+      "message": "type annotations needed for `items`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 20,
+          "line": 2,
+          "offset": 35
+        },
+        "start": {
+          "column": 5,
+          "line": 2,
+          "offset": 20
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_annotation_needed.wardscript"
+}

@@ -2,7 +2,7 @@
 
 Wardscript is a small, typed language for trustworthy AI functions and agents. What sets it apart is that the **compiler proves untrusted data can't reach sensitive actions** without an explicit `validate`, `approve` or `declassify` step.
 
-- Source files use the `.wardscript` extension
+- Source files use `.ward` (canonical) or `.wardscript`; the compiler treats both identically. Use `.ward` in all docs, examples and tests.
 - CLI command: `ward` (`ward check | build | run | trace`)
 - The compiler and runtime core are written in Rust (a Cargo workspace)
 - First backend: Python. Then TypeScript, then WASM through `wasm-encoder`. **No LLVM or Cranelift.**
@@ -21,7 +21,7 @@ crates/
   ws_runtime     # runtime core (Rust) + bindings: py/ (PyO3/maturin), node/ (napi-rs, later)
   ws_cli         # `ward` binary
 tests/
-  ui/            # .wardscript programs + expected diagnostics (insta snapshots)
+  ui/            # .ward programs + expected diagnostics (insta snapshots)
   attacks/       # injection programs that MUST fail to compile
   e2e/           # build to Python, run with a mocked LLM, check the output
 examples/
@@ -42,7 +42,7 @@ docs/spec/       # language spec, kept up to date with the implementation
 cargo build
 cargo test                      # all unit + ui + attack tests
 cargo insta review              # accept snapshot changes deliberately
-cargo run -p ws_cli -- check examples/support.wardscript
+cargo run -p ws_cli -- check examples/support.ward
 cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 ```

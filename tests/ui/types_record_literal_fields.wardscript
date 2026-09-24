@@ -1,0 +1,13 @@
+pub type Ticket {
+    title: String,
+    priority: Priority,
+}
+
+pub enum Priority {
+    Low,
+    High,
+}
+
+fn f() -> Ticket {
+    Ticket { title: "a", title: "b", urgency: 3 }
+}
