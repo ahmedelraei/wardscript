@@ -14,7 +14,7 @@ use la_arena::ArenaMap;
 use ward_resolve::{
     DefId, FileSystem, LoadError, LocalId, ModuleId, Program, ProgramDiagnostic, Resolution,
 };
-use ward_syntax::ast::{ExprId, Item};
+use ward_syntax::ast::{ExprId, Item, StmtId};
 
 pub use ty::Ty;
 
@@ -29,6 +29,8 @@ pub struct FnSig {
 pub struct ModuleTypes {
     pub exprs: ArenaMap<ExprId, Ty>,
     pub locals: ArenaMap<LocalId, Ty>,
+    /// `return x` statements in `Result` functions where `x` gets wrapped in `Ok`.
+    pub auto_ok: Vec<StmtId>,
 }
 
 pub struct Checked {

@@ -34,6 +34,7 @@ pub(crate) fn check_fn(c: &mut Checker, def: DefId, f: &FnDecl, out: &mut Module
         fn_name: f.name.name.clone(),
         generics: f.generics.iter().map(|g| g.name.clone()).collect(),
         lets: Vec::new(),
+        auto_ok: Vec::new(),
     };
     for (&local, ty) in mres
         .params
@@ -72,6 +73,7 @@ struct Cx<'a, 'p> {
     generics: Vec<String>,
     /// `let` bindings, checked at the end for types that were never pinned down.
     lets: Vec<(LocalId, Span)>,
+    auto_ok: Vec<StmtId>,
 }
 
 fn plural(n: usize, word: &str) -> String {
@@ -128,6 +130,7 @@ impl Cx<'_, '_> {
         for (local, t) in self.locals.iter() {
             out.locals.insert(local, self.u.resolve(t).without_vars());
         }
+        out.auto_ok.extend(self.auto_ok);
     }
 
     fn show(&self, t: &Ty) -> String {
@@ -942,6 +945,11 @@ impl Cx<'_, '_> {
             diverges |= self.stmt(s);
         }
         if let Some(tail) = b.tail {
+            // A block whose value isn't used may end with any expression.
+            if expected.is_some_and(|x| self.u.resolve(x) == Ty::Unit) {
+                self.infer(tail);
+                return Ty::Unit;
+            }
             return match expected {
                 Some(x) => self.check(tail, x),
                 None => self.infer(tail),
@@ -1004,9 +1012,7 @@ impl Cx<'_, '_> {
             StmtKind::Return(value) => {
                 let ret = self.ret.clone();
                 match value {
-                    Some(v) => {
-                        self.check(*v, &ret);
-                    }
+                    Some(v) => self.return_value(id, *v, &ret),
                     None => {
                         let span = ast.stmts[id].span;
                         self.coerce(&Ty::Unit, &ret, span);
@@ -1045,6 +1051,25 @@ impl Cx<'_, '_> {
                 self.check(*cond, &Ty::Bool);
                 self.block(body, None);
                 false
+            }
+        }
+    }
+
+    /// In a function returning `Result<T, E>`, `return x` with `x: T` means `return Ok(x)`.
+    fn return_value(&mut self, stmt: StmtId, value: ExprId, ret: &Ty) {
+        let Ty::Result(ok, _) = self.u.resolve(ret) else {
+            self.check(value, ret);
+            return;
+        };
+        let t = self.infer(value);
+        let span = self.span(value);
+        match self.u.resolve(&t) {
+            Ty::Result(..) | Ty::Error | Ty::Dynamic | Ty::Never => {
+                self.coerce(&t, ret, span);
+            }
+            _ => {
+                self.coerce(&t, &ok, span);
+                self.auto_ok.push(stmt);
             }
         }
     }

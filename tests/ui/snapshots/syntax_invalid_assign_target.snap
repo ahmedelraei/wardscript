@@ -7,7 +7,7 @@ exit: Some(1)
 [W0020] Error: invalid assignment target
    ╭─[ tests/ui/syntax_invalid_assign_target.wardscript:2:5 ]
    │
- 2 │     g() = 1;
+ 2 │     g() = 1
    │     ─┬─  
    │      ╰─── can't assign to this
    │ 

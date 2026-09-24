@@ -1,4 +1,4 @@
 fn f() -> Int {
-    let t = Tikcet { title: "x" };
+    let t = Tikcet { title: "x" }
     1
 }

@@ -1,8 +1,7 @@
 // Recovery: every function has its own error, and all of them are reported.
 
 fn a() -> Int {
-    let x = 1
-    x
+    let x = 1 x
 }
 
 fn b(y: ) -> Int {

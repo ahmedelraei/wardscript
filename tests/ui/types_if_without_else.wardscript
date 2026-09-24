@@ -1,6 +1,6 @@
 fn f(ok: Bool) -> Int {
     let x: Int = if ok {
-        1;
-    };
+        1
+    }
     x
 }

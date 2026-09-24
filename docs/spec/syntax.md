@@ -5,8 +5,9 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
 
 ## Lexical structure
 
-- Source is UTF-8. Whitespace is insignificant. `//` starts a comment that runs
-  to the end of the line.
+- Source is UTF-8. `//` starts a comment that runs to the end of the line.
+- Whitespace is insignificant, except that a line break can end a statement
+  (see [Statements](#statements-and-line-breaks)).
 - **Identifiers**: `[A-Za-z_][A-Za-z0-9_]*`. A lone `_` is the wildcard pattern.
 - **Keywords** (reserved; can't be used as names):
   `ai fn pub let type enum match if else for in while return import as uses budget true false`
@@ -47,13 +48,13 @@ type        = path ["<" type ("," type)* [","] ">"] ;    (* String, List<T>, Unt
 path        = IDENT ("." IDENT)* ;
 
 block       = "{" stmt* [expr] "}" ;                     (* the trailing expr is the block's value *)
-stmt        = "let" IDENT [":" type] "=" expr ";"
-            | "return" [expr] ";"
-            | "for" IDENT "in" expr_ns block
-            | "while" expr_ns block
-            | expr "=" expr ";"                          (* target: name, field or index *)
-            | block_like [";"]
-            | expr ";" ;
+stmt        = ( "let" IDENT [":" type] "=" expr
+              | "return" [expr]
+              | "for" IDENT "in" expr_ns block
+              | "while" expr_ns block
+              | expr "=" expr                            (* target: name, field or index *)
+              | expr ) end ;
+end         = ";" | line break | before "}" ;
 
 expr        = binary ;
 unary       = ("-" | "!") unary | postfix ;
@@ -68,7 +69,7 @@ field_init  = IDENT [":" expr] ;                         (* `Ticket { title }` i
 block_like  = if | match | block ;
 if          = "if" expr_ns block ["else" (if | block)] ;
 match       = "match" expr_ns "{" arm* "}" ;
-arm         = pattern "=>" expr ","? ;                   (* "," required unless the body is block-like or last *)
+arm         = pattern "=>" expr [","] ;                  (* "," or a line break between arms *)
 
 pattern     = "_" | literal | "-" (INT | FLOAT)
             | path ["(" [pattern ("," pattern)* [","]] ")"] ;
@@ -93,7 +94,26 @@ comparisons, which can't be chained (`a < b < c` is error W0019).
 | 6 | unary `-` `!` |
 | 7 | postfix: `.field`, call `f(...)`, index `x[i]`, `?` |
 
-### Statements and block-like expressions
+### Statements and line breaks
+
+There are no required semicolons: a statement ends at a line break. `;` is
+still allowed, to put two statements on one line (`let a = 1; let b = 2`).
+
+A line break does **not** end a statement:
+
+- inside `( )`, `[ ]` or a record literal's `{ }`;
+- after a binary operator at the end of a line (`let total = a +` ⏎ `b`);
+- before a line starting with `.` (method chains).
+
+Everything else on the next line starts a new statement. So `-b`, `(x)` or `[0]`
+at the start of a line are never glued onto the previous line, and a record
+literal's `{` must be on the same line as its name.
+
+A block's last expression is its value. When the value isn't used (the block
+of a function without a return type, a loop body, an `if` without `else`), the
+last expression may have any type.
+
+### Block-like expressions
 
 As in Rust, an `if`, `match` or `{ ... }` at the start of a statement ends that
 statement at its closing `}`, and needs no `;`. So `match x { ... }.len()` in

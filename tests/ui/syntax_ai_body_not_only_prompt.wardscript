@@ -1,5 +1,5 @@
 ai fn summarize(text: String) -> String {
-    let short = text;
+    let short = text
     "Summarize: {short}"
 }
 

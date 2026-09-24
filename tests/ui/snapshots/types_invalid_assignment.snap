@@ -7,7 +7,7 @@ exit: Some(1)
 [W0126] Error: cannot assign to `helper`
    ╭─[ tests/ui/types_invalid_assignment.wardscript:6:5 ]
    │
- 6 │     helper = 2;
+ 6 │     helper = 2
    │     ───┬──  
    │        ╰──── not a variable
    │ 

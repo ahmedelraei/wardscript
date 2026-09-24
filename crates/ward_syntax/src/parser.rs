@@ -26,6 +26,7 @@ pub fn parse(src: &str) -> Parse {
         diags,
         last_error_at: None,
         in_interpolation: false,
+        newlines: false,
         lex_errors,
     };
     p.items();
@@ -71,6 +72,9 @@ struct Parser<'s> {
     /// Token position of the last "expected ..." error, so one bad token reports once.
     last_error_at: Option<usize>,
     in_interpolation: bool,
+    /// Whether a line break ends the current statement. True inside blocks and `match`
+    /// arms; false inside `( )`, `[ ]`, record literals and at the top level.
+    newlines: bool,
     /// Start offsets of characters the lexer rejected.
     lex_errors: Vec<u32>,
 }
@@ -88,6 +92,7 @@ impl Parser<'_> {
             .unwrap_or(Token {
                 kind: T::Eof,
                 span: Span::default(),
+                nl_before: true,
             })
     }
 
@@ -251,34 +256,51 @@ impl Parser<'_> {
         self.report(d);
     }
 
-    fn missing_semi(&mut self) {
+    /// A line break before the current token, where line breaks end statements.
+    fn at_line_break(&self) -> bool {
+        self.newlines && self.tok().nl_before
+    }
+
+    /// Runs `f` with line breaks significant or not, restoring the previous setting.
+    fn with_newlines<X>(&mut self, significant: bool, f: impl FnOnce(&mut Self) -> X) -> X {
+        let saved = std::mem::replace(&mut self.newlines, significant);
+        let out = f(self);
+        self.newlines = saved;
+        out
+    }
+
+    fn missing_stmt_end(&mut self) {
         let t = self.tok();
         let found = self.found(t);
         let prev = self.prev_span();
         self.report(
             Diagnostic::error(
                 codes::MISSING_SEMICOLON,
-                format!("expected `;`, found {found}"),
+                format!("expected a line break or `;`, found {found}"),
                 prev,
             )
-            .with_label("expected `;` after this")
-            .with_help("statements end with `;`"),
+            .with_label("the statement should end after this")
+            .with_help("put each statement on its own line, or separate them with `;`"),
         );
     }
 
-    fn semi(&mut self) {
-        if self.eat(T::Semi).is_none() {
-            self.missing_semi();
+    /// Consumes an optional `;`; otherwise the statement must end at a line break or `}`.
+    fn stmt_end(&mut self) {
+        if self.eat(T::Semi).is_none()
+            && !matches!(self.peek(), T::RBrace | T::Eof)
+            && !self.tok().nl_before
+        {
+            self.missing_stmt_end();
         }
     }
 
     /// Skips tokens until `stop` matches at nesting depth 0. Never skips past an unmatched
     /// closing delimiter, an item keyword, or end of input.
-    fn skip_until(&mut self, stop: impl Fn(T) -> bool) {
+    fn skip_until(&mut self, stop: impl Fn(Token) -> bool) {
         let mut depth = 0u32;
         loop {
             let k = self.peek();
-            if k == T::Eof || self.at_item_start() || (depth == 0 && stop(k)) {
+            if k == T::Eof || self.at_item_start() || (depth == 0 && stop(self.tok())) {
                 return;
             }
             match k {
@@ -299,6 +321,15 @@ impl Parser<'_> {
         &mut self,
         open: T,
         close: T,
+        elem: impl FnMut(&mut Self) -> PResult<X>,
+    ) -> PResult<(Vec<X>, Span)> {
+        self.with_newlines(false, |p| p.comma_list_inner(open, close, elem))
+    }
+
+    fn comma_list_inner<X>(
+        &mut self,
+        open: T,
+        close: T,
         mut elem: impl FnMut(&mut Self) -> PResult<X>,
     ) -> PResult<(Vec<X>, Span)> {
         let open_tok = self.expect(open)?;
@@ -306,7 +337,7 @@ impl Parser<'_> {
         while !self.at(close) && !self.at(T::Eof) {
             match elem(self) {
                 Ok(x) => items.push(x),
-                Err(Bail) => self.skip_until(|k| k == T::Comma || k == close),
+                Err(Bail) => self.skip_until(|t| t.kind == T::Comma || t.kind == close),
             }
             if self.eat(T::Comma).is_none() {
                 break;
@@ -318,7 +349,7 @@ impl Parser<'_> {
             Err(Bail) if self.at(T::Eof) || self.at_item_start() => return Err(Bail),
             Err(Bail) => {
                 // Resync on our own closing delimiter so the caller can carry on.
-                self.skip_until(|k| k == close);
+                self.skip_until(|t| t.kind == close);
                 self.eat(close).ok_or(Bail)?
             }
         };
@@ -615,7 +646,7 @@ impl Parser<'_> {
 
     /// Skips to and consumes the `close` matching an already-consumed opener.
     fn skip_to_close(&mut self, close: T) {
-        self.skip_until(|k| k == close);
+        self.skip_until(|t| t.kind == close);
         self.eat(close);
     }
 
@@ -741,6 +772,10 @@ impl Parser<'_> {
     }
 
     fn block(&mut self) -> PResult<Block> {
+        self.with_newlines(true, |p| p.block_inner())
+    }
+
+    fn block_inner(&mut self) -> PResult<Block> {
         let open = self.expect(T::LBrace)?;
         let mut stmts = Vec::new();
         let mut tail = None;
@@ -757,9 +792,15 @@ impl Parser<'_> {
                 Ok(StmtOut::Stmt(s)) => stmts.push(s),
                 Ok(StmtOut::Tail(e)) => tail = Some(e),
                 Err(Bail) => {
-                    self.skip_until(|k| {
-                        matches!(k, T::Semi | T::Let | T::Return | T::For | T::While)
-                    });
+                    let stmt_start = |t: Token| {
+                        matches!(t.kind, T::Semi | T::Let | T::Return | T::For | T::While)
+                            || t.nl_before
+                    };
+                    // Don't resync on the failing token itself when it starts a line.
+                    if self.pos == before && self.tok().nl_before {
+                        self.bump();
+                    }
+                    self.skip_until(stmt_start);
                     self.eat(T::Semi);
                     if self.pos == before
                         && !matches!(self.peek(), T::RBrace | T::Eof)
@@ -789,17 +830,17 @@ impl Parser<'_> {
                 };
                 self.expect(T::Eq)?;
                 let init = self.expr()?;
-                self.semi();
+                self.stmt_end();
                 StmtKind::Let { name, ty, init }
             }
             T::Return => {
                 self.bump();
-                let value = if matches!(self.peek(), T::Semi | T::RBrace) {
+                let value = if matches!(self.peek(), T::Semi | T::RBrace) || self.at_line_break() {
                     None
                 } else {
                     Some(self.expr()?)
                 };
-                self.semi();
+                self.stmt_end();
                 StmtKind::Return(value)
             }
             T::For => {
@@ -830,7 +871,7 @@ impl Parser<'_> {
                 if self.eat(T::Eq).is_some() {
                     let value = self.expr()?;
                     self.check_assign_target(expr);
-                    self.semi();
+                    self.stmt_end();
                     StmtKind::Assign {
                         target: expr,
                         value,
@@ -840,8 +881,10 @@ impl Parser<'_> {
                 } else if self.at(T::RBrace) || self.at(T::Eof) || self.at_item_start() {
                     return Ok(StmtOut::Tail(expr));
                 } else {
-                    self.missing_semi();
-                    StmtKind::Expr { expr, semi: true }
+                    if !self.tok().nl_before {
+                        self.missing_stmt_end();
+                    }
+                    StmtKind::Expr { expr, semi: false }
                 }
             }
         };
@@ -877,6 +920,9 @@ impl Parser<'_> {
         let mut lhs = self.unary(r)?;
         let mut prev_cmp: Option<Span> = None;
         while let Some(op) = binop(self.peek()) {
+            if self.at_line_break() {
+                break;
+            }
             let prec = op.prec();
             if prec < min_prec {
                 break;
@@ -922,6 +968,10 @@ impl Parser<'_> {
         let mut e = self.primary(r)?;
         loop {
             let start = self.expr_span(e);
+            // `.method()` may continue on the next line; nothing else does.
+            if self.at_line_break() && !self.at(T::Dot) {
+                return Ok(e);
+            }
             let (kind, end) = match self.peek() {
                 T::Dot => {
                     self.bump();
@@ -935,7 +985,7 @@ impl Parser<'_> {
                 }
                 T::LBracket => {
                     let open = self.bump();
-                    let index = self.expr()?;
+                    let index = self.with_newlines(false, |p| p.expr())?;
                     let close = self.close(open, T::RBracket, "`]`")?;
                     (ExprKind::Index { base: e, index }, close.span)
                 }
@@ -978,7 +1028,7 @@ impl Parser<'_> {
             }
             T::LParen => {
                 let open = self.bump();
-                let e = self.expr()?;
+                let e = self.with_newlines(false, |p| p.expr())?;
                 self.close(open, T::RParen, "`)`")?;
                 Ok(e)
             }
@@ -1025,7 +1075,8 @@ impl Parser<'_> {
         while self.nth_tok(n).kind == T::Dot && self.nth_tok(n + 1).kind == T::Ident {
             n += 2;
         }
-        self.nth_tok(n).kind == T::LBrace
+        let brace = self.nth_tok(n);
+        brace.kind == T::LBrace && !(self.newlines && brace.nl_before)
     }
 
     fn record_lit(&mut self, path: Path) -> PResult<ExprId> {
@@ -1074,6 +1125,10 @@ impl Parser<'_> {
     }
 
     fn match_expr(&mut self) -> PResult<ExprId> {
+        self.with_newlines(true, |p| p.match_inner())
+    }
+
+    fn match_inner(&mut self) -> PResult<ExprId> {
         let kw = self.bump();
         let scrutinee = self.expr_bp(0, NO_STRUCT)?;
         let open = self.expect(T::LBrace)?;
@@ -1090,7 +1145,11 @@ impl Parser<'_> {
             match self.arm() {
                 Ok(arm) => arms.push(arm),
                 Err(Bail) => {
-                    self.skip_until(|k| k == T::Comma);
+                    // Don't resync on the failing token itself when it starts a line.
+                    if self.pos == before && self.tok().nl_before && !self.at(T::RBrace) {
+                        self.bump();
+                    }
+                    self.skip_until(|t| t.kind == T::Comma || t.nl_before);
                     self.eat(T::Comma);
                     if self.pos == before && !matches!(self.peek(), T::RBrace | T::Eof) {
                         self.bump();
@@ -1107,8 +1166,12 @@ impl Parser<'_> {
         self.expect(T::FatArrow)?;
         let body = self.expr()?;
         let block_like = self.module.exprs[body].kind.is_block_like();
-        if self.eat(T::Comma).is_none() && !self.at(T::RBrace) && !block_like {
-            self.expected("`,` or `}`");
+        if self.eat(T::Comma).is_none()
+            && !self.at(T::RBrace)
+            && !block_like
+            && !self.tok().nl_before
+        {
+            self.expected("`,`, a line break or `}`");
         }
         let span = self.module.pats[pat].span.to(self.expr_span(body));
         Ok(Arm { pat, body, span })
@@ -1360,6 +1423,7 @@ impl Parser<'_> {
         let saved_pos = std::mem::replace(&mut self.pos, 0);
         let saved_last = self.last_error_at.take();
         let saved_interp = std::mem::replace(&mut self.in_interpolation, true);
+        let saved_newlines = std::mem::replace(&mut self.newlines, false);
 
         let expr = match self.expr() {
             Ok(e) => {
@@ -1385,6 +1449,7 @@ impl Parser<'_> {
         self.pos = saved_pos;
         self.last_error_at = saved_last;
         self.in_interpolation = saved_interp;
+        self.newlines = saved_newlines;
         expr
     }
 }

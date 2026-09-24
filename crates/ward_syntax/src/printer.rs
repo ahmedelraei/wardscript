@@ -271,27 +271,19 @@ impl<'m> Printer<'m> {
                 }
                 self.w(" = ");
                 self.expr(*init, false);
-                self.w(";");
             }
             StmtKind::Assign { target, value } => {
                 self.stmt_expr(*target);
                 self.w(" = ");
                 self.expr(*value, false);
-                self.w(";");
             }
-            StmtKind::Expr { expr, semi } => {
-                self.stmt_expr(*expr);
-                if *semi {
-                    self.w(";");
-                }
-            }
+            StmtKind::Expr { expr, .. } => self.stmt_expr(*expr),
             StmtKind::Return(value) => {
                 self.w("return");
                 if let Some(v) = value {
                     self.w(" ");
                     self.expr(*v, false);
                 }
-                self.w(";");
             }
             StmtKind::For { var, iter, body } => {
                 self.w("for ");

@@ -4,14 +4,14 @@ description: tests/ui/syntax_missing_semicolon.wardscript
 ---
 exit: Some(1)
 --- human ---
-[W0015] Error: expected `;`, found `let`
+[W0015] Error: expected a line break or `;`, found `let`
    ╭─[ tests/ui/syntax_missing_semicolon.wardscript:2:13 ]
    │
- 2 │     let x = 1
+ 2 │     let x = 1 let y = 2
    │             ┬  
-   │             ╰── expected `;` after this
+   │             ╰── the statement should end after this
    │ 
-   │ Help: statements end with `;`
+   │ Help: put each statement on its own line, or separate them with `;`
 ───╯
 error: could not check `tests/ui/syntax_missing_semicolon.wardscript` due to 1 error
 --- json ---
@@ -20,10 +20,10 @@ error: could not check `tests/ui/syntax_missing_semicolon.wardscript` due to 1 e
     {
       "code": "W0015",
       "file": "tests/ui/syntax_missing_semicolon.wardscript",
-      "help": "statements end with `;`",
+      "help": "put each statement on its own line, or separate them with `;`",
       "labels": [
         {
-          "message": "expected `;` after this",
+          "message": "the statement should end after this",
           "primary": true,
           "span": {
             "end": {
@@ -39,7 +39,7 @@ error: could not check `tests/ui/syntax_missing_semicolon.wardscript` due to 1 e
           }
         }
       ],
-      "message": "expected `;`, found `let`",
+      "message": "expected a line break or `;`, found `let`",
       "severity": "error",
       "span": {
         "end": {

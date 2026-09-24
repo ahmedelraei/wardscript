@@ -7,7 +7,7 @@ exit: Some(1)
 [W0110] Error: mismatched types: expected `Int`, found `String`
    ╭─[ tests/ui/types_mismatch_let.wardscript:2:18 ]
    │
- 2 │     let x: Int = "forty-two";
+ 2 │     let x: Int = "forty-two"
    │                  ─────┬─────  
    │                       ╰─────── expected `Int`, found `String`
 ───╯

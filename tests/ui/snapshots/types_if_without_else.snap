@@ -9,9 +9,9 @@ exit: Some(1)
    │
  2 │ ╭─▶     let x: Int = if ok {
    ┆ ┆   
- 4 │ ├─▶     };
-   │ │            
-   │ ╰──────────── expected `Int`
+ 4 │ ├─▶     }
+   │ │           
+   │ ╰─────────── expected `Int`
    │     
    │     Help: add an `else` branch that produces a value
 ───╯
@@ -31,7 +31,7 @@ error: could not check `tests/ui/types_if_without_else.wardscript` due to 1 erro
             "end": {
               "column": 6,
               "line": 4,
-              "offset": 65
+              "offset": 64
             },
             "start": {
               "column": 18,
@@ -47,7 +47,7 @@ error: could not check `tests/ui/types_if_without_else.wardscript` due to 1 erro
         "end": {
           "column": 6,
           "line": 4,
-          "offset": 65
+          "offset": 64
         },
         "start": {
           "column": 18,

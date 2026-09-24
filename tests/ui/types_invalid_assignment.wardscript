@@ -3,6 +3,6 @@ fn helper() -> Int {
 }
 
 fn f() -> Int {
-    helper = 2;
+    helper = 2
     1
 }

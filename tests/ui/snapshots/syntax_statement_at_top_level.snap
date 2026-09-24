@@ -7,7 +7,7 @@ exit: Some(1)
 [W0011] Error: expected an item, found `let`
    ╭─[ tests/ui/syntax_statement_at_top_level.wardscript:1:1 ]
    │
- 1 │ let limit = 10;
+ 1 │ let limit = 10
    │ ─┬─  
    │  ╰─── expected `fn`, `type`, `enum` or `import`
    │ 
