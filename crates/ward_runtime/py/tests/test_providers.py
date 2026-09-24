@@ -5,7 +5,7 @@ import json
 import unittest
 from types import SimpleNamespace as NS
 
-from wardscript import _rt, runtime
+from wardscript import RateLimited, _rt, runtime
 from wardscript.model import AiRequest
 from wardscript.providers import load, object_schema
 from wardscript.providers.anthropic import Anthropic
@@ -115,6 +115,24 @@ class Providers(unittest.TestCase):
         model = Anthropic(client=FakeAnthropic([NS(type="text", text="not json")]))
         *deltas, done = model.stream(AiRequest("f", "p", SCHEMA))
         self.assertEqual((deltas, done.text), (["not json"], "not json"))
+
+    def test_sdk_errors_become_model_errors(self):
+        class RateLimitError(Exception):
+            status_code = 429
+
+        class Failing:
+            def __init__(self):
+                self.messages = self
+                self.chat = NS(completions=self)
+
+            def create(self, **request):
+                raise RateLimitError("slow down")
+
+        for model in (Anthropic(client=Failing()), OpenAI("m", client=Failing())):
+            with self.assertRaises(RateLimited):
+                model.complete(AiRequest("f", "p", SCHEMA))
+            with self.assertRaises(RateLimited):
+                list(model.stream(AiRequest("f", "p", SCHEMA)))
 
     def test_load(self):
         with self.assertRaises(ValueError):

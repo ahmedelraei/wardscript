@@ -37,6 +37,31 @@ class AiOutputError(WardError):
         self.errors = errors
 
 
+class ModelError(WardError):
+    """A model provider failed to answer: a rate limit, a timeout, an outage, or a
+    request it refused. `retryable` errors are retried with backoff (see `model {...}`
+    and `configure(model_retries=..., backoff=...)`); after that, or right away for
+    the others, the call falls back to the next model."""
+
+    retryable = False
+
+    def __init__(self, message: str, *, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
+
+
+class RateLimited(ModelError):
+    """The provider asked to slow down (HTTP 429)."""
+
+    retryable = True
+
+
+class ModelUnavailable(ModelError):
+    """A timeout, a lost connection, or a server error (HTTP 5xx, 529 overloaded)."""
+
+    retryable = True
+
+
 class BudgetExceeded(WardError):
     """A function used more of a resource than its `budget` allows; the run stops."""
 

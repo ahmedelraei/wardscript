@@ -10,7 +10,8 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
   (see [Statements](#statements-and-line-breaks)).
 - **Identifiers**: `[A-Za-z_][A-Za-z0-9_]*`. A lone `_` is the wildcard pattern.
 - **Keywords** (reserved; can't be used as names):
-  `ai fn pub let type enum match if else for in while return throw throws try catch import as uses budget true false`
+  `ai fn pub let type enum match if else for in while return throw throws try catch import as uses budget true false`.
+  `model` is a keyword only where a clause can start (`model {`); elsewhere it's a name.
 - **Integers**: `[0-9][0-9_]*`, 64-bit signed. `_` separators are ignored (`1_000`).
 - **Floats**: `[0-9][0-9_]*.[0-9][0-9_]*`. No exponent form; a leading digit is required.
 - **Strings**: `"..."`, may span lines. Escapes: `\n \r \t \0 \\ \"`.
@@ -36,7 +37,9 @@ ai_fn       = "ai" "fn" IDENT signature "{" STRING "}" ;   (* the body is only t
 signature   = [generics] "(" [param ("," param)* [","]] ")" ["->" type] ["throws" type] clause* ;
 param       = IDENT ":" type ;
 clause      = "uses" "{" [effect ("," effect)* [","]] "}"
-            | "budget" "{" [IDENT ":" expr ("," IDENT ":" expr)* [","]] "}" ;
+            | "budget" "{" [IDENT ":" expr ("," IDENT ":" expr)* [","]] "}"
+            | "model" "{" [model_entry ("," model_entry)* [","]] "}" ;
+model_entry = IDENT ":" (IDENT | INT | FLOAT | "[" [IDENT ("," IDENT)* [","]] "]") ;
 effect      = IDENT ("." IDENT)* ;                       (* llm, mail, mail.send *)
 
 type_decl   = "type" IDENT [generics] "{" [field ("," field)* [","]] "}"   (* record *)
@@ -129,11 +132,13 @@ An `ai fn` is answered by a model. Its body is exactly one prompt string (error
 W0016 otherwise), which may interpolate parameters. It must declare a return type
 (error W0017), because the model's answer is parsed and validated against it.
 `ai fn` implies the `llm` effect; other effects and a `budget` go between the
-signature and the body, as for any function.
+signature and the body, as for any function. A `model` clause picks the models an
+`ai fn` asks, and how it retries them ([runtime](runtime.md#model-policies)).
 
 ```wardscript
 ai fn triage(email: Untrusted<String>) -> Ticket
     budget {tokens: 2000, calls: 3}
+    model {primary: fast, fallback: smart, retries: 2}
 {
     "Fill in a ticket for this email:\n{email}"
 }

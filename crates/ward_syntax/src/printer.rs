@@ -216,7 +216,7 @@ impl<'m> Printer<'m> {
             self.ty(throws);
         }
         // With clauses, each goes on its own line and the body's `{` starts a new line.
-        let multiline = f.uses.is_some() || f.budget.is_some();
+        let multiline = f.uses.is_some() || f.budget.is_some() || f.model.is_some();
         self.indent += 1;
         if let Some(uses) = &f.uses {
             self.newline();
@@ -231,6 +231,24 @@ impl<'m> Printer<'m> {
                 p.w(&b.name.name);
                 p.w(": ");
                 p.expr(b.value, false);
+            });
+            self.w("}");
+        }
+        if let Some(model) = &f.model {
+            self.newline();
+            self.w("model {");
+            self.sep(&model.entries, ", ", |p, e| {
+                p.w(&e.name.name);
+                p.w(": ");
+                match &e.value {
+                    ModelValue::Name(i) => p.w(&i.name),
+                    ModelValue::Number(n, _) => p.w(n),
+                    ModelValue::Names(names, _) => {
+                        p.w("[");
+                        p.sep(names, ", ", |p, i| p.w(&i.name));
+                        p.w("]");
+                    }
+                }
             });
             self.w("}");
         }

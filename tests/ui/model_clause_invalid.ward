@@ -1,0 +1,25 @@
+// `model {...}` settings are checked: known names, the right kind of value, nothing
+// listed twice, and only on an `ai fn`.
+ai fn a(x: String) -> String
+    model {primary: fast, fallback: [smart, fast], retries: 1.5, backof: 1}
+{
+    "{x}"
+}
+
+ai fn b(x: String) -> String
+    model {primary: [fast], fallback: fast, retries: fast, backoff: 1, backoff: 2}
+{
+    "{x}"
+}
+
+fn c() -> Int
+    model {primary: fast}
+{
+    1
+}
+
+ai fn ok(x: String) -> String
+    model {primary: fast, fallback: [smart, backup], retries: 3, backoff: 0.25}
+{
+    "{x}"
+}

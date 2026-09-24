@@ -65,6 +65,8 @@ pub struct FnDecl {
     pub throws: Option<TypeId>,
     pub uses: Option<Vec<Path>>,
     pub budget: Option<Vec<BudgetEntry>>,
+    /// `model {primary: fast, fallback: [smart], retries: 2, backoff: 0.5}`
+    pub model: Option<ModelClause>,
     pub body: FnBody,
     pub span: Span,
 }
@@ -89,6 +91,41 @@ pub struct Param {
 pub struct BudgetEntry {
     pub name: Ident,
     pub value: ExprId,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ModelClause {
+    pub entries: Vec<ModelEntry>,
+    /// The `model` keyword.
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ModelEntry {
+    pub name: Ident,
+    pub value: ModelValue,
+    pub span: Span,
+}
+
+/// Values in a `model {...}` clause are model aliases or numbers, not expressions:
+/// aliases name models configured in the runtime, not Wardscript values.
+#[derive(Debug, PartialEq)]
+pub enum ModelValue {
+    /// `fast`
+    Name(Ident),
+    /// `[fast, smart]`
+    Names(Vec<Ident>, Span),
+    /// `2`, `0.5`: the literal's text.
+    Number(String, Span),
+}
+
+impl ModelValue {
+    pub fn span(&self) -> Span {
+        match self {
+            ModelValue::Name(i) => i.span,
+            ModelValue::Names(_, s) | ModelValue::Number(_, s) => *s,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]

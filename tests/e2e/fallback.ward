@@ -1,0 +1,13 @@
+// M8: an `ai fn` with a model policy: a fast model first, a smarter one if it fails.
+ai fn summarize(text: Untrusted<String>) -> String
+    model {primary: fast, fallback: smart, retries: 1, backoff: 0}
+{
+    "Summarize in one line: {text}"
+}
+
+pub fn digest(text: Untrusted<String>) -> String
+    uses {llm}
+    budget {calls: 3}
+{
+    summarize(text)
+}

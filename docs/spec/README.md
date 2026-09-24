@@ -3,7 +3,7 @@
 This is the normative description of Wardscript. It is kept in sync with the
 implementation: every language feature lands together with its section here.
 
-Status: **M7 (MCP imports)**.
+Status: **M8 (model fallbacks and retry policies)**.
 
 ## Contents
 
@@ -15,7 +15,7 @@ Status: **M7 (MCP imports)**.
 | [Types](types.md) | implemented (M2) |
 | [Trust labels](trust.md) (`Trusted` / `Untrusted`, sources, sinks, `validate` / `approve` / `declassify`) | implemented (M4) |
 | [Effects, budgets, Rule of Two](effects.md) | implemented (M5) |
-| [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5), audit trace, providers, sink checks, async and streaming (M6) |
+| [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5), audit trace, providers, sink checks, async and streaming (M6), model policies (M8) |
 | [Tools and MCP imports](tools.md) (`ward.lock`, typed tool calls, sink parameters) | implemented (M7) |
 
 ## Diagnostics

@@ -7,14 +7,16 @@ import asyncio
 import concurrent.futures
 import inspect
 import json
+import time
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Awaitable, Callable, Iterable, Mapping, Union
+from typing import Any, AsyncIterator, Awaitable, Callable, Generator, Iterable, Mapping, Union
 
 from . import audit, budget
 from .errors import (
     AiOutputError,
     ApprovalDenied,
     DecodeError,
+    ModelError,
     NoModelError,
     Thrown,
     ToolError,
@@ -42,7 +44,15 @@ StreamObserver = Callable[[StreamChunk], None]
 
 @dataclass
 class Config:
+    #: The model an `ai fn` asks when its `model {...}` clause names no `primary`.
     model: Model | None = None
+    #: Models by the aliases `model {primary: fast, fallback: smart}` uses.
+    models: dict[str, Model] = field(default_factory=dict)
+    #: Retries of a request that failed with a retryable `ModelError` (a rate limit,
+    #: a timeout), unless the `ai fn`'s `model {retries: ...}` says otherwise.
+    model_retries: int = 2
+    #: Seconds before the first such retry; each next one waits twice as long.
+    backoff: float = 1.0
     approver: Approver | None = None
     #: Tool implementations by import source: `import mcp "gmail"` looks up `"gmail"`.
     #: Each is a mapping of functions, or an object with a method per tool function.
@@ -72,6 +82,9 @@ _UNSET: Any = object()
 def configure(
     *,
     model: Model | None = _UNSET,
+    models: Mapping[str, Model] = _UNSET,
+    model_retries: int = _UNSET,
+    backoff: float = _UNSET,
     approver: Approver | None = _UNSET,
     tools: Mapping[str, Any] = _UNSET,
     retries: int = _UNSET,
@@ -84,6 +97,16 @@ def configure(
     """Sets the runtime's configuration. Arguments left out keep their current value."""
     if model is not _UNSET:
         _config.model = model
+    if models is not _UNSET:
+        _config.models = dict(models)
+    if model_retries is not _UNSET:
+        if model_retries < 0:
+            raise ValueError("model_retries must be at least 0")
+        _config.model_retries = model_retries
+    if backoff is not _UNSET:
+        if backoff < 0:
+            raise ValueError("backoff must be at least 0")
+        _config.backoff = float(backoff)
     if approver is not _UNSET:
         _config.approver = approver
     if tools is not _UNSET:
@@ -143,15 +166,35 @@ class _Attempt:
     """One model request of an `ai fn` call: what goes before and after asking the model,
     shared by the sync and async paths."""
 
-    def __init__(self, function: str, prompt: str, returns: Type, errors: list[str]) -> None:
-        model = _config.model
-        if model is None:
-            raise NoModelError(
-                f"`{function}` needs a model; call wardscript.runtime.configure(model=...) first"
-            )
+    def __init__(
+        self,
+        function: str,
+        prompt: str,
+        returns: Type,
+        errors: list[str],
+        alias: str | None = None,
+        number: int | None = None,
+    ) -> None:
+        if alias is None:
+            model = _config.model
+            if model is None:
+                raise NoModelError(
+                    f"`{function}` needs a model; call wardscript.runtime.configure(model=...) first"
+                )
+        else:
+            model = _config.models.get(alias)
+            if model is None:
+                known = ", ".join(f"`{a}`" for a in _config.models) or "none"
+                raise NoModelError(
+                    f"`{function}` asks for the model `{alias}`, but configure(models=...) "
+                    f"doesn't have it (configured: {known})"
+                )
         self.model = model
+        self.alias = alias
         self.returns = returns
         self.request = AiRequest(function, prompt, json_schema(returns), len(errors), tuple(errors))
+        #: This request's place among all of the call's requests, for the trace.
+        self.number = len(errors) if number is None else number
         self.text = ""
         strict = _config.unpriced == "error"
         # A model that says it has no prices (`prices=None`) can't be counted.
@@ -204,7 +247,8 @@ class _Attempt:
             "ai_call",
             started=self.started,
             function=self.request.function,
-            attempt=self.request.attempt,
+            attempt=self.number,
+            model=self.alias,
             prompt=self.request.prompt,
             answer=str(text),
             tokens=float(tokens),
@@ -214,6 +258,27 @@ class _Attempt:
         )
         budget.after_model_call(tokens, cost, _config.unpriced == "error")
         return ok, value, error
+
+
+    def failed(self, error: Exception) -> None:
+        """Records a request the provider didn't answer; it counts as a call."""
+        run = audit.current()
+        if run is not None:
+            run.calls += 1
+        audit.record(
+            "ai_call",
+            started=self.started,
+            function=self.request.function,
+            attempt=self.number,
+            model=self.alias,
+            prompt=self.request.prompt,
+            answer=None,
+            tokens=0.0,
+            cost=0.0,
+            error=f"{type(error).__name__}: {error}",
+            leaves=[],
+        )
+        budget.after_model_call(0, 0.0)
 
 
 def _collect(attempt: _Attempt, chunks: Iterable[str | Completion]) -> Completion:
@@ -261,28 +326,113 @@ async def _ask_async(attempt: _Attempt) -> str | Completion:
     return await answer if inspect.isawaitable(answer) else answer
 
 
-def ai(function: str, prompt: str, returns: Type) -> Any:
+Models = Union[tuple[Union[str, None], ...], None]
+
+
+def _steps(
+    function: str,
+    prompt: str,
+    returns: Type,
+    models: Models,
+    retries: int | None,
+    backoff: float | None,
+) -> Generator[Union[_Attempt, float], Any, Any]:
+    """The plan of an `ai fn` call, shared by the sync and async paths. Yields each
+    `_Attempt` to ask (the caller sends back the answer, or throws the `ModelError`)
+    and each backoff delay in seconds (the caller sleeps); returns the decoded value.
+
+    Each model in turn: provider errors that are `retryable` are retried up to
+    `retries` times with exponential backoff; an answer that doesn't fit the type is
+    retried `config.retries` times with the error. Then the next model is tried. When
+    every model fails, the last one's error is raised."""
+    provider_retries = _config.model_retries if retries is None else retries
+    delay = _config.backoff if backoff is None else backoff
+    number = 0
+    last: Exception | None = None
+    for alias in models or (None,):
+        errors: list[str] = []
+        failure: ModelError | None = None
+        for _ in range(_config.retries + 1):
+            for n in range(provider_retries + 1):
+                attempt = _Attempt(function, prompt, returns, errors, alias, number)
+                number += 1
+                try:
+                    answer = yield attempt
+                except ModelError as e:
+                    attempt.failed(e)
+                    failure = e
+                    if e.retryable and n < provider_retries:
+                        yield delay * 2**n
+                        continue
+                    break
+                failure = None
+                ok, value, error = attempt.finish(answer)
+                if ok:
+                    return value
+                errors.append(error or "")
+                break
+            if failure is not None:
+                break
+        last = failure if failure is not None else AiOutputError(function, errors)
+    assert last is not None
+    raise last
+
+
+def ai(
+    function: str,
+    prompt: str,
+    returns: Type,
+    models: Models = None,
+    retries: int | None = None,
+    backoff: float | None = None,
+) -> Any:
     """Calls the model for `ai fn function` and decodes its answer as `returns`,
-    retrying with the error when the answer doesn't fit."""
-    errors: list[str] = []
-    for _ in range(_config.retries + 1):
-        attempt = _Attempt(function, prompt, returns, errors)
-        ok, value, error = attempt.finish(_ask(attempt))
-        if ok:
-            return value
-        errors.append(error or "")
-    raise AiOutputError(function, errors)
+    retrying with the error when the answer doesn't fit. `models`, `retries` and
+    `backoff` come from the function's `model {...}` clause (see `_steps`)."""
+    steps = _steps(function, prompt, returns, models, retries, backoff)
+    try:
+        step = next(steps)
+        while True:
+            if isinstance(step, _Attempt):
+                try:
+                    answer = _ask(step)
+                except ModelError as e:
+                    step = steps.throw(e)
+                    continue
+                step = steps.send(answer)
+            else:
+                budget.check_time()
+                time.sleep(step)
+                step = next(steps)
+    except StopIteration as done:
+        return done.value
 
 
-async def ai_async(function: str, prompt: str, returns: Type) -> Any:
-    errors: list[str] = []
-    for _ in range(_config.retries + 1):
-        attempt = _Attempt(function, prompt, returns, errors)
-        ok, value, error = attempt.finish(await _ask_async(attempt))
-        if ok:
-            return value
-        errors.append(error or "")
-    raise AiOutputError(function, errors)
+async def ai_async(
+    function: str,
+    prompt: str,
+    returns: Type,
+    models: Models = None,
+    retries: int | None = None,
+    backoff: float | None = None,
+) -> Any:
+    steps = _steps(function, prompt, returns, models, retries, backoff)
+    try:
+        step = next(steps)
+        while True:
+            if isinstance(step, _Attempt):
+                try:
+                    answer = await _ask_async(step)
+                except ModelError as e:
+                    step = steps.throw(e)
+                    continue
+                step = steps.send(answer)
+            else:
+                budget.check_time()
+                await asyncio.sleep(step)
+                step = next(steps)
+    except StopIteration as done:
+        return done.value
 
 
 def _validated(value: Any, passed: bool, rule_name: str, site: str) -> Any:

@@ -68,7 +68,12 @@ pub enum Event {
         /// Unix time in nanoseconds when the request was sent; `time` is when it ended.
         started: u64,
         function: String,
+        /// Counts every request of the call: retries and fallbacks too.
         attempt: u32,
+        /// The alias of the model asked (`model {primary: fast}`); `None` for the
+        /// default model.
+        #[serde(default)]
+        model: Option<String>,
         prompt: String,
         answer: Option<String>,
         tokens: f64,

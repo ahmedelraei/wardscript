@@ -6,6 +6,7 @@ mod exhaust;
 mod infer;
 mod lower;
 mod methods;
+mod models;
 pub mod tools;
 mod trust;
 pub mod ty;
@@ -90,6 +91,7 @@ pub fn analyze(entry: &Path, fs: &dyn FileSystem) -> Result<Analysis, LoadError>
     }
     let (resolution, resolve_diags) = ward_resolve::resolve(&program);
     diags.extend(resolve_diags);
+    diags.extend(models::check(&program));
     let mut checked = check(&program, &resolution);
     diags.append(&mut checked.diagnostics);
     // Labels are only meaningful for a program that type-checks.

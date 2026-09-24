@@ -608,8 +608,27 @@ impl Parser<'_> {
 
         let mut uses: Option<(Span, Vec<Path>)> = None;
         let mut budget: Option<(Span, Vec<BudgetEntry>)> = None;
+        let mut model: Option<ModelClause> = None;
         loop {
             match self.peek() {
+                // `model` is only a keyword here, so it stays usable as a name elsewhere.
+                T::Ident
+                    if self.text(self.tok().span) == "model"
+                        && self.nth_tok(1).kind == T::LBrace =>
+                {
+                    let kw = self.bump();
+                    let (entries, _) =
+                        self.comma_list(T::LBrace, T::RBrace, |p| p.model_entry())?;
+                    match &model {
+                        Some(first) => self.duplicate_clause("model", kw.span, first.span),
+                        None => {
+                            model = Some(ModelClause {
+                                entries,
+                                span: kw.span,
+                            });
+                        }
+                    }
+                }
                 T::Uses => {
                     let kw = self.bump();
                     let (effects, _) = self.comma_list(T::LBrace, T::RBrace, |p| p.effect())?;
@@ -666,6 +685,7 @@ impl Parser<'_> {
             throws,
             uses: uses.map(|(_, u)| u),
             budget: budget.map(|(_, b)| b),
+            model,
             body,
             span: start.to(self.prev_span()),
         })
@@ -705,6 +725,32 @@ impl Parser<'_> {
         )?;
         let value = self.expr()?;
         Ok(BudgetEntry { name, value })
+    }
+
+    fn model_entry(&mut self) -> PResult<ModelEntry> {
+        let name = self.ident()?;
+        self.expect_with_help(
+            T::Colon,
+            "model entries are written `name: value`, e.g. `primary: fast`",
+        )?;
+        let value = match self.peek() {
+            T::Ident => ModelValue::Name(self.ident()?),
+            T::Int | T::Float => {
+                let t = self.bump();
+                ModelValue::Number(self.text(t.span).to_owned(), t.span)
+            }
+            T::LBracket => {
+                let (names, span) = self.comma_list(T::LBracket, T::RBracket, |p| p.ident())?;
+                ModelValue::Names(names, span)
+            }
+            _ => {
+                return Err(self.expected(
+                    "a model alias like `fast`, a list like `[fast, smart]`, or a number",
+                ));
+            }
+        };
+        let span = name.span.to(value.span());
+        Ok(ModelEntry { name, value, span })
     }
 
     /// `{ "prompt" }`: exactly one string literal. A malformed body still yields a function,
