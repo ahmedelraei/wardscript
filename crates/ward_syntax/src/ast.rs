@@ -67,6 +67,9 @@ pub struct FnDecl {
     pub budget: Option<Vec<BudgetEntry>>,
     /// `model {primary: fast, fallback: [smart], retries: 2, backoff: 0.5}`
     pub model: Option<ModelClause>,
+    /// `check {it.body.len() < 2000 => "keep it short"}`: conditions on an `ai fn`'s
+    /// answer, called `it`.
+    pub checks: Option<CheckClause>,
     pub body: FnBody,
     pub span: Span,
 }
@@ -91,6 +94,21 @@ pub struct Param {
 pub struct BudgetEntry {
     pub name: Ident,
     pub value: ExprId,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct CheckClause {
+    pub entries: Vec<CheckEntry>,
+    /// The `check` keyword.
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct CheckEntry {
+    pub cond: ExprId,
+    /// `=> "why"`: told to the model when the answer fails this check.
+    pub reason: Option<(String, Span)>,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq)]
@@ -209,6 +227,8 @@ pub enum ImportKind {
 #[derive(Debug, PartialEq)]
 pub struct TypeExpr {
     pub kind: TypeKind,
+    /// `String where it.len() < 200`: a condition on the value, called `it`.
+    pub refinement: Option<ExprId>,
     pub span: Span,
 }
 

@@ -73,6 +73,9 @@ without a span in this file, such as W0107 path steps in another module) (progra
 | W0129 | thrown error is neither caught by a `try` nor declared with `throws` |
 | W0130 | `ai fn` declares `throws` |
 | W0131 | *warning*: nothing in a `try` block can throw |
+| W0132 | a refinement uses something other than `it`, literals, operators, fields, methods and enum variants |
+| W0133 | a refinement where it isn't allowed: only record fields, variant payloads, type aliases and `ai fn` return types |
+| W0134 | `check` clause on a function that isn't an `ai fn` |
 
 ## W02xx: effects, budgets, Rule of Two
 

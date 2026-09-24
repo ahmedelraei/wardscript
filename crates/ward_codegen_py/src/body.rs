@@ -153,7 +153,29 @@ impl<'a, 'p> FnGen<'a, 'p> {
                     self.line("pass");
                 }
             }
-            Body::Ai { prompt } => {
+            Body::Ai { prompt, checks, it } => {
+                // `check {...}` becomes a function of the answer: the first failed
+                // check's reason, or `None`.
+                let check = match (checks.is_empty(), it) {
+                    (false, Some(it)) => {
+                        let name = self.fresh();
+                        let def = if self.asyncio { "async def" } else { "def" };
+                        let it = self.local(*it).to_owned();
+                        self.line(format!("{def} {name}({it}):"));
+                        self.nested(|g| {
+                            for c in checks {
+                                let cond = g.expr(c.cond);
+                                g.line(format!("if not {}:", cond.at(ATOM)));
+                                g.nested(|g| {
+                                    g.line(format!("return {}", names::string(&c.reason)))
+                                });
+                            }
+                            g.line("return None");
+                        });
+                        Some(name)
+                    }
+                    _ => None,
+                };
                 let prompt = self.expr(*prompt);
                 let returns = self.scope.descriptor(&f.ret);
                 let call = if self.asyncio {
@@ -181,6 +203,9 @@ impl<'a, 'p> FnGen<'a, 'p> {
                     if let Some(b) = m.backoff {
                         policy.push_str(&format!(", backoff={b:?}"));
                     }
+                }
+                if let Some(check) = check {
+                    policy.push_str(&format!(", check={check}"));
                 }
                 self.line(format!(
                     "return {call}({}, {}, {returns}{policy})",

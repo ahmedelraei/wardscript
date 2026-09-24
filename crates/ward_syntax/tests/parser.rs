@@ -426,3 +426,50 @@ fn model_clause() {
         ["W0010"]
     );
 }
+
+#[test]
+fn refinements() {
+    let src = "type Subject = String where it.len() <= 80 && !it.contains(\"\\n\")\n\ntype Reply {\n    subject: Subject,\n    score: Int where it >= 1 && it <= 5,\n}\n\nai fn f(x: String) -> String where it.len() < 200 {\n    \"{x}\"\n}\n";
+    let parse = parse_ok(src);
+    let refined = parse
+        .module
+        .types
+        .iter()
+        .filter(|(_, t)| t.refinement.is_some())
+        .count();
+    assert_eq!(refined, 3);
+    assert_eq!(assert_round_trips(src), src);
+    // `where` is still a name elsewhere.
+    parse_ok("fn f(where: Int) -> Int {\n    where\n}\n");
+    // A record literal can't start in a refinement: the `{` is the body.
+    parse_ok("fn f() -> Int where it == 1 {\n    1\n}\n");
+    assert_eq!(codes("type T = String where\n"), ["W0012"]);
+}
+
+#[test]
+fn check_clause() {
+    let src = "ai fn f(x: String) -> String\n    check {\n        it.len() < 200 => \"keep it short\",\n        !it.contains(x),\n    }\n{\n    \"{x}\"\n}\n";
+    let parse = parse_ok(src);
+    let Some(Item::Fn(f)) = parse.module.items.first() else {
+        panic!("expected a function");
+    };
+    let Some(checks) = &f.checks else {
+        panic!("expected a check clause");
+    };
+    assert_eq!(checks.entries.len(), 2);
+    assert_eq!(
+        checks.entries[0].reason.as_ref().map(|(r, _)| r.as_str()),
+        Some("keep it short")
+    );
+    assert!(checks.entries[1].reason.is_none());
+    assert_eq!(assert_round_trips(src), src);
+    parse_ok("fn check(check: Int) -> Int {\n    check\n}\n");
+    assert_eq!(
+        codes("ai fn f() -> Int\n    check {it > 1 => 2}\n{\n    \"x\"\n}\n"),
+        ["W0010"]
+    );
+    assert_eq!(
+        codes("ai fn f() -> Int\n    check {it > 1 => \"{it}\"}\n{\n    \"x\"\n}\n"),
+        ["W0022"]
+    );
+}

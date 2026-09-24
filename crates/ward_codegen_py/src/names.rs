@@ -100,6 +100,7 @@ impl<'p> Scope<'p> {
     /// A type annotation. `generics` names the enclosing item's type parameters.
     pub fn annotation(&mut self, ty: &Ty, generics: &[String]) -> String {
         match ty {
+            Ty::Refined(t, _) => self.annotation(t, generics),
             Ty::Int => "int".into(),
             Ty::Float => "float".into(),
             Ty::String => "str".into(),
@@ -137,6 +138,23 @@ impl<'p> Scope<'p> {
     /// The runtime descriptor of a type, e.g. `_rt.List(_rt.Adt(Ticket))`.
     pub fn descriptor(&mut self, ty: &Ty) -> String {
         match ty {
+            Ty::Refined(t, key) => {
+                let inner = self.descriptor(t);
+                let Some(r) = self.program.refinement(*key) else {
+                    return inner;
+                };
+                let (name, text) = (r.name.clone(), string(&r.text));
+                let schema: Vec<String> = r
+                    .schema
+                    .iter()
+                    .map(|(k, v)| format!("{}: {v}", string(k)))
+                    .collect();
+                let check = self.qualify(key.module, name);
+                format!(
+                    "_rt.Refined({inner}, {check}, {text}, {{{}}})",
+                    schema.join(", ")
+                )
+            }
             Ty::Int => "_rt.Int".into(),
             Ty::Float => "_rt.Float".into(),
             Ty::String => "_rt.String".into(),
@@ -174,6 +192,9 @@ pub fn type_var(generic: &str) -> String {
 /// Whether a value of this type may be represented by Python `None`, so wrapping it in
 /// an `Option` needs `_rt.some`.
 pub fn may_be_none(ty: &Ty) -> bool {
+    if let Ty::Refined(t, _) = ty {
+        return may_be_none(t);
+    }
     matches!(
         ty,
         Ty::Unit | Ty::Option(_) | Ty::Param(_) | Ty::Dynamic | Ty::Var(_) | Ty::Error

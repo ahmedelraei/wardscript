@@ -30,6 +30,26 @@ fn invalid(span: ward_syntax::Span, message: String, label: &str) -> Diagnostic 
 }
 
 fn check_fn(f: &FnDecl) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    if let (Some(checks), false) = (&f.checks, f.is_ai) {
+        out.push(
+            Diagnostic::error(
+                codes::CHECK_NOT_AI,
+                format!(
+                    "`{}` isn't an `ai fn`, so it has no answer to check",
+                    f.name.name
+                ),
+                checks.span,
+            )
+            .with_label("a `check` clause only goes on an `ai fn`")
+            .with_help("check other values with `validate` or an `if`"),
+        );
+    }
+    out.extend(model_clause(f));
+    out
+}
+
+fn model_clause(f: &FnDecl) -> Vec<Diagnostic> {
     let Some(clause) = &f.model else {
         return Vec::new();
     };

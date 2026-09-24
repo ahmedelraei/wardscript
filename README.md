@@ -50,9 +50,11 @@ Early development, but usable end to end. Done:
 - model providers (`ward run --model`), with fallbacks and retry policies
   (`model {primary: fast, fallback: smart}`);
 - typed MCP tool imports pinned in `ward.lock` (`ward lock`; see
-  [examples/inbox](examples/inbox)).
+  [examples/inbox](examples/inbox));
+- refinement types (`String where it.len() <= 80`) and `check {...}` clauses on
+  model answers, retried with the reason when they fail.
 
-Next: output checks and refinements (M9). See [PLAN.md](PLAN.md) for the milestones
+Next: `test` blocks and `ward test` (M10). See [PLAN.md](PLAN.md) for the milestones
 and [docs/spec](docs/spec/README.md) for the language specification.
 
 ```bash

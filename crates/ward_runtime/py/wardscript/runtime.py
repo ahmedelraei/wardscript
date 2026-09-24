@@ -224,6 +224,13 @@ class _Attempt:
 
     def finish(self, answer: str | Completion) -> tuple[bool, Any, str | None]:
         """Charges the answer and decodes it: `(ok, value, error)`."""
+        ok, value, error = self.decode(answer)
+        self.record(ok, value, error)
+        return ok, value, error
+
+    def decode(self, answer: str | Completion) -> tuple[bool, Any, str | None]:
+        """Counts the answer in the run and decodes it (refinements included):
+        `(ok, value, error)`. `record` finishes the attempt."""
         if isinstance(answer, Completion):
             text, tokens, cost = answer.text, answer.tokens, answer.cost
         else:
@@ -243,6 +250,12 @@ class _Attempt:
             error = f"the answer is not valid JSON ({e})"
         except DecodeError as e:
             error = str(e)
+        self.answer = (str(text), tokens, cost)
+        return ok, value, error
+
+    def record(self, ok: bool, value: Any, error: str | None) -> None:
+        """Writes the attempt to the trace and charges it to budgets."""
+        text, tokens, cost = self.answer
         audit.record(
             "ai_call",
             started=self.started,
@@ -250,14 +263,13 @@ class _Attempt:
             attempt=self.number,
             model=self.alias,
             prompt=self.request.prompt,
-            answer=str(text),
+            answer=text,
             tokens=float(tokens),
             cost=None if cost is None else float(cost),
             error=error,
             leaves=audit.leaves(value) if ok else [],
         )
         budget.after_model_call(tokens, cost, _config.unpriced == "error")
-        return ok, value, error
 
 
     def failed(self, error: Exception) -> None:
@@ -328,6 +340,15 @@ async def _ask_async(attempt: _Attempt) -> str | Completion:
 
 Models = Union[tuple[Union[str, None], ...], None]
 
+#: An `ai fn`'s `check {...}` clause: the first failed check's reason, or `None`.
+Check = Callable[[Any], Union[Union[str, None], Awaitable[Union[str, None]]]]
+
+
+@dataclass(frozen=True)
+class _CheckStep:
+    check: Check
+    value: Any
+
 
 def _steps(
     function: str,
@@ -336,10 +357,16 @@ def _steps(
     models: Models,
     retries: int | None,
     backoff: float | None,
-) -> Generator[Union[_Attempt, float], Any, Any]:
+    check: Check | None = None,
+) -> Generator[Union[_Attempt, float, _CheckStep], Any, Any]:
     """The plan of an `ai fn` call, shared by the sync and async paths. Yields each
-    `_Attempt` to ask (the caller sends back the answer, or throws the `ModelError`)
-    and each backoff delay in seconds (the caller sleeps); returns the decoded value.
+    `_Attempt` to ask (the caller sends back the answer, or throws the `ModelError`),
+    each backoff delay in seconds (the caller sleeps) and each `_CheckStep` (the
+    caller runs the checks on the decoded answer and sends back the result); returns
+    the decoded value.
+
+    An answer that fails a refinement (while decoding) or a check is invalid, like
+    one that doesn't fit the type: it's retried with the reason.
 
     Each model in turn: provider errors that are `retryable` are retried up to
     `retries` times with exponential backoff; an answer that doesn't fit the type is
@@ -366,7 +393,16 @@ def _steps(
                         continue
                     break
                 failure = None
-                ok, value, error = attempt.finish(answer)
+                ok, value, error = attempt.decode(answer)
+                if ok and check is not None:
+                    try:
+                        reason = yield _CheckStep(check, value)
+                    except BaseException:
+                        attempt.record(False, None, "the checks failed to run")
+                        raise
+                    if reason is not None:
+                        ok, error = False, f"the answer failed a check: {reason}"
+                attempt.record(ok, value, error)
                 if ok:
                     return value
                 errors.append(error or "")
@@ -385,11 +421,13 @@ def ai(
     models: Models = None,
     retries: int | None = None,
     backoff: float | None = None,
+    check: Check | None = None,
 ) -> Any:
     """Calls the model for `ai fn function` and decodes its answer as `returns`,
     retrying with the error when the answer doesn't fit. `models`, `retries` and
-    `backoff` come from the function's `model {...}` clause (see `_steps`)."""
-    steps = _steps(function, prompt, returns, models, retries, backoff)
+    `backoff` come from the function's `model {...}` clause, `check` from its
+    `check {...}` clause (see `_steps`)."""
+    steps = _steps(function, prompt, returns, models, retries, backoff, check)
     try:
         step = next(steps)
         while True:
@@ -400,6 +438,13 @@ def ai(
                     step = steps.throw(e)
                     continue
                 step = steps.send(answer)
+            elif isinstance(step, _CheckStep):
+                try:
+                    reason = _resolve(step.check(step.value))
+                except Exception as e:
+                    step = steps.throw(e)
+                    continue
+                step = steps.send(reason)
             else:
                 budget.check_time()
                 time.sleep(step)
@@ -415,8 +460,9 @@ async def ai_async(
     models: Models = None,
     retries: int | None = None,
     backoff: float | None = None,
+    check: Check | None = None,
 ) -> Any:
-    steps = _steps(function, prompt, returns, models, retries, backoff)
+    steps = _steps(function, prompt, returns, models, retries, backoff, check)
     try:
         step = next(steps)
         while True:
@@ -427,6 +473,15 @@ async def ai_async(
                     step = steps.throw(e)
                     continue
                 step = steps.send(answer)
+            elif isinstance(step, _CheckStep):
+                try:
+                    reason = step.check(step.value)
+                    if inspect.isawaitable(reason):
+                        reason = await reason
+                except Exception as e:
+                    step = steps.throw(e)
+                    continue
+                step = steps.send(reason)
             else:
                 budget.check_time()
                 await asyncio.sleep(step)

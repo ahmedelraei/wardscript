@@ -225,6 +225,18 @@ impl BodyResolver<'_> {
         for entry in f.budget.iter().flatten() {
             self.expr(entry.value);
         }
+        if let Some(checks) = &f.checks {
+            self.locals.push(HashMap::new());
+            let it = self.bind(&Ident {
+                name: "it".to_owned(),
+                span: checks.span,
+            });
+            self.res.check_its.insert(item, it);
+            for e in &checks.entries {
+                self.expr(e.cond);
+            }
+            self.locals.pop();
+        }
         match &f.body {
             FnBody::Block(b) => self.block(b),
             FnBody::Ai { prompt } => self.expr(*prompt),
@@ -697,6 +709,18 @@ impl BodyResolver<'_> {
         }
         if let Some(res) = self.type_path(path) {
             self.res.types.insert(id, res);
+        }
+        if let Some(cond) = ast.types[id].refinement {
+            // Only `it` is in scope: a refinement is about the value alone.
+            let saved = std::mem::take(&mut self.locals);
+            self.locals.push(HashMap::new());
+            let it = self.bind(&Ident {
+                name: "it".to_owned(),
+                span: ast.types[id].span,
+            });
+            self.res.refinement_its.insert(id, it);
+            self.expr(cond);
+            self.locals = saved;
         }
     }
 

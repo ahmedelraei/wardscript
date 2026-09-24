@@ -3,7 +3,7 @@
 This is the normative description of Wardscript. It is kept in sync with the
 implementation: every language feature lands together with its section here.
 
-Status: **M8 (model fallbacks and retry policies)**.
+Status: **M9 (refinements and output checks)**.
 
 ## Contents
 
@@ -12,7 +12,7 @@ Status: **M8 (model fallbacks and retry policies)**.
 | [Lexical structure and syntax](syntax.md) | implemented (M1) |
 | [Diagnostics](diagnostics.md) | syntax (M1), names and types (M2), trust (M4), effects (M5), tools (M7) |
 | [Names, modules and imports](names.md) | implemented (M2) |
-| [Types](types.md) | implemented (M2) |
+| [Types](types.md) | implemented (M2), refinements and checks (M9) |
 | [Trust labels](trust.md) (`Trusted` / `Untrusted`, sources, sinks, `validate` / `approve` / `declassify`) | implemented (M4) |
 | [Effects, budgets, Rule of Two](effects.md) | implemented (M5) |
 | [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5), audit trace, providers, sink checks, async and streaming (M6), model policies (M8) |

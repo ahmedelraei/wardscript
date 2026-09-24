@@ -71,6 +71,9 @@ fn top_level_names(program: &Program, module: &Module) -> HashSet<String> {
     for f in &module.fns {
         out.insert(names::ident(&f.name));
     }
+    for r in &module.refinements {
+        out.insert(r.name.clone());
+    }
     for m in &program.modules {
         out.insert(names::module_alias(&m.name));
     }
@@ -151,6 +154,18 @@ fn python(program: &Program, id: ModuleId, module: &Module, options: Options) ->
         let indent = "    ";
         for line in g.lines {
             let _ = writeln!(body, "{indent}{line}");
+        }
+    }
+
+    // Refinements: plain functions of `it`, outside the audit trace.
+    for r in &module.refinements {
+        let f = &r.func;
+        let mut g = FnGen::new(f, &mut scope, &top);
+        g.body();
+        let param = g.local(f.params[0]).to_owned();
+        let _ = writeln!(body, "\n\ndef {}({param}) -> bool:", r.name);
+        for line in g.lines {
+            let _ = writeln!(body, "{line}");
         }
     }
 

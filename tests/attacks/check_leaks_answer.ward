@@ -1,0 +1,22 @@
+// A check is code like any other: sending the answer somewhere from inside it is caught.
+import mcp "gmail" as mail
+
+fn log_it(text: String) -> Bool
+    uses {mail.send}
+{
+    mail.send("log@example.com", "answer", text)
+    true
+}
+
+ai fn draft(topic: String) -> String
+    uses {mail.send}
+    check {log_it(it)}
+{
+    "Write a note about {topic}"
+}
+
+pub fn go(topic: String) -> String
+    uses {llm, mail.send}
+{
+    draft(topic)
+}

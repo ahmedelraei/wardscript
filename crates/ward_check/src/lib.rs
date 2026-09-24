@@ -7,6 +7,7 @@ mod infer;
 mod lower;
 mod methods;
 mod models;
+mod refine;
 pub mod tools;
 mod trust;
 pub mod ty;
@@ -125,7 +126,7 @@ pub fn check(program: &Program, resolution: &Resolution) -> Checked {
         expanding: Vec::new(),
     };
     c.collect_signatures();
-    let types = program
+    let mut types: Vec<ModuleTypes> = program
         .module_ids()
         .map(|m| {
             let mut types = ModuleTypes::default();
@@ -137,6 +138,7 @@ pub fn check(program: &Program, resolution: &Resolution) -> Checked {
             types
         })
         .collect();
+    refine::check(&mut c, &mut types);
     Checked {
         diagnostics: c.diags,
         types,
@@ -161,6 +163,14 @@ pub(crate) struct Checker<'p> {
 }
 
 impl Checker<'_> {
+    /// Runs `f`, dropping the diagnostics it reports (they were reported before).
+    pub fn quietly<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
+        let n = self.diags.len();
+        let out = f(self);
+        self.diags.truncate(n);
+        out
+    }
+
     pub fn error(&mut self, module: ModuleId, diagnostic: ward_syntax::Diagnostic) {
         self.diags.push(ProgramDiagnostic { module, diagnostic });
     }

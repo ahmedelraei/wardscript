@@ -1,0 +1,26 @@
+// M9: refinements and checks on model answers. A failed one is retried with the
+// reason; after the retries, the call fails with `AiOutputError`.
+pub type Reply {
+    subject: String where it.len() <= 30,
+    body: String where it.len() >= 1,
+}
+
+ai fn is_polite(text: String) -> Bool {
+    "Is this polite? Answer true or false.\n\n{text}"
+}
+
+ai fn draft(name: String) -> Reply
+    check {
+        it.body.contains(name) => "greet the customer by name",
+        !it.body.contains("http") => "no links",
+        is_polite(it.body) => "be polite",
+    }
+{
+    "Reply to {name}."
+}
+
+pub fn reply(name: String) -> Reply
+    uses {llm}
+{
+    draft(name)
+}

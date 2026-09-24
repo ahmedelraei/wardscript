@@ -1,0 +1,15 @@
+// A `check` clause goes on an `ai fn`, and each condition is a `Bool`.
+ai fn a(x: String) -> String
+    check {
+        it.len(),
+        it.len() < x => "shorter than the input",
+    }
+{
+    "{x}"
+}
+
+fn b() -> Int
+    check {it > 0}
+{
+    1
+}

@@ -1,4 +1,12 @@
-use ward_resolve::DefId;
+use ward_resolve::{DefId, ModuleId};
+use ward_syntax::ast::TypeId;
+
+/// Where a refinement was written: the type `T where ...` in a module.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Refinement {
+    pub module: ModuleId,
+    pub ty: TypeId,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Ty {
@@ -18,8 +26,12 @@ pub enum Ty {
     Param(usize),
     /// An inference variable.
     Var(u32),
-    /// Tool results: accepted anywhere until MCP imports give them real types (M7).
+    /// Values of tools without a schema, and object-typed tool values: accepted anywhere.
     Dynamic,
+    /// `T where cond`: checked where values are decoded (model answers, tool results),
+    /// otherwise the same as `T`. Inference sees through it (`Unifier::resolve` drops
+    /// it); it stays in signatures and record fields for code generation.
+    Refined(Box<Ty>, Refinement),
     /// Already reported; accepted anywhere so one mistake doesn't cascade.
     Error,
 }
@@ -83,6 +95,7 @@ impl Ty {
         match self {
             Ty::List(t) => Ty::List(g(t)),
             Ty::Option(t) => Ty::Option(g(t)),
+            Ty::Refined(t, r) => Ty::Refined(g(t), *r),
             Ty::Map(k, v) => Ty::Map(g(k), g(v)),
             Ty::Adt(d, args) => Ty::Adt(*d, args.iter().map(|a| a.map_children(f)).collect()),
             t => t.clone(),
@@ -92,11 +105,19 @@ impl Ty {
     pub fn any(&self, pred: &dyn Fn(&Ty) -> bool) -> bool {
         pred(self)
             || match self {
-                Ty::List(t) | Ty::Option(t) => t.any(pred),
+                Ty::List(t) | Ty::Option(t) | Ty::Refined(t, _) => t.any(pred),
                 Ty::Map(a, b) => a.any(pred) || b.any(pred),
                 Ty::Adt(_, args) => args.iter().any(|a| a.any(pred)),
                 _ => false,
             }
+    }
+
+    /// The type without refinements.
+    pub fn unrefined(&self) -> Ty {
+        self.map_children(&|t| match t {
+            Ty::Refined(inner, _) => Some(inner.unrefined()),
+            _ => None,
+        })
     }
 
     /// Types that unify with anything.
@@ -116,20 +137,25 @@ impl Unifier {
         Ty::Var(self.vars.len() as u32 - 1)
     }
 
-    /// Follows bound variables at the top level only.
+    /// Follows bound variables, and looks through refinements, at the top level only.
     pub fn shallow(&self, t: &Ty) -> Ty {
         let mut t = t.clone();
-        while let Ty::Var(v) = t {
-            match self.vars.get(v as usize) {
-                Some(Some(bound)) => t = bound.clone(),
-                _ => break,
-            }
+        loop {
+            t = match t {
+                Ty::Var(v) => match self.vars.get(v as usize) {
+                    Some(Some(bound)) => bound.clone(),
+                    _ => return t,
+                },
+                Ty::Refined(inner, _) => *inner,
+                _ => return t,
+            };
         }
-        t
     }
 
+    /// The type with its variables replaced and its refinements dropped.
     pub fn resolve(&self, t: &Ty) -> Ty {
         t.map_children(&|t| match t {
+            Ty::Refined(inner, _) => Some(self.resolve(inner)),
             Ty::Var(_) => {
                 let s = self.shallow(t);
                 match s {

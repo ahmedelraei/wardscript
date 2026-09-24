@@ -63,8 +63,18 @@ impl Checker<'_> {
         }
     }
 
-    /// Translates a written type. Generic parameters stay as `Ty::Param`.
+    /// Translates a written type. Generic parameters stay as `Ty::Param`; a refinement
+    /// (`String where ...`) becomes `Ty::Refined`.
     pub fn lower(&mut self, m: ModuleId, id: TypeId) -> Ty {
+        let ty = self.lower_unrefined(m, id);
+        if self.program.module(m).ast.types[id].refinement.is_some() {
+            Ty::Refined(Box::new(ty), crate::ty::Refinement { module: m, ty: id })
+        } else {
+            ty
+        }
+    }
+
+    pub(crate) fn lower_unrefined(&mut self, m: ModuleId, id: TypeId) -> Ty {
         let program = self.program;
         let ty = &program.module(m).ast.types[id];
         let TypeKind::Named { path, args } = &ty.kind else {
@@ -183,14 +193,14 @@ impl Checker<'_> {
         match ty {
             Ty::Int | Ty::Float | Ty::String | Ty::Bool => None,
             Ty::Error | Ty::Never | Ty::Var(_) => None,
-            Ty::List(t) | Ty::Option(t) => self.schema_problem(t, visiting),
+            Ty::List(t) | Ty::Option(t) | Ty::Refined(t, _) => self.schema_problem(t, visiting),
             Ty::Map(k, v) => match **k {
                 Ty::String | Ty::Error => self.schema_problem(v, visiting),
                 _ => Some("JSON object keys must be `String`".into()),
             },
             Ty::Unit => Some("`()` has no JSON representation".into()),
             Ty::Param(_) => Some("a generic type has no fixed schema".into()),
-            Ty::Dynamic => Some("tool types aren't known yet".into()),
+            Ty::Dynamic => Some("a dynamic value has no fixed schema".into()),
             Ty::Adt(d, args) => {
                 if visiting.contains(d) {
                     return None;

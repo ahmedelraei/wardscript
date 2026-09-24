@@ -1,0 +1,17 @@
+// Refinements use only `it`, literals, operators, fields and methods, and go only
+// where decoded data is described.
+fn short(s: String) -> Bool {
+    s.len() < 10
+}
+
+pub type A {
+    x: String where short(it),
+    y: String where if it.len() > 1 { true } else { false },
+    z: Int where it + 1,
+    w: String where it.len() < limit,
+}
+
+fn f(s: String where it.len() < 3) -> String where it.len() > 0 {
+    let t: String where it.len() < 3 = s
+    t
+}
