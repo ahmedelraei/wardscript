@@ -44,9 +44,10 @@ the path it took. The host calling `answer` has to vouch for `to`
 Early development. Done: the parser, name resolution and type checker
 (`ward check`), the Python backend with its runtime (`ward build`, `ward run`), and
 trust labels, effects, budgets and the Rule of Two, and the runtime's Rust core,
-audit trace, model providers, runtime sink checks and OTLP export (`ward trace`,
-`ward run --model`). Next: typed MCP tool imports (M7). See [PLAN.md](PLAN.md) for
-the milestones and [docs/spec](docs/spec/README.md) for the language specification.
+audit trace, model providers, runtime sink checks, OTLP export, async code and
+streaming (`ward trace`, `ward run --model`, `ward build --async`). Next: typed MCP
+tool imports (M7). See [PLAN.md](PLAN.md) for the milestones and
+[docs/spec](docs/spec/README.md) for the language specification.
 
 ```bash
 cargo run -p ward_cli -- check examples/support.wardscript

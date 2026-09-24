@@ -22,18 +22,28 @@ pub struct OutputFile {
     pub contents: String,
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Options {
+    /// Functions become `async def`s, and models, approvers and tools are awaited.
+    pub asyncio: bool,
+}
+
 pub fn generate(program: &Program) -> Vec<OutputFile> {
+    generate_with(program, Options::default())
+}
+
+pub fn generate_with(program: &Program, options: Options) -> Vec<OutputFile> {
     let mut files = Vec::new();
     for (i, module) in program.modules.iter().enumerate() {
         let id = ModuleId(i as u32);
         let base: PathBuf = module.name.split('.').collect();
         files.push(OutputFile {
             path: base.with_extension("py"),
-            contents: python(program, id, module),
+            contents: python(program, id, module, options),
         });
         files.push(OutputFile {
             path: base.with_extension("pyi"),
-            contents: stub(program, id, module),
+            contents: stub(program, id, module, options),
         });
     }
     files
@@ -67,7 +77,11 @@ fn top_level_names(program: &Program, module: &Module) -> HashSet<String> {
     out
 }
 
-fn python(program: &Program, id: ModuleId, module: &Module) -> String {
+fn def(options: Options) -> &'static str {
+    if options.asyncio { "async def" } else { "def" }
+}
+
+fn python(program: &Program, id: ModuleId, module: &Module, options: Options) -> String {
     let mut scope = Scope::new(program, Some(id));
     let mut body = String::new();
 
@@ -98,10 +112,12 @@ fn python(program: &Program, id: ModuleId, module: &Module) -> String {
             .collect();
         let ret = scope.annotation(&f.ret, &f.generics);
         let mut g = FnGen::new(f, &mut scope, &top);
+        g.asyncio = options.asyncio;
         g.body();
         let _ = writeln!(
             body,
-            "\n\ndef {}({}) -> {ret}:",
+            "\n\n{} {}({}) -> {ret}:",
+            def(options),
             names::ident(&f.name),
             params.join(", ")
         );
@@ -331,7 +347,7 @@ fn enum_classes(out: &mut String, scope: &mut Scope, e: &Enum, stub: bool) {
     }
 }
 
-fn stub(program: &Program, id: ModuleId, module: &Module) -> String {
+fn stub(program: &Program, id: ModuleId, module: &Module, options: Options) -> String {
     let mut scope = Scope::new(program, Some(id));
     let mut body = String::new();
     for r in &module.records {
@@ -362,7 +378,8 @@ fn stub(program: &Program, id: ModuleId, module: &Module) -> String {
         let ret = scope.annotation(&f.ret, &f.generics);
         let _ = write!(
             body,
-            "\n\ndef {}({}) -> {ret}: ...\n",
+            "\n\n{} {}({}) -> {ret}: ...\n",
+            def(options),
             names::ident(&f.name),
             params.join(", ")
         );

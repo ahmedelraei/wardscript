@@ -78,11 +78,18 @@ pub fn runtime_py() -> PathBuf {
 
 /// Runs `ward build src -o <tmp>/<name>` and returns the output directory.
 pub fn build(name: &str, src: &str) -> PathBuf {
+    build_with(name, src, &[])
+}
+
+/// `build`, with more `ward build` flags.
+pub fn build_with(name: &str, src: &str, flags: &[&str]) -> PathBuf {
     let out = Path::new(env!("CARGO_TARGET_TMPDIR"))
         .join("build")
         .join(name);
     let _ = std::fs::remove_dir_all(&out);
-    let result = ward(&["build", src, "-o", out.to_str().expect("utf-8 path")]);
+    let mut args = vec!["build", src, "-o", out.to_str().expect("utf-8 path")];
+    args.extend_from_slice(flags);
+    let result = ward(&args);
     assert_eq!(result.status.code(), Some(0), "{}", render(&result));
     out
 }

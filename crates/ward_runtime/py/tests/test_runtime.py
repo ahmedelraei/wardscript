@@ -12,6 +12,7 @@ from wardscript import (
     AiOutputError,
     ApprovalDenied,
     BudgetExceeded,
+    Completion,
     DecodeError,
     PanicError,
     Some,
@@ -363,6 +364,100 @@ class SinkChecks(unittest.TestCase):
         with _rt.call("f", []):
             _rt.call_tool("mail", "send", "a.ward:1:1", _rt.ai("f", "p", _rt.String))
         self.assertEqual(len(self.sent), 2)
+
+
+class Streaming(unittest.TestCase):
+    class Model:
+        def __init__(self, text, usage=None):
+            self.text, self.usage = text, usage
+            self.completed = self.closed = False
+
+        def complete(self, request):
+            self.completed = True
+            return self.text
+
+        def stream(self, request):
+            try:
+                for i in range(0, len(self.text), 4):
+                    yield self.text[i : i + 4]
+                if self.usage is not None:
+                    yield self.usage
+            finally:
+                self.closed = True
+
+    def tearDown(self):
+        runtime.reset()
+
+    def test_streams_only_when_watched(self):
+        model = self.Model('"hello there"')
+        runtime.configure(model=model)
+        self.assertEqual(_rt.ai("f", "p", _rt.String), "hello there")
+        self.assertTrue(model.completed)
+        seen = []
+        model = self.Model('"hello there"', Completion("", tokens=9, cost=0.5))
+        runtime.configure(model=model, on_stream=seen.append)
+        with _rt.budget("f", cost=1) as b:
+            self.assertEqual(_rt.ai("f", "p", _rt.String), "hello there")
+        self.assertFalse(model.completed)
+        self.assertEqual("".join(c.delta for c in seen), '"hello there"')
+        self.assertEqual(seen[-1].text, '"hello there"')
+        self.assertEqual(b.used, (9.0, 1.0, 0.5))
+
+    def test_final_completion_text_wins(self):
+        runtime.configure(model=self.Model('{"value": 1}', Completion("1")), on_stream=lambda c: None)
+        self.assertEqual(_rt.ai("f", "p", _rt.Int), 1)
+
+    def test_token_budget_stops_the_stream(self):
+        model = self.Model('"' + "x" * 4000 + '"')
+        runtime.configure(model=model)
+        with self.assertRaises(BudgetExceeded):
+            with _rt.budget("f", tokens=100):
+                _rt.ai("f", "p", _rt.String)
+        self.assertTrue(model.closed)
+        self.assertFalse(model.completed)
+
+
+class Async(unittest.TestCase):
+    def tearDown(self):
+        runtime.reset()
+
+    def test_async_operations(self):
+        class Model:
+            async def complete(self, request):
+                return "3"
+
+        async def approver(request):
+            return True
+
+        async def send(to):
+            return f"sent {to}"
+
+        async def rule(v):
+            return v > 1
+
+        runtime.configure(model=Model(), approver=approver, tools={"mail": {"send": send}})
+
+        async def main():
+            n = await _rt.ai_async("f", "p", _rt.Int)
+            n = await _rt.validate_async(n, rule, "big")
+            n = await _rt.approve_async(n, "a.ward:1:1")
+            return await _rt.call_tool_async("mail", "send", "a.ward:1:1", n)
+
+        self.assertEqual(asyncio.run(main()), "sent 3")
+
+    def test_async_stream_from_sync_code(self):
+        class Model:
+            def complete(self, request):
+                raise AssertionError("streams")
+
+            async def stream(self, request):
+                yield '"a'
+                yield 'b"'
+
+        seen = []
+        runtime.configure(model=Model(), on_stream=seen.append)
+        self.assertEqual(_rt.ai("f", "p", _rt.String), "ab")
+        self.assertEqual(len(seen), 2)
 
 
 class Collector(http.server.BaseHTTPRequestHandler):

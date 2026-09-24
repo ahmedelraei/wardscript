@@ -2,14 +2,16 @@
 
 Status: implemented in M3 (`ward_ir`, `ward_codegen_py`, `crates/ward_runtime/py`);
 trust at the host boundary in M4, budgets in M5; the Rust core, audit trace,
-model providers, sink checks and collectors in M6. The design is recorded in
-decisions [006](../decisions/006-python-backend.md) and
-[009](../decisions/009-runtime-core-and-trace.md).
+model providers, sink checks, collectors, async code and streaming in M6. The design
+is recorded in decisions [006](../decisions/006-python-backend.md),
+[009](../decisions/009-runtime-core-and-trace.md) and
+[010](../decisions/010-sink-checks-async-streaming.md).
 
 ## Building
 
 ```bash
 ward build app.wardscript -o build      # build/app.py, build/app.pyi
+ward build app.wardscript --async       # async def functions, for asyncio hosts
 ward run app.wardscript route '"an email"' --mock answers.json
 ward run app.wardscript route '"an email"' --model anthropic
 ward trace show                         # the latest run's trace
@@ -221,7 +223,8 @@ runtime.configure(
 `configure` only changes the settings it's given; `runtime.reset()` restores the
 defaults.
 
-- **`model`**: anything with `complete(request: AiRequest) -> str | Completion`,
+- **`model`**: anything with `complete(request: AiRequest) -> str | Completion`
+  (and optionally `stream`, [below](#streaming)),
   returning JSON text, or a `Completion(text, tokens, cost)` that also says what the
   answer cost, for [budgets](effects.md#budgets). `AiRequest` has the `function` name, the `prompt` with arguments filled in,
   the JSON `schema` of the return type, the `attempt` number and the `errors` of
@@ -241,6 +244,29 @@ defaults.
 - **`otlp_endpoint`**: an OTLP/HTTP collector each run is also sent to
   ([above](#sending-runs-to-a-collector)).
 - **`check_sinks`**: the runtime [sink checks](#sink-checks) (default on).
+- **`on_stream`**: called with a `StreamChunk(function, attempt, delta, text)` for
+  each piece of a streamed answer ([streaming](#streaming)).
+
+### Async code
+
+`ward build --async` generates `async def` functions. They await calls to each
+other, the model, the approver, tools and `validate` rules, using the runtime's
+`ai_async`, `approve_async`, `call_tool_async` and `validate_async`. Models,
+approvers and tools may then be sync or `async`. Each asyncio task that calls
+in is its own run, so concurrent runs (`asyncio.gather`) get separate traces and
+budgets. The generated code is otherwise the same as the synchronous build, and
+its stubs declare `async def`.
+
+### Streaming
+
+A model can also have `stream(request)`, yielding the answer's text in pieces
+(sync or async). It may end with a `Completion` that gives the usage, and, if its
+text isn't empty, the final answer. The runtime streams instead of calling
+`complete` when `on_stream` is set or a `tokens` budget is active. After each
+piece, the tokens so far are estimated. If that goes over a `tokens` budget, the
+stream is closed and the call raises `BudgetExceeded`, without waiting for the
+rest of the answer. Both providers stream. Their pieces are the raw
+`{"value": ...}` JSON the API returns.
 
 ### `ai fn` calls
 

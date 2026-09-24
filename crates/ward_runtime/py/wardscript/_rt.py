@@ -3,7 +3,17 @@
 from .audit import call
 from .budget import budget
 from .errors import Thrown
-from .runtime import ai, approve, call_tool, declassify, validate
+from .runtime import (
+    ai,
+    ai_async,
+    approve,
+    approve_async,
+    call_tool,
+    call_tool_async,
+    declassify,
+    validate,
+    validate_async,
+)
 from .schema import Adt, Any, Bool, Float, Int, List, Map, Option, Param, String, Unit, enum, record
 from .trust import Trusted, vouched
 from .values import (
@@ -42,10 +52,13 @@ __all__ = [
     "Trusted",
     "Unit",
     "ai",
+    "ai_async",
     "budget",
     "call",
     "approve",
+    "approve_async",
     "call_tool",
+    "call_tool_async",
     "declassify",
     "enum",
     "fdiv",
@@ -67,6 +80,7 @@ __all__ = [
     "unwrap",
     "unwrap_or",
     "validate",
+    "validate_async",
     "vouched",
     "with_field",
 ]

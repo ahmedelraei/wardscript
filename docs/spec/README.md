@@ -15,7 +15,7 @@ Status: **M6 (runtime core, audit trace, model providers)**.
 | [Types](types.md) | implemented (M2) |
 | [Trust labels](trust.md) (`Trusted` / `Untrusted`, sources, sinks, `validate` / `approve` / `declassify`) | implemented (M4) |
 | [Effects, budgets, Rule of Two](effects.md) | implemented (M5) |
-| [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5), audit trace, providers and sink checks (M6) |
+| [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5), audit trace, providers, sink checks, async and streaming (M6) |
 | MCP imports | planned (M7) |
 
 ## Diagnostics

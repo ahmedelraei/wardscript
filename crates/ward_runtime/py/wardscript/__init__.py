@@ -19,7 +19,7 @@ from .errors import (
     TrustError,
     WardError,
 )
-from .model import AiRequest, Completion, Model
+from .model import AiRequest, Completion, Model, StreamChunk, StreamingModel
 from .runtime import ApprovalRequest, configure
 from .schema import decode, encode, json_schema
 from .trust import Trusted
@@ -37,6 +37,8 @@ __all__ = [
     "NoModelError",
     "PanicError",
     "Some",
+    "StreamChunk",
+    "StreamingModel",
     "Thrown",
     "ToolError",
     "Trusted",
