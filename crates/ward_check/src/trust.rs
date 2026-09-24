@@ -342,6 +342,19 @@ impl<'p> Trust<'p> {
                 cx.ret(v, b.tail.map_or(b.span, |e| cx.span(e)));
             }
             FnBody::Ai { .. } => {
+                // `check {...}` reads the answer, which is untrusted like any model
+                // output; passing it doesn't make it trusted.
+                if let (Some(checks), Some(&it)) = (&f.checks, mres.check_its.get(&def.item)) {
+                    let answer = Label::untrusted(source(
+                        module,
+                        checks.span,
+                        format!("the answer of `ai fn {}`", f.name.name),
+                    ));
+                    cx.env.insert(it, answer);
+                    for e in &checks.entries {
+                        cx.expr(e.cond);
+                    }
+                }
                 if let Some(ret) = f.ret {
                     if cx.t.declared(module, ret) == Declared::Trusted {
                         let span = cx.ast.types[ret].span;

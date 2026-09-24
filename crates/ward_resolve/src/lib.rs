@@ -194,6 +194,10 @@ pub struct ModuleRes {
     pub stmt_locals: ArenaMap<StmtId, LocalId>,
     /// The error variable of each `try ... catch err`.
     pub catch_locals: ArenaMap<ExprId, LocalId>,
+    /// The `it` of each refined type (`String where it.len() < 80`).
+    pub refinement_its: ArenaMap<TypeId, LocalId>,
+    /// The `it` (the answer) of each `ai fn`'s `check {...}` clause, by item index.
+    pub check_its: HashMap<usize, LocalId>,
 }
 
 pub struct Resolution {

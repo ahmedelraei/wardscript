@@ -13,6 +13,7 @@ pub use ward_resolve::{DefId, ModuleId};
 pub use ward_syntax::ast::{BinOp, UnOp};
 
 pub use lower::{LowerError, lower};
+mod refine;
 
 pub type ExprId = Idx<Expr>;
 pub type StmtId = Idx<Stmt>;
@@ -44,6 +45,13 @@ impl Program {
         self.module(def.module).fns.iter().find(|f| f.def == def)
     }
 
+    pub fn refinement(&self, key: ward_check::ty::Refinement) -> Option<&RefinementFn> {
+        self.module(key.module)
+            .refinements
+            .iter()
+            .find(|r| r.key == key)
+    }
+
     pub fn tool(&self, def: DefId) -> Option<&Tool> {
         self.module(def.module).tools.iter().find(|t| t.def == def)
     }
@@ -66,6 +74,8 @@ pub struct Module {
     pub enums: Vec<Enum>,
     pub fns: Vec<Fn>,
     pub tools: Vec<Tool>,
+    /// Not in `fns`: they aren't Wardscript functions and have no `DefId` of their own.
+    pub refinements: Vec<RefinementFn>,
 }
 
 pub struct Record {
@@ -163,7 +173,30 @@ pub enum Body {
     /// `ai fn`: the model answers `prompt` with a value of the return type.
     Ai {
         prompt: ExprId,
+        /// `check {...}`: conditions on the answer, bound to `it`.
+        checks: Vec<Check>,
+        it: Option<LocalId>,
     },
+}
+
+pub struct Check {
+    pub cond: ExprId,
+    /// Told to the model when the answer fails: the written reason, or the condition.
+    pub reason: String,
+}
+
+/// A refinement's condition as a function of `it`, and what the runtime needs to
+/// describe it.
+pub struct RefinementFn {
+    pub key: ward_check::ty::Refinement,
+    /// The generated function's name.
+    pub name: String,
+    /// The condition as written, for error messages.
+    pub text: String,
+    /// JSON Schema keywords it implies, with JSON values.
+    pub schema: Vec<(String, String)>,
+    /// `fn(it) -> Bool`.
+    pub func: Fn,
 }
 
 pub struct Local {

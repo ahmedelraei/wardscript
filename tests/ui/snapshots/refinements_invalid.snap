@@ -1,0 +1,331 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/refinements_invalid.ward
+---
+exit: Some(1)
+--- human ---
+[W0132] Error: a call of `short` can't be used in a refinement
+   ╭─[ tests/ui/refinements_invalid.ward:8:21 ]
+   │
+ 8 │     x: String where short(it),
+   │                     ────┬────  
+   │                         ╰────── not allowed here
+   │ 
+   │ Help: a refinement uses `it`, literals, operators, fields, methods and enum variants; check anything else in the `ai fn`'s `check {...}` clause
+───╯
+[W0132] Error: `if` or `match` can't be used in a refinement
+   ╭─[ tests/ui/refinements_invalid.ward:9:21 ]
+   │
+ 9 │     y: String where if it.len() > 1 { true } else { false },
+   │                     ───────────────────┬───────────────────  
+   │                                        ╰───────────────────── not allowed here
+   │ 
+   │ Help: a refinement uses `it`, literals, operators, fields, methods and enum variants; check anything else in the `ai fn`'s `check {...}` clause
+───╯
+[W0110] Error: mismatched types: expected `Bool`, found `Int`
+    ╭─[ tests/ui/refinements_invalid.ward:10:18 ]
+    │
+ 10 │     z: Int where it + 1,
+    │                  ───┬──  
+    │                     ╰──── expected `Bool`, found `Int`
+────╯
+[W0100] Error: cannot find `limit` in this scope
+    ╭─[ tests/ui/refinements_invalid.ward:11:32 ]
+    │
+ 11 │     w: String where it.len() < limit,
+    │                                ──┬──  
+    │                                  ╰──── not found
+────╯
+[W0133] Error: a refinement can't go here
+    ╭─[ tests/ui/refinements_invalid.ward:14:9 ]
+    │
+ 14 │ fn f(s: String where it.len() < 3) -> String where it.len() > 0 {
+    │         ────────────┬────────────  
+    │                     ╰────────────── refined type
+    │ 
+    │ Help: refinements describe decoded data: put them on record fields, type aliases and `ai fn` return types, and check other values with `validate`
+────╯
+[W0133] Error: a refinement can't go here
+    ╭─[ tests/ui/refinements_invalid.ward:14:39 ]
+    │
+ 14 │ fn f(s: String where it.len() < 3) -> String where it.len() > 0 {
+    │                                       ────────────┬────────────  
+    │                                                   ╰────────────── refined type
+    │ 
+    │ Help: refinements describe decoded data: put them on record fields, type aliases and `ai fn` return types, and check other values with `validate`
+────╯
+[W0133] Error: a refinement can't go here
+    ╭─[ tests/ui/refinements_invalid.ward:15:12 ]
+    │
+ 15 │     let t: String where it.len() < 3 = s
+    │            ────────────┬────────────  
+    │                        ╰────────────── refined type
+    │ 
+    │ Help: refinements describe decoded data: put them on record fields, type aliases and `ai fn` return types, and check other values with `validate`
+────╯
+error: could not check `tests/ui/refinements_invalid.ward` due to 7 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0132",
+      "file": "tests/ui/refinements_invalid.ward",
+      "help": "a refinement uses `it`, literals, operators, fields, methods and enum variants; check anything else in the `ai fn`'s `check {...}` clause",
+      "labels": [
+        {
+          "message": "not allowed here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 30,
+              "line": 8,
+              "offset": 211
+            },
+            "start": {
+              "column": 21,
+              "line": 8,
+              "offset": 202
+            }
+          }
+        }
+      ],
+      "message": "a call of `short` can't be used in a refinement",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 30,
+          "line": 8,
+          "offset": 211
+        },
+        "start": {
+          "column": 21,
+          "line": 8,
+          "offset": 202
+        }
+      }
+    },
+    {
+      "code": "W0132",
+      "file": "tests/ui/refinements_invalid.ward",
+      "help": "a refinement uses `it`, literals, operators, fields, methods and enum variants; check anything else in the `ai fn`'s `check {...}` clause",
+      "labels": [
+        {
+          "message": "not allowed here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 9,
+              "offset": 272
+            },
+            "start": {
+              "column": 21,
+              "line": 9,
+              "offset": 233
+            }
+          }
+        }
+      ],
+      "message": "`if` or `match` can't be used in a refinement",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 60,
+          "line": 9,
+          "offset": 272
+        },
+        "start": {
+          "column": 21,
+          "line": 9,
+          "offset": 233
+        }
+      }
+    },
+    {
+      "code": "W0110",
+      "file": "tests/ui/refinements_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Bool`, found `Int`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 24,
+              "line": 10,
+              "offset": 297
+            },
+            "start": {
+              "column": 18,
+              "line": 10,
+              "offset": 291
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Bool`, found `Int`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 24,
+          "line": 10,
+          "offset": 297
+        },
+        "start": {
+          "column": 18,
+          "line": 10,
+          "offset": 291
+        }
+      }
+    },
+    {
+      "code": "W0100",
+      "file": "tests/ui/refinements_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "not found",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 37,
+              "line": 11,
+              "offset": 335
+            },
+            "start": {
+              "column": 32,
+              "line": 11,
+              "offset": 330
+            }
+          }
+        }
+      ],
+      "message": "cannot find `limit` in this scope",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 37,
+          "line": 11,
+          "offset": 335
+        },
+        "start": {
+          "column": 32,
+          "line": 11,
+          "offset": 330
+        }
+      }
+    },
+    {
+      "code": "W0133",
+      "file": "tests/ui/refinements_invalid.ward",
+      "help": "refinements describe decoded data: put them on record fields, type aliases and `ai fn` return types, and check other values with `validate`",
+      "labels": [
+        {
+          "message": "refined type",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 34,
+              "line": 14,
+              "offset": 373
+            },
+            "start": {
+              "column": 9,
+              "line": 14,
+              "offset": 348
+            }
+          }
+        }
+      ],
+      "message": "a refinement can't go here",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 34,
+          "line": 14,
+          "offset": 373
+        },
+        "start": {
+          "column": 9,
+          "line": 14,
+          "offset": 348
+        }
+      }
+    },
+    {
+      "code": "W0133",
+      "file": "tests/ui/refinements_invalid.ward",
+      "help": "refinements describe decoded data: put them on record fields, type aliases and `ai fn` return types, and check other values with `validate`",
+      "labels": [
+        {
+          "message": "refined type",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 64,
+              "line": 14,
+              "offset": 403
+            },
+            "start": {
+              "column": 39,
+              "line": 14,
+              "offset": 378
+            }
+          }
+        }
+      ],
+      "message": "a refinement can't go here",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 64,
+          "line": 14,
+          "offset": 403
+        },
+        "start": {
+          "column": 39,
+          "line": 14,
+          "offset": 378
+        }
+      }
+    },
+    {
+      "code": "W0133",
+      "file": "tests/ui/refinements_invalid.ward",
+      "help": "refinements describe decoded data: put them on record fields, type aliases and `ai fn` return types, and check other values with `validate`",
+      "labels": [
+        {
+          "message": "refined type",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 37,
+              "line": 15,
+              "offset": 442
+            },
+            "start": {
+              "column": 12,
+              "line": 15,
+              "offset": 417
+            }
+          }
+        }
+      ],
+      "message": "a refinement can't go here",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 37,
+          "line": 15,
+          "offset": 442
+        },
+        "start": {
+          "column": 12,
+          "line": 15,
+          "offset": 417
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/refinements_invalid.ward"
+}

@@ -383,6 +383,10 @@ impl<'p> Cx<'p> {
                 "an `ai fn` calls the model".to_owned(),
             )),
         }
+        // Checks run with the call: what they use, the `ai fn` uses.
+        for e in f.checks.iter().flat_map(|c| &c.entries) {
+            w.expr(e.cond, true);
+        }
         w.out
     }
 

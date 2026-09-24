@@ -216,7 +216,8 @@ impl<'m> Printer<'m> {
             self.ty(throws);
         }
         // With clauses, each goes on its own line and the body's `{` starts a new line.
-        let multiline = f.uses.is_some() || f.budget.is_some() || f.model.is_some();
+        let multiline =
+            f.uses.is_some() || f.budget.is_some() || f.model.is_some() || f.checks.is_some();
         self.indent += 1;
         if let Some(uses) = &f.uses {
             self.newline();
@@ -252,6 +253,23 @@ impl<'m> Printer<'m> {
             });
             self.w("}");
         }
+        if let Some(checks) = &f.checks {
+            self.newline();
+            self.w("check {");
+            self.indent += 1;
+            for e in &checks.entries {
+                self.newline();
+                self.expr(e.cond, false);
+                if let Some((reason, _)) = &e.reason {
+                    self.w(" => ");
+                    self.string(reason);
+                }
+                self.w(",");
+            }
+            self.indent -= 1;
+            self.newline();
+            self.w("}");
+        }
         self.indent -= 1;
         if multiline {
             self.newline();
@@ -283,6 +301,10 @@ impl<'m> Printer<'m> {
                 }
             }
             TypeKind::Error => self.w("<error>"),
+        }
+        if let Some(cond) = self.m.types[id].refinement {
+            self.w(" where ");
+            self.expr(cond, true);
         }
     }
 

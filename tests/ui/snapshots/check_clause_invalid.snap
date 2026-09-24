@@ -1,0 +1,147 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/check_clause_invalid.ward
+---
+exit: Some(1)
+--- human ---
+[W0110] Error: mismatched types: expected `Bool`, found `Int`
+   ╭─[ tests/ui/check_clause_invalid.ward:4:9 ]
+   │
+ 4 │         it.len(),
+   │         ────┬───  
+   │             ╰───── expected `Bool`, found `Int`
+───╯
+[W0110] Error: mismatched types: expected `Int`, found `String`
+   ╭─[ tests/ui/check_clause_invalid.ward:5:20 ]
+   │
+ 5 │         it.len() < x => "shorter than the input",
+   │                    ┬  
+   │                    ╰── expected `Int`, found `String`
+───╯
+[W0134] Error: `b` isn't an `ai fn`, so it has no answer to check
+    ╭─[ tests/ui/check_clause_invalid.ward:12:5 ]
+    │
+ 12 │     check {it > 0}
+    │     ──┬──  
+    │       ╰──── a `check` clause only goes on an `ai fn`
+    │ 
+    │ Help: check other values with `validate` or an `if`
+────╯
+error: could not check `tests/ui/check_clause_invalid.ward` due to 3 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0110",
+      "file": "tests/ui/check_clause_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Bool`, found `Int`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 4,
+              "offset": 129
+            },
+            "start": {
+              "column": 9,
+              "line": 4,
+              "offset": 121
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Bool`, found `Int`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 4,
+          "offset": 129
+        },
+        "start": {
+          "column": 9,
+          "line": 4,
+          "offset": 121
+        }
+      }
+    },
+    {
+      "code": "W0110",
+      "file": "tests/ui/check_clause_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Int`, found `String`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 21,
+              "line": 5,
+              "offset": 151
+            },
+            "start": {
+              "column": 20,
+              "line": 5,
+              "offset": 150
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Int`, found `String`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 21,
+          "line": 5,
+          "offset": 151
+        },
+        "start": {
+          "column": 20,
+          "line": 5,
+          "offset": 150
+        }
+      }
+    },
+    {
+      "code": "W0134",
+      "file": "tests/ui/check_clause_invalid.ward",
+      "help": "check other values with `validate` or an `if`",
+      "labels": [
+        {
+          "message": "a `check` clause only goes on an `ai fn`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 10,
+              "line": 12,
+              "offset": 225
+            },
+            "start": {
+              "column": 5,
+              "line": 12,
+              "offset": 220
+            }
+          }
+        }
+      ],
+      "message": "`b` isn't an `ai fn`, so it has no answer to check",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 10,
+          "line": 12,
+          "offset": 225
+        },
+        "start": {
+          "column": 5,
+          "line": 12,
+          "offset": 220
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/check_clause_invalid.ward"
+}

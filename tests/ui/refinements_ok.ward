@@ -1,0 +1,45 @@
+// Refinements on aliases, record fields, variant payloads and `ai fn` returns, and
+// checks that use the parameters and other functions.
+type Subject = String where it.len() <= 80 && !it.contains("\n")
+
+pub enum Mood {
+    Calm,
+    Upset(Int where it >= 1 && it <= 10),
+}
+
+pub type Reply {
+    subject: Subject,
+    body: String where it.len() >= 1 && it.len() < 2000,
+    tags: List<String> where it.len() <= 3,
+    mood: Mood,
+}
+
+fn mentions(text: String, name: String) -> Bool {
+    text.contains(name)
+}
+
+ai fn is_polite(text: String) -> Bool {
+    "Is this polite? {text}"
+}
+
+ai fn reply(name: String, email: Untrusted<String>) -> Reply
+    check {
+        mentions(it.body, name) => "greet the customer by name",
+        !it.body.contains("http"),
+        is_polite(it.body) => "be polite",
+    }
+{
+    "Reply to {name}: {email}"
+}
+
+ai fn score(text: String) -> Float where it >= 0.0 && it <= 1.0 {
+    "Score {text}"
+}
+
+pub fn go(name: String, email: Untrusted<String>) -> Float
+    uses {llm}
+{
+    let r = reply(name, email)
+    let s: Subject = r.subject
+    score(s)
+}

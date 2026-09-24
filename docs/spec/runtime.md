@@ -209,6 +209,14 @@ Each model in turn:
    tried. A `ModelError` that isn't retryable (a rejected request) moves on at
    once.
 
+An answer that doesn't satisfy a [refinement](types.md#refinements) (while it is
+decoded) or fails a [check](types.md#checks-on-answers) counts as invalid: it is
+retried with the reason, and its `ai_call` record has the reason as its `error`
+(`the answer failed a check: ...`). Generated code passes the checks as a
+function of the answer that returns the first failed reason, or `None`
+(`_rt.ai(..., check=...)`); in `--async` code it is awaited. Refined types are
+`_rt.Refined(base, condition, text, schema)` descriptors.
+
 When every model fails, the last one's error is raised: its `ModelError`, or
 `AiOutputError`. Other exceptions from a model aren't retried. The providers turn
 their SDK's errors into `ModelError`s by HTTP status, and turn off the SDK's own

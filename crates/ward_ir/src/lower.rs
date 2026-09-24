@@ -97,6 +97,7 @@ fn lower_module(
         enums: Vec::new(),
         fns: Vec::new(),
         tools: Vec::new(),
+        refinements: Vec::new(),
     };
     for (item, it) in data.ast.items.iter().enumerate() {
         let def = DefId { module: m, item };
@@ -179,9 +180,26 @@ fn lower_module(
                     .collect::<Result<_, _>>()?;
                 let body = match &f.body {
                     FnBody::Block(b) => Body::Block(cx.block(b)?),
-                    FnBody::Ai { prompt } => Body::Ai {
-                        prompt: cx.expr(*prompt)?,
-                    },
+                    FnBody::Ai { prompt } => {
+                        let prompt = cx.expr(*prompt)?;
+                        let it = res.check_its.get(&item).map(|&l| cx.local(l)).transpose()?;
+                        let checks = f
+                            .checks
+                            .iter()
+                            .flat_map(|c| &c.entries)
+                            .map(|e| {
+                                let reason = match &e.reason {
+                                    Some((r, _)) => r.clone(),
+                                    None => source(data, data.ast.exprs[e.cond].span),
+                                };
+                                Ok(Check {
+                                    cond: cx.expr(e.cond)?,
+                                    reason,
+                                })
+                            })
+                            .collect::<R<Vec<_>>>()?;
+                        Body::Ai { prompt, checks, it }
+                    }
                 };
                 let budget = f
                     .budget
@@ -225,7 +243,66 @@ fn lower_module(
             Item::Alias(_) | Item::Import(_) => {}
         }
     }
+    for (id, t) in data.ast.types.iter() {
+        let (Some(cond), Some(&it)) = (t.refinement, res.refinement_its.get(id)) else {
+            continue;
+        };
+        let name = format!("_refine_{}", id.into_raw().into_u32());
+        let mut cx = FnLower {
+            program,
+            ast: &data.ast,
+            res,
+            types,
+            checked,
+            lines: &lines,
+            file: &file,
+            module: &data.name,
+            fn_name: &name,
+            locals: Arena::default(),
+            local_map: HashMap::new(),
+            exprs: Arena::default(),
+            stmts: Arena::default(),
+            pats: Arena::default(),
+        };
+        let param = cx.local(it)?;
+        let base = cx.locals[param].ty.clone();
+        let tail = cx.expr(cond)?;
+        module.refinements.push(RefinementFn {
+            key: ward_check::ty::Refinement { module: m, ty: id },
+            text: source(data, data.ast.exprs[cond].span),
+            schema: crate::refine::schema(&data.ast, res, cond, &base),
+            func: Fn {
+                def: DefId {
+                    module: m,
+                    item: usize::MAX,
+                },
+                name: name.clone(),
+                is_pub: false,
+                generics: Vec::new(),
+                params: vec![param],
+                trusted: vec![false],
+                budget: Vec::new(),
+                model: None,
+                ret: Ty::Bool,
+                throws: None,
+                locals: cx.locals,
+                exprs: cx.exprs,
+                stmts: cx.stmts,
+                pats: cx.pats,
+                body: Body::Block(Block {
+                    stmts: Vec::new(),
+                    tail: Some(tail),
+                }),
+            },
+            name,
+        });
+    }
     Ok(module)
+}
+
+/// The source text at `span`.
+fn source(data: &ModuleData, span: Span) -> String {
+    data.src.get(span.range()).unwrap_or("?").to_owned()
 }
 
 /// `support/tickets.wardscript`: stable no matter where `ward` was run from.

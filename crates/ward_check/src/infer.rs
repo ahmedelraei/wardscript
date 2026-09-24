@@ -59,6 +59,50 @@ pub(crate) fn check_fn(c: &mut Checker, def: DefId, f: &FnDecl, out: &mut Module
             cx.check(*prompt, &Ty::String);
         }
     }
+    // `check {...}`: conditions on the answer, called `it`, next to the parameters.
+    if let (Some(checks), Some(&it)) = (&f.checks, mres.check_its.get(&def.item)) {
+        cx.locals.insert(it, ret.clone());
+        for e in &checks.entries {
+            cx.check(e.cond, &Ty::Bool);
+        }
+    }
+    cx.finish(out);
+}
+
+/// A refinement's condition, with `it` of type `base`.
+pub(crate) fn check_refinement(
+    c: &mut Checker,
+    m: ModuleId,
+    ty: TypeId,
+    cond: ExprId,
+    base: Ty,
+    out: &mut ModuleTypes,
+) {
+    let program = c.program;
+    let mres = c.res.module(m);
+    let Some(&it) = mres.refinement_its.get(ty) else {
+        return;
+    };
+    let mut cx = Cx {
+        c,
+        m,
+        ast: &program.module(m).ast,
+        src: &program.module(m).src,
+        mres,
+        u: Unifier::default(),
+        locals: ArenaMap::default(),
+        exprs: Vec::new(),
+        ret: Ty::Unit,
+        fn_name: "a refinement".to_owned(),
+        generics: Vec::new(),
+        lets: Vec::new(),
+        throws: None,
+        handlers: Vec::new(),
+        propagating: None,
+        thrown: ArenaMap::default(),
+    };
+    cx.locals.insert(it, base);
+    cx.check(cond, &Ty::Bool);
     cx.finish(out);
 }
 
@@ -175,6 +219,8 @@ impl Cx<'_, '_> {
             Ty::Var(_) => "_".into(),
             Ty::Dynamic => "dynamic".into(),
             Ty::Error => "{unknown}".into(),
+            // `resolve` drops refinements.
+            Ty::Refined(t, _) => self.show(&t),
         }
     }
 

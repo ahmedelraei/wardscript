@@ -1,0 +1,17 @@
+// Passing a `check` doesn't make a model's answer trusted: it still can't reach a sink.
+import mcp "gmail" as mail
+
+ai fn draft(topic: String) -> String
+    check {
+        !it.contains("http") => "no links",
+        it.len() < 500,
+    }
+{
+    "Write a note about {topic}"
+}
+
+pub fn send(topic: String, to: String)
+    uses {llm, mail.send}
+{
+    mail.send(to, "note", draft(topic))
+}

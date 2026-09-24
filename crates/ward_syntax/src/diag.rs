@@ -65,6 +65,9 @@ pub mod codes {
     pub const UNHANDLED_THROW: Code = Code("W0129");
     pub const AI_FN_THROWS: Code = Code("W0130");
     pub const TRY_CANNOT_THROW: Code = Code("W0131");
+    pub const INVALID_REFINEMENT: Code = Code("W0132");
+    pub const MISPLACED_REFINEMENT: Code = Code("W0133");
+    pub const CHECK_NOT_AI: Code = Code("W0134");
 
     // W02xx: effects, budgets, Rule of Two
     pub const MISSING_EFFECT: Code = Code("W0200");
@@ -134,6 +137,9 @@ pub mod codes {
         UNHANDLED_THROW,
         AI_FN_THROWS,
         TRY_CANNOT_THROW,
+        INVALID_REFINEMENT,
+        MISPLACED_REFINEMENT,
+        CHECK_NOT_AI,
         MISSING_EFFECT,
         UNUSED_EFFECT,
         UNKNOWN_EFFECT,

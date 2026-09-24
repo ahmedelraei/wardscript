@@ -11,7 +11,7 @@ import enum as _enum
 from dataclasses import dataclass
 from typing import Any as _Any, Callable
 
-from .errors import DecodeError
+from .errors import DecodeError, WardError
 from .values import Some, some, unwrap
 
 
@@ -86,6 +86,28 @@ class Adt(Type):
         return f"{name}<{', '.join(map(repr, self.args))}>" if self.args else name
 
 
+class Refined(Type):
+    """`base where cond`: `check` is the condition as a Python function, `text` as
+    written, and `schema` the JSON Schema keywords it implies (`{"maxLength": 80}`)."""
+
+    def __init__(
+        self, base: Type, check: Callable[[_Any], bool], text: str, schema: dict | None = None
+    ) -> None:
+        self.base = base
+        self.check = check
+        self.text = text
+        self.schema = dict(schema or {})
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Refined) and (self.base, self.text) == (other.base, other.text)
+
+    def __hash__(self) -> int:
+        return hash((self.base, self.text))
+
+    def __repr__(self) -> str:
+        return f"{self.base!r} where {self.text}"
+
+
 @dataclass
 class RecordInfo:
     name: str
@@ -148,6 +170,8 @@ def subst(t: Type, args: tuple[Type, ...]) -> Type:
         return Map(subst(t.key, args), subst(t.value, args))
     if isinstance(t, Option):
         return Option(subst(t.inner, args))
+    if isinstance(t, Refined):
+        return Refined(subst(t.base, args), t.check, t.text, t.schema)
     if isinstance(t, Adt):
         return Adt(t.cls, *(subst(a, args) for a in t.args))
     return t
@@ -186,6 +210,11 @@ def _schema(t: Type, defs: dict[str, dict]) -> dict:
         return {"type": "object", "additionalProperties": _schema(t.value, defs)}
     if isinstance(t, Option):
         return {"anyOf": [_schema(t.inner, defs), {"type": "null"}]}
+    if isinstance(t, Refined):
+        base = _schema(t.base, defs)
+        rule = f"must satisfy: {t.text}"
+        described = f"{base['description']} ({rule})" if "description" in base else rule
+        return {**base, **t.schema, "description": described}
     if isinstance(t, Adt):
         name = _def_name(t)
         if name not in defs:
@@ -285,6 +314,15 @@ def decode(t: Type, value: _Any, path: str = "$") -> _Any:
         return None if value is None else some(decode(t.inner, value, path))
     if isinstance(t, Adt):
         return _decode_adt(t, value, path, fail)
+    if isinstance(t, Refined):
+        decoded = decode(t.base, value, path)
+        try:
+            ok = t.check(decoded)
+        except WardError as e:
+            raise DecodeError(path, f"checking `{t.text}` failed: {e}") from e
+        if not ok:
+            raise DecodeError(path, f"doesn't satisfy `{t.text}`")
+        return decoded
     raise TypeError(f"cannot decode {t!r}")
 
 

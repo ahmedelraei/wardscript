@@ -11,7 +11,8 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
 - **Identifiers**: `[A-Za-z_][A-Za-z0-9_]*`. A lone `_` is the wildcard pattern.
 - **Keywords** (reserved; can't be used as names):
   `ai fn pub let type enum match if else for in while return throw throws try catch import as uses budget true false`.
-  `model` is a keyword only where a clause can start (`model {`); elsewhere it's a name.
+  `model` and `check` are keywords only where a clause can start (`model {`, `check {`),
+  and `where` only after a type; elsewhere they're names.
 - **Integers**: `[0-9][0-9_]*`, 64-bit signed. `_` separators are ignored (`1_000`).
 - **Floats**: `[0-9][0-9_]*.[0-9][0-9_]*`. No exponent form; a leading digit is required.
 - **Strings**: `"..."`, may span lines. Escapes: `\n \r \t \0 \\ \"`.
@@ -34,22 +35,25 @@ import      = "import" path ["as" IDENT]                 (* module import *)
 
 fn          = "fn" IDENT signature block ;
 ai_fn       = "ai" "fn" IDENT signature "{" STRING "}" ;   (* the body is only the prompt *)
-signature   = [generics] "(" [param ("," param)* [","]] ")" ["->" type] ["throws" type] clause* ;
-param       = IDENT ":" type ;
+signature   = [generics] "(" [param ("," param)* [","]] ")" ["->" rtype] ["throws" type] clause* ;
+param       = IDENT ":" rtype ;
 clause      = "uses" "{" [effect ("," effect)* [","]] "}"
             | "budget" "{" [IDENT ":" expr ("," IDENT ":" expr)* [","]] "}"
-            | "model" "{" [model_entry ("," model_entry)* [","]] "}" ;
+            | "model" "{" [model_entry ("," model_entry)* [","]] "}"
+            | "check" "{" [check_entry ("," check_entry)* [","]] "}" ;
+check_entry = expr ["=>" STRING] ;                       (* a condition on `it`, and why *)
 model_entry = IDENT ":" (IDENT | INT | FLOAT | "[" [IDENT ("," IDENT)* [","]] "]") ;
 effect      = IDENT ("." IDENT)* ;                       (* llm, mail, mail.send *)
 
 type_decl   = "type" IDENT [generics] "{" [field ("," field)* [","]] "}"   (* record *)
-            | "type" IDENT [generics] "=" type ;                           (* alias *)
-field       = IDENT ":" type ;
+            | "type" IDENT [generics] "=" rtype ;                          (* alias *)
+field       = IDENT ":" rtype ;
 enum        = "enum" IDENT [generics] "{" [variant ("," variant)* [","]] "}" ;
-variant     = IDENT ["(" type ("," type)* [","] ")"] ;
+variant     = IDENT ["(" rtype ("," rtype)* [","] ")"] ;
 generics    = "<" IDENT ("," IDENT)* [","] ">" ;
 
 type        = path ["<" type ("," type)* [","] ">"] ;    (* String, List<T>, Untrusted<Ticket> *)
+rtype       = type ["where" expr_ns] ;                  (* String where it.len() <= 80 *)
 path        = IDENT ("." IDENT)* ;
 
 block       = "{" stmt* [expr] "}" ;                     (* the trailing expr is the block's value *)

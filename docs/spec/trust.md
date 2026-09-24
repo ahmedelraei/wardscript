@@ -90,6 +90,10 @@ Each returns its argument, now `Trusted`, and each is recorded in the audit trac
 | `approve(x)` | a human approves the value at runtime (`ApprovalDenied` otherwise) |
 | `declassify(x, reason)` | the programmer vouches for the value; `reason` is recorded |
 
+A model's answer that passed its `check` clause and its type's refinements is still
+`Untrusted` ([types](types.md#checks-on-answers)): checks say what shape an answer
+has, not who shaped it.
+
 ## W0107
 
 ```text
