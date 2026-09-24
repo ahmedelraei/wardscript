@@ -4,8 +4,9 @@ Status: implemented in M2 (`ward_resolve`).
 
 ## Modules
 
-One file is one module. `import a.b` loads `a/b.wardscript`, relative to the
-directory of the entry file, and binds it as `b` (or as the name given with
+One file is one module. Source files end in `.ward` (canonical) or
+`.wardscript`. `import a.b` loads `a/b.ward`, or `a/b.wardscript` if there is no
+`a/b.ward`, relative to the directory of the entry file, and binds it as `b` (or as the name given with
 `as`). Modules may import each other in cycles.
 
 Only items marked `pub` can be used from another module (W0104). Imports themselves

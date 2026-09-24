@@ -1,0 +1,12 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/modules_ward_ext/main.ward
+---
+exit: Some(0)
+--- human ---
+ok: tests/ui/modules_ward_ext/main.ward
+--- json ---
+{
+  "diagnostics": [],
+  "file": "tests/ui/modules_ward_ext/main.ward"
+}

@@ -1,0 +1,228 @@
+// Language semantics that Python doesn't share, checked after compiling to Python.
+// The driver is test_semantics.py.
+
+import mcp "log" as log
+
+pub type Point {
+    x: Int,
+    from: Int,
+}
+
+pub type Box<T> {
+    item: T,
+}
+
+pub enum Shape {
+    Dot,
+    Circle(Float),
+    Rect(Float, Float),
+}
+
+pub enum Failure {
+    Empty,
+    Bad(String),
+}
+
+pub fn int_div(a: Int, b: Int) -> Int {
+    a / b
+}
+
+pub fn int_rem(a: Int, b: Int) -> Int {
+    a % b
+}
+
+pub fn float_rem(a: Float, b: Float) -> Float {
+    a % b
+}
+
+pub fn rounded(x: Float) -> Int {
+    x.round()
+}
+
+pub fn shadowing() -> Int {
+    let x = 1
+    let y = {
+        let x = 10
+        x + 1
+    }
+    let x = x + y
+    x
+}
+
+pub fn keywords(class: Int) -> Int {
+    let lambda = class + 1
+    let p = Point { x: lambda, from: class }
+    p.from + p.x
+}
+
+pub fn bools(a: Bool, b: Bool) -> String {
+    "{a} {b.to_string()} {a == b}"
+}
+
+pub fn compare(a: Int, b: Int, c: Bool) -> Bool {
+    (a == b) == c
+}
+
+// Assignment copies: the argument the caller passed is unchanged.
+pub fn moved(p: Point) -> Point {
+    let q = p
+    q.x = 100
+    q
+}
+
+pub fn set_nested(boxes: List<Box<Point>>, i: Int, v: Int) -> List<Box<Point>> {
+    let out = boxes
+    out[i].item.x = v
+    out
+}
+
+pub fn set_key(m: Map<String, Int>, k: String, v: Int) -> Map<String, Int> {
+    let out = m
+    out[k] = v
+    out
+}
+
+pub fn sum_keys(m: Map<String, Int>) -> String {
+    let keys = ""
+    for k in m {
+        keys = keys + k
+    }
+    keys
+}
+
+pub fn wrap<T>(x: T) -> Option<T> {
+    Some(x)
+}
+
+// `Some(None)` and `None` stay distinct.
+pub fn nested(x: Option<Int>) -> Option<Option<Int>> {
+    wrap(x)
+}
+
+pub fn depth(x: Option<Option<Int>>) -> String {
+    match x {
+        None => "none",
+        Some(None) => "some(none)",
+        Some(Some(n)) => "some(some({n}))",
+    }
+}
+
+pub fn get_or(xs: List<Int>, i: Int, d: Int) -> Int {
+    xs.get(i).unwrap_or(d)
+}
+
+pub fn at(xs: List<Int>, i: Int) -> Int {
+    xs[i]
+}
+
+pub fn area(s: Shape) -> Float {
+    match s {
+        Shape.Dot => 0.0,
+        Shape.Circle(r) => 3.0 * r * r,
+        Shape.Rect(w, h) => w * h,
+    }
+}
+
+pub fn classify(n: Int, s: String, b: Bool) -> String {
+    let a = match n {
+        0 => "zero",
+        1 => "one",
+        _ => "many",
+    }
+    let c = match s {
+        "" => "empty",
+        other => other,
+    }
+    let d = match b {
+        true => "yes",
+        false => "no",
+    }
+    "{a}/{c}/{d}"
+}
+
+fn check(s: String) -> Int throws Failure {
+    if s.is_empty() {
+        throw Failure.Empty
+    }
+    if !s.starts_with("ok") {
+        throw Failure.Bad(s)
+    }
+    s.len()
+}
+
+pub fn caught(s: String) -> String {
+    try {
+        let n = check(s)?
+        "ok {n}"
+    } catch err {
+        match err {
+            Failure.Empty => "empty",
+            Failure.Bad(why) => "bad: {why}",
+        }
+    }
+}
+
+pub fn thrown(s: String) -> Int throws Failure {
+    check(s)?
+}
+
+fn short(s: String) -> Bool {
+    s.len() < 5
+}
+
+pub fn validated(s: String) -> String {
+    try {
+        validate(s, short)?
+    } catch err {
+        err
+    }
+}
+
+pub fn countdown(n: Int) -> List<Int> {
+    let out = []
+    let i = n
+    while i > 0 {
+        out = out.push(i)
+        i = i - 1
+    }
+    out
+}
+
+pub fn early(xs: List<Int>) -> Int {
+    for x in xs {
+        if x < 0 {
+            return x
+        }
+    }
+    0
+}
+
+// Side effects through a tool keep left-to-right order, even when an argument
+// needs statements.
+pub fn order(c: Bool) -> String {
+    let a = join(log.say("a"), if c {
+        log.say("b")
+    } else {
+        let t = log.say("c")
+        t
+    })
+    let b = c || {
+        log.say("d")
+        true
+    }
+    "{a} {b}"
+}
+
+fn join(a: String, b: String) -> String {
+    a + b
+}
+
+pub fn noop(x: Int) {
+    if x > 0 {
+        return
+    }
+}
+
+pub fn float_div(a: Float, b: Float) -> Float {
+    a / b
+}

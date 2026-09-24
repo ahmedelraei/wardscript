@@ -1,3 +1,5 @@
+#![allow(clippy::expect_used)]
+
 mod common;
 
 #[test]
@@ -8,9 +10,70 @@ fn help() {
 }
 
 #[test]
-fn unimplemented_subcommand_is_an_internal_error() {
-    let out = common::ward(&["build", "examples/support.wardscript"]);
-    assert_eq!(out.status.code(), Some(2));
+fn build_with_errors_fails() {
+    let out = common::ward(&[
+        "build",
+        "tests/ui/types_mismatch_let.wardscript",
+        "-o",
+        "unused",
+    ]);
+    assert_eq!(out.status.code(), Some(common::EXIT_DIAGNOSTICS));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("could not build"));
+    assert!(!common::repo_root().join("unused").exists());
+}
+
+fn mock(name: &str, json: &str) -> String {
+    let path = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join(name);
+    std::fs::write(&path, json).expect("write mock");
+    path.to_str().expect("utf-8 path").to_owned()
+}
+
+#[test]
+fn run_calls_a_function() {
+    let answers = mock(
+        "triage.json",
+        r#"{"triage": {"customer": "Ada", "summary": "Crash", "priority": "Urgent",
+            "category": "Billing", "tags": [], "order_id": null}}"#,
+    );
+    let out = common::ward(&[
+        "run",
+        "examples/triage.wardscript",
+        "route",
+        "\"help\"",
+        "--mock",
+        &answers,
+    ]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout),
+        "\"[urgent] billing: Crash\"\n"
+    );
+}
+
+#[test]
+fn run_reports_failures() {
+    let run = |args: &[&str]| {
+        let mut all = vec!["run", "tests/e2e/semantics.wardscript"];
+        all.extend_from_slice(args);
+        common::ward(&all)
+    };
+    // Thrown out of the function, and a runtime panic.
+    let out = run(&["thrown", "\"nope\""]);
+    assert_eq!(out.status.code(), Some(3), "{}", common::render(&out));
+    assert!(String::from_utf8_lossy(&out.stderr).contains(r#"threw {"Bad": ["nope"]}"#));
+    assert_eq!(run(&["int_div", "1", "0"]).status.code(), Some(3));
+    // Usage errors.
+    assert_eq!(run(&["missing"]).status.code(), Some(2));
+    assert_eq!(run(&["int_div", "1"]).status.code(), Some(2));
+    assert_eq!(run(&["int_div", "1", "\"x\""]).status.code(), Some(2));
+    // Negative numbers are arguments, not flags.
+    let out = run(&["int_div", "-7", "2"]);
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout),
+        "-3\n",
+        "{}",
+        common::render(&out)
+    );
 }
 
 #[test]

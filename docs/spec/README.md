@@ -3,7 +3,7 @@
 This is the normative description of Wardscript. It is kept in sync with the
 implementation: every language feature lands together with its section here.
 
-Status: **M2 (names and base types)**.
+Status: **M3 (Python backend and runtime)**.
 
 ## Contents
 
@@ -15,7 +15,7 @@ Status: **M2 (names and base types)**.
 | [Types](types.md) | implemented (M2) |
 | Trust labels (`Trusted` / `Untrusted`, sources, sinks, `validate` / `approve` / `declassify`) | planned (M4) |
 | Effects, budgets, Rule of Two | planned (M5) |
-| Runtime and audit trace | planned (M3, M6) |
+| [Python backend and runtime](runtime.md) | implemented (M3); audit trace planned (M6) |
 | MCP imports | planned (M7) |
 
 ## Diagnostics
@@ -36,4 +36,5 @@ it is assigned; retired codes are not reused.
 |---|---|
 | 0 | success |
 | 1 | the program has errors (diagnostics were reported) |
-| 2 | usage error or internal failure (including "not implemented yet") |
+| 2 | usage error or internal failure |
+| 3 | `ward run`: the program threw, or failed at runtime |

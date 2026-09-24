@@ -27,8 +27,11 @@ pub struct LoadError {
     pub error: io::Error,
 }
 
+/// Source file extensions, in lookup order: `.ward` is canonical.
+const EXTENSIONS: [&str; 2] = ["ward", "wardscript"];
+
 /// Parses `entry` and, transitively, every module it imports. `import a.b` refers to
-/// `a/b.wardscript` relative to the entry file's directory.
+/// `a/b.ward` (or, failing that, `a/b.wardscript`) relative to the entry file's directory.
 pub fn load(
     entry: &Path,
     fs: &dyn FileSystem,
@@ -70,19 +73,27 @@ pub fn load(
             .collect();
 
         for (item, segments, span) in wanted {
-            let mut file = root.clone();
-            file.extend(&segments);
-            file.set_extension("wardscript");
-            let target = match by_path.get(&file) {
-                Some(&target) => target,
-                None => match fs.read(&file) {
-                    Ok(src) => {
+            let mut base = root.clone();
+            base.extend(&segments);
+            let candidates = EXTENSIONS.map(|ext| base.with_extension(ext));
+            let known = candidates.iter().find_map(|f| by_path.get(f).copied());
+            let target = match known {
+                Some(target) => target,
+                None => match candidates
+                    .iter()
+                    .find_map(|f| fs.read(f).ok().map(|src| (f, src)))
+                {
+                    Some((file, src)) => {
                         let target = ModuleId(modules.len() as u32);
                         by_path.insert(file.clone(), target);
-                        add_module(&mut modules, &mut diags, &file, segments.join("."), src);
+                        add_module(&mut modules, &mut diags, file, segments.join("."), src);
                         target
                     }
-                    Err(_) => {
+                    None => {
+                        let looked: Vec<String> = candidates
+                            .iter()
+                            .map(|f| format!("`{}`", f.display()))
+                            .collect();
                         diags.push(ProgramDiagnostic {
                             module: id,
                             diagnostic: Diagnostic::error(
@@ -91,7 +102,7 @@ pub fn load(
                                 span,
                             )
                             .with_label("no such module")
-                            .with_help(format!("looked for `{}`", file.display())),
+                            .with_help(format!("looked for {}", looked.join(" and "))),
                         });
                         continue;
                     }

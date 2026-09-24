@@ -1,0 +1,18 @@
+pub enum Size {
+    Small,
+    Large,
+}
+
+pub type Item {
+    name: String,
+    size: Size,
+    count: Int,
+}
+
+pub fn price(item: Item) -> Int {
+    let each = match item.size {
+        Size.Small => 2,
+        Size.Large => 5,
+    }
+    each * item.count
+}

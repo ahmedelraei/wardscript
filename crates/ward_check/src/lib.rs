@@ -39,6 +39,10 @@ pub struct Checked {
     pub diagnostics: Vec<ProgramDiagnostic>,
     pub types: Vec<ModuleTypes>,
     pub fns: HashMap<DefId, FnSig>,
+    /// Field names and types of each record, in terms of its own generic parameters.
+    pub records: HashMap<DefId, Vec<(String, Ty)>>,
+    /// Variant names and payload types of each enum.
+    pub enums: HashMap<DefId, Vec<(String, Vec<Ty>)>>,
 }
 
 /// Everything `ward check` does: load, parse, resolve and type-check a program.
@@ -72,6 +76,8 @@ pub fn analyze(entry: &Path, fs: &dyn FileSystem) -> Result<Analysis, LoadError>
                 diagnostics: diags,
                 types: Vec::new(),
                 fns: HashMap::new(),
+                records: HashMap::new(),
+                enums: HashMap::new(),
             },
         });
     }
@@ -116,6 +122,8 @@ pub fn check(program: &Program, resolution: &Resolution) -> Checked {
         diagnostics: c.diags,
         types,
         fns: c.fns,
+        records: c.records,
+        enums: c.enums,
     }
 }
 
