@@ -56,8 +56,10 @@ fn readme_examples_check_ok() {
     let readme =
         std::fs::read_to_string(common::repo_root().join("README.md")).expect("read README");
     let blocks: Vec<&str> = readme
-        .split("```wardscript\n")
+        .split("<!-- wardscript")
         .skip(1)
+        // Skip the rest of the marker line and the ```rust fence line.
+        .filter_map(|rest| rest.splitn(3, '\n').nth(2))
         .filter_map(|rest| rest.split("```").next())
         .collect();
     assert!(!blocks.is_empty(), "README has no wardscript examples");
