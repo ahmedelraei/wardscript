@@ -1,6 +1,8 @@
 # Wardscript: build plan
 
-Work through one milestone at a time. Each milestone lists its tasks, the checks it must pass before moving on ("Done when") and a prompt you can give a coding agent. Read `AGENTS.md` first.
+Work through one milestone at a time. Each milestone lists its tasks, the checks it must pass before moving on ("Done when") Read `AGENTS.md` and `docs/spec/` first.
+
+Status: M0–M6 done, including M6 additions (runtime sink checks, OTLP collectors, async code, text streaming; decision 010). Next: M6.1, then M7.
 
 ---
 
@@ -12,9 +14,6 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 - Set up `insta`, `tests/ui`, `tests/attacks`, `docs/spec/README.md`.
 
 **Done when:** `cargo test` passes on CI and `ward --help` works.
-
-**Prompt**
-> Read AGENTS.md. Set up milestone M0 from PLAN.md: the Cargo workspace, crate stubs, the clap-based `ward` CLI, GitHub Actions CI and the test folders. Don't implement any language features yet.
 
 ---
 
@@ -31,9 +30,6 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 
 **Done when:** `examples/support.ward` parses; round-trip tests pass; there are 20+ ui snapshots of syntax errors with good messages.
 
-**Prompt**
-> Implement M1 from PLAN.md in `ward_syntax`. Hand-written recursive-descent parser, Pratt parsing for expressions, arena-allocated AST, error recovery. Add a pretty-printer and round-trip tests, plus ui snapshot tests for syntax errors.
-
 ---
 
 ## M2: Name resolution and base types (3–5 days)
@@ -44,9 +40,6 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 - `ward check` with human output and `--format json` output.
 
 **Done when:** type-error ui tests pass (mismatch, non-exhaustive match, unknown field…); JSON diagnostics have stable codes.
-
-**Prompt**
-> Implement M2: name resolution in `ward_resolve` and base type checking in `ward_check` (bidirectional, generics, exhaustive match). Wire up `ward check` with ariadne output and `--format json` using stable W-codes. Update docs/spec.
 
 ---
 
@@ -62,9 +55,6 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 
 **Done when:** e2e test: `examples/triage.ward` builds, Python imports it, and the mock LLM returns a correctly typed `Ticket`.
 
-**Prompt**
-> Implement M3: lower to WIR, generate Python + .pyi, and a minimal Python runtime package with configure(), schema-validated LLM calls with retries, and a mock provider. Add e2e tests under tests/e2e.
-
 ---
 
 ## M4: Trust labels (the core, 1–2 weeks)
@@ -79,9 +69,6 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 - Runtime: carry labels at the host-language boundary and check them again at sinks, as defense in depth.
 
 **Done when:** 30+ `tests/attacks/` cases fail to compile (direct, via string concatenation, via collections, via branches, via helper functions); the fixed versions compile; no false positives on examples.
-
-**Prompt**
-> Implement M4: trust labels in ward_check. Signatures carry labels and bodies are inferred. Track explicit flows plus implicit flows through a pc-label. Add sources and sinks, plus the validate/approve/declassify built-ins. W0107 must show the full flow path. Write the attack test suite first, then make it pass.
 
 ---
 
@@ -109,6 +96,22 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 
 ---
 
+## M6.1: Unknown model cost fails closed (½–1 day)
+A provider without `prices` reports `cost=0.0`, so a `cost` budget silently never runs out.
+
+**Tasks**
+- `Completion.cost` becomes `float | None`; `None` means unknown (provider without prices, or a model returning plain text). The mock model keeps `0.0`.
+- Providers return `None` instead of `0.0` when they have no prices.
+- Before each request: if a `cost` budget is active and the model has no prices, raise `BudgetUnenforceable` without calling.
+- After each answer: if the cost is `None` and a `cost` budget is active, raise `BudgetUnenforceable`.
+- `runtime.configure(unpriced="warn")` downgrades the error to a one-time warning.
+- The Rust core's budget counter (`budget.rs`) and the pure-Python core accept an unknown cost and make the same decisions.
+- Record the change in the audit trace; update `docs/spec/runtime.md` and `docs/spec/effects.md`; add a decision record.
+
+**Done when:** tests cover a priced model (unchanged), an unpriced model under a `cost` budget (error before any request), an unpriced model with no `cost` budget (runs), and `unpriced="warn"` (one warning); both cores produce the same results.
+
+---
+
 ## M7: MCP imports (1 week)
 **Tasks**
 - `import mcp "<server>" as x`: read the server's tool schemas (from a local config or a lockfile) and generate typed tool signatures.
@@ -119,7 +122,46 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 
 ---
 
-## M8: Proof and polish (ongoing)
+## M8: Model fallbacks and retry policies (1 week) ← to match BAML
+BAML defines retry policies, fallbacks and round robin statically; without them, Wardscript loses users before they see the safety features.
+
+**Tasks**
+- Design the syntax first (a decision record), in the clause style of `budget {...}` and `uses {...}`, e.g. `model {primary: fast, fallback: smart}`. Model aliases map to providers in `runtime.configure`.
+- Retry policy: attempts and backoff for provider errors (rate limits, timeouts), separate from the existing `retries` for invalid answers.
+- Fallback: try the next model when one fails or its answer stays invalid after retries.
+- Every attempt counts against budgets (`calls`, `tokens`, `cost` at the model that answered) and is recorded in the audit trace.
+
+**Done when:** e2e tests with the mock model show a fallback after a failing primary, a retry after a rate-limit error, and budgets charged for every attempt; the trace shows each attempt.
+
+---
+
+## M9: Output checks and refinements (1–2 weeks) ← to match BAML
+BAML has `@assert` and `@check` on outputs.
+
+**Tasks**
+- Design the syntax first (a decision record): refinements on types (e.g. `String where len < 200`) and checks on an `ai fn`'s answer.
+- Refinements go into the JSON schema where possible and are checked on every answer; a failed check triggers a retry with the reason added to the prompt, then `AiOutputError`.
+- Semantic checks such as `grounded_in`: decide how they are evaluated (rules, a second model call, both) before implementing.
+- Checks don't change trust labels: an answer that passes its checks is still `Untrusted`.
+
+**Done when:** ui tests for invalid refinements and checks pass; e2e tests show a failed check causing a retry and then success or a typed error; an attack test shows a checked answer still can't reach a sink.
+
+---
+
+## M10: `test` blocks (1 week) ← to match BAML
+BAML defines tests in its files and runs them with `baml-cli test`.
+
+**Tasks**
+- `test` blocks in `.ward` files; `ward test` runs them (filters, exit codes).
+- Record real model responses once, replay them deterministically in CI; assertions on typed results.
+- Budgets and trust apply inside tests as in normal runs.
+
+**Done when:** tests for the examples pass offline from recorded responses; `ward test` fails CI when an assertion fails.
+
+---
+
+## M11: Proof and polish (ongoing)
+- Typed streaming of partial decoded values (BAML has it; text streaming already exists, see decision 010).
 - TypeScript backend (`ward_codegen_ts`) + napi-rs runtime binding.
 - AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility).
 - LSP (`tower-lsp`) + VS Code extension (syntax highlighting for `.ward`).
@@ -129,7 +171,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 ---
 
 ## Working method
-- Start each session with: "Read AGENTS.md and PLAN.md. We are on milestone Mx."
-- Ask for tests first on M4 and M5: "write the attack cases, confirm they fail, then implement".
+- Start each session by reading AGENTS.md, PLAN.md and `docs/spec/`, and naming the current milestone.
+- Write tests first for checker and trust features: the failing ui and attack cases, then the implementation.
 - Keep PRs small: one feature at a time, each with its tests and spec update.
-- After each milestone, update `docs/spec/` and record decisions in `docs/decisions/NNN-*.md`.
+- After each milestone, update `docs/spec/`, record decisions in `docs/decisions/NNN-*.md`, and list what changed so Notion can be synced.
