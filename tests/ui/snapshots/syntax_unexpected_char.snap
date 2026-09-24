@@ -4,10 +4,10 @@ description: tests/ui/syntax_unexpected_char.wardscript
 ---
 exit: Some(1)
 --- human ---
-[W0001] Error: unexpected character `@`
+[W0001] Error: unexpected character `$`
    ╭─[ tests/ui/syntax_unexpected_char.wardscript:2:15 ]
    │
- 2 │     let x = 1 @ 2
+ 2 │     let x = 1 $ 2
    │               ┬  
    │               ╰── not valid in Wardscript source
 ───╯
@@ -37,7 +37,7 @@ error: could not check `tests/ui/syntax_unexpected_char.wardscript` due to 1 err
           }
         }
       ],
-      "message": "unexpected character `@`",
+      "message": "unexpected character `$`",
       "severity": "error",
       "span": {
         "end": {

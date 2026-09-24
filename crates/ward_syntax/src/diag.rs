@@ -30,7 +30,7 @@ pub mod codes {
     pub const UNCLOSED_DELIMITER: Code = Code("W0021");
     pub const INTERPOLATION_NOT_ALLOWED: Code = Code("W0022");
     pub const PUB_IMPORT: Code = Code("W0023");
-    pub const MISPLACED_ATTRIBUTE: Code = Code("W0024");
+    pub const MISPLACED_ANNOTATION: Code = Code("W0024");
 
     // W010x: names and modules, plus W0107 (trust).
     pub const UNRESOLVED_VALUE: Code = Code("W0100");
@@ -74,7 +74,7 @@ pub mod codes {
     pub const BUDGET_EXCEEDED: Code = Code("W0211");
     pub const CALLEE_BUDGET: Code = Code("W0212");
     pub const RULE_OF_TWO: Code = Code("W0220");
-    pub const INVALID_ATTRIBUTE: Code = Code("W0221");
+    pub const INVALID_ANNOTATION: Code = Code("W0221");
     pub const UNNECESSARY_ALLOW: Code = Code("W0222");
 
     pub const ALL: &[Code] = &[
@@ -97,7 +97,7 @@ pub mod codes {
         UNCLOSED_DELIMITER,
         INTERPOLATION_NOT_ALLOWED,
         PUB_IMPORT,
-        MISPLACED_ATTRIBUTE,
+        MISPLACED_ANNOTATION,
         UNRESOLVED_VALUE,
         UNRESOLVED_TYPE,
         UNRESOLVED_MODULE,
@@ -135,7 +135,7 @@ pub mod codes {
         BUDGET_EXCEEDED,
         CALLEE_BUDGET,
         RULE_OF_TWO,
-        INVALID_ATTRIBUTE,
+        INVALID_ANNOTATION,
         UNNECESSARY_ALLOW,
     ];
 }

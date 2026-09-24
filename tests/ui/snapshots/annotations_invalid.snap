@@ -1,36 +1,36 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/attributes_invalid.ward
+description: tests/ui/annotations_invalid.ward
 ---
 exit: Some(1)
 --- human ---
-[W0221] Error: `#[private]` takes tool function names
-   ╭─[ tests/ui/attributes_invalid.ward:6:11 ]
+[W0221] Error: `@private` takes tool function names
+   ╭─[ tests/ui/annotations_invalid.ward:6:10 ]
    │
- 6 │ #[private(x = "y")]
-   │           ───┬───  
-   │              ╰───── expected a name, like `read_file`
+ 6 │ @private(x = "y")
+   │          ───┬───  
+   │             ╰───── expected a name, like `read_file`
 ───╯
-[W0221] Error: unknown attribute `cached` on an import
-   ╭─[ tests/ui/attributes_invalid.ward:7:3 ]
+[W0221] Error: unknown annotation `cached` on an import
+   ╭─[ tests/ui/annotations_invalid.ward:7:2 ]
    │
- 7 │ #[cached]
-   │   ───┬──  
-   │      ╰──── not recognized here
+ 7 │ @cached
+   │  ───┬──  
+   │     ╰──── not recognized here
    │ 
-   │ Help: tool imports take `#[private(f, ...)]` and `#[readonly(f, ...)]`
+   │ Help: tool imports take `@private(f, ...)` and `@readonly(f, ...)`
 ───╯
-[W0221] Error: `#[allow(rule_of_two)]` needs a reason
-    ╭─[ tests/ui/attributes_invalid.ward:10:1 ]
+[W0221] Error: `@allow(rule_of_two)` needs a reason
+    ╭─[ tests/ui/annotations_invalid.ward:10:1 ]
     │
- 10 │ #[allow(rule_of_two)]
-    │ ──────────┬──────────  
-    │           ╰──────────── no reason given
+ 10 │ @allow(rule_of_two)
+    │ ─────────┬─────────  
+    │          ╰─────────── no reason given
     │ 
-    │ Help: say why this is safe: `#[allow(rule_of_two, reason = "...")]`
+    │ Help: say why this is safe: `@allow(rule_of_two, reason = "...")`
 ────╯
 [W0220] Error: `a` breaks the Rule of Two: it processes untrusted input, reads private data and changes external state
-    ╭─[ tests/ui/attributes_invalid.ward:11:8 ]
+    ╭─[ tests/ui/annotations_invalid.ward:11:8 ]
     │
  11 │ pub fn a(r: Untrusted<String>)
     │        ┬ ──────────┬─────────  
@@ -44,17 +44,17 @@ exit: Some(1)
     │                                                  │             
     │                                                  ╰───────────── `drive.read_file` reads private data
     │ 
-    │ Help: split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = "...")]`
+    │ Help: split it so no function has all three, or, if a human reviews what it does, `@allow(rule_of_two, reason = "...")`
 ────╯
-[W0221] Error: the reason for an `#[allow]` can't be empty
-    ╭─[ tests/ui/attributes_invalid.ward:17:31 ]
+[W0221] Error: the reason for an `@allow` can't be empty
+    ╭─[ tests/ui/annotations_invalid.ward:17:30 ]
     │
- 17 │ #[allow(rule_of_two, reason = "  ")]
-    │                               ──┬─  
-    │                                 ╰─── say why this is safe
+ 17 │ @allow(rule_of_two, reason = "  ")
+    │                              ──┬─  
+    │                                ╰─── say why this is safe
 ────╯
 [W0220] Error: `b` breaks the Rule of Two: it processes untrusted input, reads private data and changes external state
-    ╭─[ tests/ui/attributes_invalid.ward:18:8 ]
+    ╭─[ tests/ui/annotations_invalid.ward:18:8 ]
     │
  18 │ pub fn b(r: Untrusted<String>)
     │        ┬ ──────────┬─────────  
@@ -68,42 +68,42 @@ exit: Some(1)
     │                                                  │             
     │                                                  ╰───────────── `drive.read_file` reads private data
     │ 
-    │ Help: split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = "...")]`
+    │ Help: split it so no function has all three, or, if a human reviews what it does, `@allow(rule_of_two, reason = "...")`
 ────╯
-[W0221] Error: `#[allow]` doesn't take `unused`
-    ╭─[ tests/ui/attributes_invalid.ward:24:9 ]
+[W0221] Error: `@allow` doesn't take `unused`
+    ╭─[ tests/ui/annotations_invalid.ward:24:8 ]
     │
- 24 │ #[allow(unused, reason = "why")]
-    │         ───┬──  
-    │            ╰──── not recognized
+ 24 │ @allow(unused, reason = "why")
+    │        ───┬──  
+    │           ╰──── not recognized
     │ 
-    │ Help: write `#[allow(rule_of_two, reason = "...")]`
+    │ Help: write `@allow(rule_of_two, reason = "...")`
 ────╯
-[W0221] Error: unknown attribute `inline`
-    ╭─[ tests/ui/attributes_invalid.ward:25:3 ]
+[W0221] Error: unknown annotation `inline`
+    ╭─[ tests/ui/annotations_invalid.ward:25:2 ]
     │
- 25 │ #[inline]
-    │   ───┬──  
-    │      ╰──── not recognized
+ 25 │ @inline
+    │  ───┬──  
+    │     ╰──── not recognized
     │ 
-    │ Help: functions take `#[allow(rule_of_two, reason = "...")]`
+    │ Help: functions take `@allow(rule_of_two, reason = "...")`
 ────╯
 [W0222] Warning: `d` doesn't break the Rule of Two
-    ╭─[ tests/ui/attributes_invalid.ward:29:1 ]
+    ╭─[ tests/ui/annotations_invalid.ward:29:1 ]
     │
- 29 │ #[allow(rule_of_two, reason = "reviewed")]
-    │ ─────────────────────┬────────────────────  
-    │                      ╰────────────────────── nothing to allow
+ 29 │ @allow(rule_of_two, reason = "reviewed")
+    │ ────────────────────┬───────────────────  
+    │                     ╰───────────────────── nothing to allow
     │ 
-    │ Help: remove the attribute
+    │ Help: remove the annotation
 ────╯
-error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
+error: could not check `tests/ui/annotations_invalid.ward` due to 8 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0221",
-      "file": "tests/ui/attributes_invalid.ward",
+      "file": "tests/ui/annotations_invalid.ward",
       "help": null,
       "labels": [
         {
@@ -111,111 +111,111 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
           "primary": true,
           "span": {
             "end": {
-              "column": 18,
+              "column": 17,
               "line": 6,
-              "offset": 201
+              "offset": 197
             },
             "start": {
-              "column": 11,
+              "column": 10,
               "line": 6,
-              "offset": 194
+              "offset": 190
             }
           }
         }
       ],
-      "message": "`#[private]` takes tool function names",
+      "message": "`@private` takes tool function names",
       "severity": "error",
       "span": {
         "end": {
-          "column": 18,
+          "column": 17,
           "line": 6,
-          "offset": 201
+          "offset": 197
         },
         "start": {
-          "column": 11,
+          "column": 10,
           "line": 6,
-          "offset": 194
+          "offset": 190
         }
       }
     },
     {
       "code": "W0221",
-      "file": "tests/ui/attributes_invalid.ward",
-      "help": "tool imports take `#[private(f, ...)]` and `#[readonly(f, ...)]`",
+      "file": "tests/ui/annotations_invalid.ward",
+      "help": "tool imports take `@private(f, ...)` and `@readonly(f, ...)`",
       "labels": [
         {
           "message": "not recognized here",
           "primary": true,
           "span": {
             "end": {
-              "column": 9,
-              "line": 7,
-              "offset": 212
-            },
-            "start": {
-              "column": 3,
+              "column": 8,
               "line": 7,
               "offset": 206
+            },
+            "start": {
+              "column": 2,
+              "line": 7,
+              "offset": 200
             }
           }
         }
       ],
-      "message": "unknown attribute `cached` on an import",
+      "message": "unknown annotation `cached` on an import",
       "severity": "error",
       "span": {
         "end": {
-          "column": 9,
-          "line": 7,
-          "offset": 212
-        },
-        "start": {
-          "column": 3,
+          "column": 8,
           "line": 7,
           "offset": 206
+        },
+        "start": {
+          "column": 2,
+          "line": 7,
+          "offset": 200
         }
       }
     },
     {
       "code": "W0221",
-      "file": "tests/ui/attributes_invalid.ward",
-      "help": "say why this is safe: `#[allow(rule_of_two, reason = \"...\")]`",
+      "file": "tests/ui/annotations_invalid.ward",
+      "help": "say why this is safe: `@allow(rule_of_two, reason = \"...\")`",
       "labels": [
         {
           "message": "no reason given",
           "primary": true,
           "span": {
             "end": {
-              "column": 22,
+              "column": 20,
               "line": 10,
-              "offset": 270
+              "offset": 261
             },
             "start": {
               "column": 1,
               "line": 10,
-              "offset": 249
+              "offset": 242
             }
           }
         }
       ],
-      "message": "`#[allow(rule_of_two)]` needs a reason",
+      "message": "`@allow(rule_of_two)` needs a reason",
       "severity": "error",
       "span": {
         "end": {
-          "column": 22,
+          "column": 20,
           "line": 10,
-          "offset": 270
+          "offset": 261
         },
         "start": {
           "column": 1,
           "line": 10,
-          "offset": 249
+          "offset": 242
         }
       }
     },
     {
       "code": "W0220",
-      "file": "tests/ui/attributes_invalid.ward",
-      "help": "split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = \"...\")]`",
+      "file": "tests/ui/annotations_invalid.ward",
+      "help": "split it so no function has all three, or, if a human reviews what it does, `@allow(rule_of_two, reason = \"...\")`",
       "labels": [
         {
           "message": "has all three",
@@ -224,12 +224,12 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
             "end": {
               "column": 9,
               "line": 11,
-              "offset": 279
+              "offset": 270
             },
             "start": {
               "column": 8,
               "line": 11,
-              "offset": 278
+              "offset": 269
             }
           }
         },
@@ -240,12 +240,12 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
             "end": {
               "column": 30,
               "line": 11,
-              "offset": 300
+              "offset": 291
             },
             "start": {
               "column": 10,
               "line": 11,
-              "offset": 280
+              "offset": 271
             }
           }
         },
@@ -256,12 +256,12 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
             "end": {
               "column": 60,
               "line": 14,
-              "offset": 386
+              "offset": 377
             },
             "start": {
               "column": 40,
               "line": 14,
-              "offset": 366
+              "offset": 357
             }
           }
         },
@@ -272,12 +272,12 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
             "end": {
               "column": 62,
               "line": 14,
-              "offset": 388
+              "offset": 379
             },
             "start": {
               "column": 5,
               "line": 14,
-              "offset": 331
+              "offset": 322
             }
           }
         }
@@ -288,18 +288,18 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
         "end": {
           "column": 9,
           "line": 11,
-          "offset": 279
+          "offset": 270
         },
         "start": {
           "column": 8,
           "line": 11,
-          "offset": 278
+          "offset": 269
         }
       }
     },
     {
       "code": "W0221",
-      "file": "tests/ui/attributes_invalid.ward",
+      "file": "tests/ui/annotations_invalid.ward",
       "help": null,
       "labels": [
         {
@@ -307,37 +307,37 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
           "primary": true,
           "span": {
             "end": {
-              "column": 35,
+              "column": 34,
               "line": 17,
-              "offset": 426
+              "offset": 416
             },
             "start": {
-              "column": 31,
+              "column": 30,
               "line": 17,
-              "offset": 422
+              "offset": 412
             }
           }
         }
       ],
-      "message": "the reason for an `#[allow]` can't be empty",
+      "message": "the reason for an `@allow` can't be empty",
       "severity": "error",
       "span": {
         "end": {
-          "column": 35,
+          "column": 34,
           "line": 17,
-          "offset": 426
+          "offset": 416
         },
         "start": {
-          "column": 31,
+          "column": 30,
           "line": 17,
-          "offset": 422
+          "offset": 412
         }
       }
     },
     {
       "code": "W0220",
-      "file": "tests/ui/attributes_invalid.ward",
-      "help": "split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = \"...\")]`",
+      "file": "tests/ui/annotations_invalid.ward",
+      "help": "split it so no function has all three, or, if a human reviews what it does, `@allow(rule_of_two, reason = \"...\")`",
       "labels": [
         {
           "message": "has all three",
@@ -346,12 +346,12 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
             "end": {
               "column": 9,
               "line": 18,
-              "offset": 437
+              "offset": 426
             },
             "start": {
               "column": 8,
               "line": 18,
-              "offset": 436
+              "offset": 425
             }
           }
         },
@@ -362,12 +362,12 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
             "end": {
               "column": 30,
               "line": 18,
-              "offset": 458
+              "offset": 447
             },
             "start": {
               "column": 10,
               "line": 18,
-              "offset": 438
+              "offset": 427
             }
           }
         },
@@ -378,12 +378,12 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
             "end": {
               "column": 60,
               "line": 21,
-              "offset": 544
+              "offset": 533
             },
             "start": {
               "column": 40,
               "line": 21,
-              "offset": 524
+              "offset": 513
             }
           }
         },
@@ -394,12 +394,12 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
             "end": {
               "column": 62,
               "line": 21,
-              "offset": 546
+              "offset": 535
             },
             "start": {
               "column": 5,
               "line": 21,
-              "offset": 489
+              "offset": 478
             }
           }
         }
@@ -410,107 +410,107 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
         "end": {
           "column": 9,
           "line": 18,
-          "offset": 437
+          "offset": 426
         },
         "start": {
           "column": 8,
           "line": 18,
-          "offset": 436
+          "offset": 425
         }
       }
     },
     {
       "code": "W0221",
-      "file": "tests/ui/attributes_invalid.ward",
-      "help": "write `#[allow(rule_of_two, reason = \"...\")]`",
+      "file": "tests/ui/annotations_invalid.ward",
+      "help": "write `@allow(rule_of_two, reason = \"...\")`",
       "labels": [
         {
           "message": "not recognized",
           "primary": true,
           "span": {
             "end": {
-              "column": 15,
+              "column": 14,
               "line": 24,
-              "offset": 564
+              "offset": 552
             },
             "start": {
-              "column": 9,
+              "column": 8,
               "line": 24,
-              "offset": 558
+              "offset": 546
             }
           }
         }
       ],
-      "message": "`#[allow]` doesn't take `unused`",
+      "message": "`@allow` doesn't take `unused`",
       "severity": "error",
       "span": {
         "end": {
-          "column": 15,
+          "column": 14,
           "line": 24,
-          "offset": 564
+          "offset": 552
         },
         "start": {
-          "column": 9,
+          "column": 8,
           "line": 24,
-          "offset": 558
+          "offset": 546
         }
       }
     },
     {
       "code": "W0221",
-      "file": "tests/ui/attributes_invalid.ward",
-      "help": "functions take `#[allow(rule_of_two, reason = \"...\")]`",
+      "file": "tests/ui/annotations_invalid.ward",
+      "help": "functions take `@allow(rule_of_two, reason = \"...\")`",
       "labels": [
         {
           "message": "not recognized",
           "primary": true,
           "span": {
             "end": {
-              "column": 9,
+              "column": 8,
               "line": 25,
-              "offset": 591
+              "offset": 577
             },
             "start": {
-              "column": 3,
+              "column": 2,
               "line": 25,
-              "offset": 585
+              "offset": 571
             }
           }
         }
       ],
-      "message": "unknown attribute `inline`",
+      "message": "unknown annotation `inline`",
       "severity": "error",
       "span": {
         "end": {
-          "column": 9,
+          "column": 8,
           "line": 25,
-          "offset": 591
+          "offset": 577
         },
         "start": {
-          "column": 3,
+          "column": 2,
           "line": 25,
-          "offset": 585
+          "offset": 571
         }
       }
     },
     {
       "code": "W0222",
-      "file": "tests/ui/attributes_invalid.ward",
-      "help": "remove the attribute",
+      "file": "tests/ui/annotations_invalid.ward",
+      "help": "remove the annotation",
       "labels": [
         {
           "message": "nothing to allow",
           "primary": true,
           "span": {
             "end": {
-              "column": 43,
+              "column": 41,
               "line": 29,
-              "offset": 676
+              "offset": 659
             },
             "start": {
               "column": 1,
               "line": 29,
-              "offset": 634
+              "offset": 619
             }
           }
         }
@@ -519,17 +519,17 @@ error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
       "severity": "warning",
       "span": {
         "end": {
-          "column": 43,
+          "column": 41,
           "line": 29,
-          "offset": 676
+          "offset": 659
         },
         "start": {
           "column": 1,
           "line": 29,
-          "offset": 634
+          "offset": 619
         }
       }
     }
   ],
-  "file": "tests/ui/attributes_invalid.ward"
+  "file": "tests/ui/annotations_invalid.ward"
 }

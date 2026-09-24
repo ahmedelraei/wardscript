@@ -13,9 +13,9 @@
   don't count.
 - **The Rule of Two is checked over the call graph**: untrusted input, private reads
   and external changes in one function, counting callees. It's reported where the
-  three first meet, and `#[allow(rule_of_two, reason = "...")]` overrides it.
-- **Tool functions are classified by attributes on the import** (`#[private(...)]`,
-  `#[readonly(...)]`) until M7 reads tool schemas. Unclassified functions count as
+  three first meet, and `@allow(rule_of_two, reason = "...")` overrides it.
+- **Tool functions are classified by annotations on the import** (`@private(...)`,
+  `@readonly(...)`) until M7 reads tool schemas. Unclassified functions count as
   external changes, the conservative default M7 will keep.
 - **Using a private read's result isn't "untrusted input".** Private data is the
   system's own, so it counts as the second capability, not the first. The trust
@@ -33,7 +33,7 @@ requests rather than tool calls matches the example budgets (`calls: 3` on an
 `ai fn` bounds its retries).
 
 Reporting a Rule of Two violation only where it first appears avoids repeating it in
-every caller; an `#[allow]` there is the one place a human wrote down why it's fine.
+every caller; an `@allow` there is the one place a human wrote down why it's fine.
 
 ## Not yet
 

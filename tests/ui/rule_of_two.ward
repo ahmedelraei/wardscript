@@ -1,7 +1,7 @@
 // A function may not process untrusted input, read private data and change external
 // state all at once. It's reported where the three first meet, not in its callers.
 import mcp "gmail" as mail
-#[private(read_file)]
+@private(read_file)
 import mcp "drive" as drive
 
 ai fn summarize(text: String) -> String {
