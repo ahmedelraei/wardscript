@@ -1,0 +1,1 @@
+//! Wardscript runtime core.
