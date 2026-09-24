@@ -28,12 +28,12 @@ accepted anywhere; fields and methods on it are dynamic too.
 - Module scope holds every item (`fn`, `type`, `enum`) and import. Types and values
   share one namespace, so a function and a record can't have the same name (W0103).
 - The prelude sits behind module scope and can be shadowed. It holds the types
-  `Int Float String Bool List Map Option Result Untrusted Trusted` and the values
-  `Some None Ok Err validate approve declassify`.
+  `Int Float String Bool List Map Option Untrusted Trusted` and the values
+  `Some None validate approve declassify`.
 - Function parameters, `let` bindings, `for` variables and pattern bindings are local.
   Every block opens a scope. `let` may shadow an earlier variable.
 - Enum variants are reached through their enum: `Priority.High`. The prelude's
-  `Some`, `None`, `Ok` and `Err` are the exception.
+  `Some` and `None` are the exception.
 - In a pattern, a lone name is a new binding, except `None`.
 
 ## Record literals

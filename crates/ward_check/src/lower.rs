@@ -41,6 +41,7 @@ impl Checker<'_> {
                     Item::Fn(f) => {
                         let params = f.params.iter().map(|p| self.lower(m, p.ty)).collect();
                         let ret = f.ret.map_or(Ty::Unit, |t| self.lower(m, t));
+                        let throws = f.throws.map(|t| self.lower(m, t));
                         if let (FnBody::Ai { .. }, Some(ret_ty)) = (&f.body, f.ret) {
                             llm_returns.push((m, f.name.name.as_str(), ret.clone(), ret_ty));
                         }
@@ -48,6 +49,7 @@ impl Checker<'_> {
                             generics: f.generics.len(),
                             params,
                             ret,
+                            throws,
                         };
                         self.fns.insert(def, sig);
                     }
@@ -118,7 +120,6 @@ impl Checker<'_> {
                 Prim::List => Ty::list(arg(0)),
                 Prim::Option => Ty::option(arg(0)),
                 Prim::Map => Ty::map(arg(0), arg(1)),
-                Prim::Result => Ty::result(arg(0), arg(1)),
                 // Labels are tracked separately from types (M4).
                 Prim::Untrusted | Prim::Trusted => arg(0),
             },
@@ -187,7 +188,6 @@ impl Checker<'_> {
                 Ty::String | Ty::Error => self.schema_problem(v, visiting),
                 _ => Some("JSON object keys must be `String`".into()),
             },
-            Ty::Result(..) => Some("`Result` has no JSON representation".into()),
             Ty::Unit => Some("`()` has no JSON representation".into()),
             Ty::Param(_) => Some("a generic type has no fixed schema".into()),
             Ty::Dynamic => Some("tool types aren't known yet".into()),

@@ -1,0 +1,7 @@
+fn f(x: Int) -> Int {
+    try {
+        x + 1
+    } catch err {
+        0
+    }
+}

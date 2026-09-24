@@ -16,8 +16,8 @@ use crate::{Checker, ModuleTypes};
 pub(crate) fn check_fn(c: &mut Checker, def: DefId, f: &FnDecl, out: &mut ModuleTypes) {
     let program = c.program;
     let resolution = c.res;
-    let (params, ret) = match c.fns.get(&def) {
-        Some(sig) => (sig.params.clone(), sig.ret.clone()),
+    let (params, ret, throws) = match c.fns.get(&def) {
+        Some(sig) => (sig.params.clone(), sig.ret.clone(), sig.throws.clone()),
         None => return,
     };
     let mres = resolution.module(def.module);
@@ -34,7 +34,10 @@ pub(crate) fn check_fn(c: &mut Checker, def: DefId, f: &FnDecl, out: &mut Module
         fn_name: f.name.name.clone(),
         generics: f.generics.iter().map(|g| g.name.clone()).collect(),
         lets: Vec::new(),
-        auto_ok: Vec::new(),
+        throws,
+        handlers: Vec::new(),
+        propagating: None,
+        thrown: ArenaMap::default(),
     };
     for (&local, ty) in mres
         .params
@@ -73,7 +76,20 @@ struct Cx<'a, 'p> {
     generics: Vec<String>,
     /// `let` bindings, checked at the end for types that were never pinned down.
     lets: Vec<(LocalId, Span)>,
-    auto_ok: Vec<StmtId>,
+    /// The function's declared `throws` type.
+    throws: Option<Ty>,
+    /// Enclosing `try` blocks, innermost last.
+    handlers: Vec<Handler>,
+    /// The call currently being checked under a `?`.
+    propagating: Option<ExprId>,
+    /// Error type of each call marked with `?`.
+    thrown: ArenaMap<ExprId, Ty>,
+}
+
+struct Handler {
+    /// The type the `catch` variable will have.
+    ty: Ty,
+    used: bool,
 }
 
 fn plural(n: usize, word: &str) -> String {
@@ -130,7 +146,9 @@ impl Cx<'_, '_> {
         for (local, t) in self.locals.iter() {
             out.locals.insert(local, self.u.resolve(t).without_vars());
         }
-        out.auto_ok.extend(self.auto_ok);
+        for (e, t) in self.thrown.iter() {
+            out.throws.insert(e, self.u.resolve(t).without_vars());
+        }
     }
 
     fn show(&self, t: &Ty) -> String {
@@ -144,7 +162,6 @@ impl Cx<'_, '_> {
             Ty::List(t) => format!("List<{}>", self.show(&t)),
             Ty::Option(t) => format!("Option<{}>", self.show(&t)),
             Ty::Map(k, v) => format!("Map<{}, {}>", self.show(&k), self.show(&v)),
-            Ty::Result(t, e) => format!("Result<{}, {}>", self.show(&t), self.show(&e)),
             Ty::Adt(d, args) => {
                 let name = item_name(self.c.program.item(d));
                 if args.is_empty() {
@@ -185,6 +202,9 @@ impl Cx<'_, '_> {
             }
             ExprKind::Match { scrutinee, arms } => {
                 self.match_expr(*scrutinee, arms, Some(expected))
+            }
+            ExprKind::TryCatch { body, err, handler } => {
+                self.try_catch(e, body, err.is_some(), handler, Some(expected))
             }
             ExprKind::Block(b) => self.block(b, Some(expected)),
             ExprKind::List(items) if matches!(self.u.shallow(expected), Ty::List(_)) => {
@@ -264,7 +284,7 @@ impl Cx<'_, '_> {
                     }
                 }
             }
-            ExprKind::Try(inner) => self.try_expr(*inner, span),
+            ExprKind::Propagate(inner) => self.propagate_call(*inner, span),
             ExprKind::Unary { op, operand } => match op {
                 UnOp::Not => {
                     self.check(*operand, &Ty::Bool);
@@ -299,6 +319,9 @@ impl Cx<'_, '_> {
             ExprKind::Record { path, fields } => self.record_lit(e, path, fields),
             ExprKind::If { cond, then, else_ } => self.if_expr(*cond, then, *else_, None, e),
             ExprKind::Match { scrutinee, arms } => self.match_expr(*scrutinee, arms, None),
+            ExprKind::TryCatch { body, err, handler } => {
+                self.try_catch(e, body, err.is_some(), handler, None)
+            }
             ExprKind::Block(b) => self.block(b, None),
             ExprKind::Error => Ty::Error,
         }
@@ -513,6 +536,9 @@ impl Cx<'_, '_> {
                 let inst: Vec<Ty> = (0..generics).map(|_| self.u.fresh()).collect();
                 let params: Vec<Ty> = params.iter().map(|p| p.subst(&inst)).collect();
                 self.args(args, &params, &format!("function `{callee_text}`"), span);
+                if let Some(t) = self.c.fns.get(&d).and_then(|sig| sig.throws.clone()) {
+                    self.call_throws(e, t.subst(&inst), &callee_text, span);
+                }
                 ret.subst(&inst)
             }
             ValueRes::Variant(d, i) => {
@@ -524,6 +550,11 @@ impl Cx<'_, '_> {
                     .collect();
                 self.args(args, &payload, &format!("variant `{callee_text}`"), span);
                 Ty::Adt(d, inst)
+            }
+            ValueRes::Builtin(Builtin::Validate) => {
+                let t = self.validate(args, span);
+                self.call_throws(e, Ty::String, "validate", span);
+                t
             }
             ValueRes::Builtin(b) => self.builtin_call(b, args, span, callee_span),
             ValueRes::ToolMember(_) => {
@@ -568,7 +599,7 @@ impl Cx<'_, '_> {
     fn builtin_call(&mut self, b: Builtin, args: &[ExprId], span: Span, callee_span: Span) -> Ty {
         let arity = |n: usize| args.len() == n;
         match b {
-            Builtin::Some | Builtin::Ok | Builtin::Err | Builtin::Approve => {
+            Builtin::Some | Builtin::Approve => {
                 if !arity(1) {
                     self.arg_count(&format!("`{}`", b.name()), 1, args.len(), span);
                 }
@@ -577,12 +608,7 @@ impl Cx<'_, '_> {
                     None => Ty::Error,
                 };
                 self.infer_all(args.get(1..).unwrap_or(&[]));
-                match b {
-                    Builtin::Some => Ty::option(t),
-                    Builtin::Ok => Ty::result(t, self.u.fresh()),
-                    Builtin::Err => Ty::result(self.u.fresh(), t),
-                    _ => t,
-                }
+                if b == Builtin::Some { Ty::option(t) } else { t }
             }
             Builtin::Declassify => {
                 if !arity(2) {
@@ -608,8 +634,8 @@ impl Cx<'_, '_> {
         }
     }
 
-    /// `validate(x, rule)`: `rule` names a function `fn(T) -> Bool`; the result is
-    /// `Result<T, String>`.
+    /// `validate(x, rule)`: `rule` names a function `fn(T) -> Bool`. Returns `x`, or throws
+    /// a `String` saying which rule failed.
     fn validate(&mut self, args: &[ExprId], span: Span) -> Ty {
         let [value, rule] = args else {
             self.arg_count("`validate`", 2, args.len(), span);
@@ -648,7 +674,7 @@ impl Cx<'_, '_> {
                 )),
             );
         }
-        Ty::result(t, Ty::String)
+        t
     }
 
     fn method_call(&mut self, base: ExprId, name: &Ident, args: &[ExprId], span: Span) -> Ty {
@@ -706,66 +732,144 @@ impl Cx<'_, '_> {
         Ty::Error
     }
 
-    fn try_expr(&mut self, inner: ExprId, span: Span) -> Ty {
+    /// A call to a throwing function. Without `?` the error would be ignored silently.
+    fn call_throws(&mut self, call: ExprId, thrown: Ty, callee: &str, span: Span) {
+        if self.propagating == Some(call) {
+            self.thrown.insert(call, thrown);
+            return;
+        }
+        let shown = self.show(&thrown);
+        self.err(
+            Diagnostic::error(
+                codes::MISSING_PROPAGATE,
+                format!("`{callee}` can throw `{shown}`, but this call isn't marked with `?`"),
+                span,
+            )
+            .with_label("add `?` after this call")
+            .with_help(format!(
+                "write `{callee}(...)?` to pass the error on, inside a `try` block or a function that `throws {shown}`"
+            )),
+        );
+    }
+
+    /// `call()?`
+    fn propagate_call(&mut self, inner: ExprId, span: Span) -> Ty {
+        let saved = self.propagating.replace(inner);
         let t = self.infer(inner);
-        let ret = self.u.resolve(&self.ret);
-        let fn_name = self.fn_name.clone();
-        let ret_shown = self.show(&ret);
-        match self.u.resolve(&t) {
-            Ty::Result(ok, e) => {
-                match &ret {
-                    Ty::Result(_, ret_e) => {
-                        if !self.u.unify(&e, ret_e) {
-                            let (a, b) = (self.show(&e), self.show(ret_e));
-                            self.err(
-                                Diagnostic::error(
-                                    codes::INVALID_TRY,
-                                    format!("`?` can't pass an error of type `{a}` to a function returning `{ret_shown}`"),
-                                    span,
-                                )
-                                .with_label(format!("the error type here is `{a}`"))
-                                .with_help(format!("`{fn_name}` can only return errors of type `{b}`")),
-                            );
-                        }
-                    }
-                    r if r.is_lenient() => {}
-                    _ => self.try_mismatch(span, "a `Result`", "Result", &fn_name, &ret_shown),
-                }
-                *ok
-            }
-            Ty::Option(inner) => {
-                if !matches!(ret, Ty::Option(_)) && !ret.is_lenient() {
-                    self.try_mismatch(span, "an `Option`", "Option", &fn_name, &ret_shown);
-                }
-                *inner
-            }
-            t @ (Ty::Dynamic | Ty::Error | Ty::Never) => t,
-            Ty::Var(_) => self.unknown_type_here(span, "use `?`"),
-            _ => {
-                let shown = self.show(&t);
+        self.propagating = saved;
+        if let Some(thrown) = self.thrown.get(inner).cloned() {
+            self.propagate(&thrown, span);
+            return t;
+        }
+        // Tool calls may throw at runtime; their types arrive with M7.
+        if !matches!(self.u.resolve(&t), Ty::Dynamic | Ty::Error) {
+            self.err(
+                Diagnostic::error(
+                    codes::INVALID_TRY,
+                    "`?` on something that can't throw",
+                    span,
+                )
+                .with_label("this can't throw")
+                .with_help("`?` marks calls to functions that declare `throws`; remove it here"),
+            );
+        }
+        t
+    }
+
+    /// Hands an error to the innermost `try`, or to the function's `throws`.
+    fn propagate(&mut self, thrown: &Ty, span: Span) {
+        let shown = self.show(thrown);
+        if let Some(h) = self.handlers.last_mut() {
+            h.used = true;
+            let caught = h.ty.clone();
+            if !self.u.unify(thrown, &caught) {
+                let caught = self.show(&caught);
                 self.err(
                     Diagnostic::error(
-                        codes::INVALID_TRY,
-                        format!("`?` needs a `Result` or `Option`, found `{shown}`"),
+                        codes::TYPE_MISMATCH,
+                        format!("this throws `{shown}`, but the enclosing `try` already catches `{caught}`"),
                         span,
                     )
-                    .with_label("can't use `?` here"),
+                    .with_label(format!("throws `{shown}`"))
+                    .with_help("one `try` block catches one error type"),
                 );
-                Ty::Error
             }
+            return;
+        }
+        let fn_name = self.fn_name.clone();
+        match self.throws.clone() {
+            Some(declared) => {
+                if !self.u.unify(thrown, &declared) {
+                    let declared = self.show(&declared);
+                    self.err(
+                        Diagnostic::error(
+                            codes::TYPE_MISMATCH,
+                            format!("this throws `{shown}`, but `{fn_name}` declares `throws {declared}`"),
+                            span,
+                        )
+                        .with_label(format!("throws `{shown}`"))
+                        .with_help(format!(
+                            "catch it with `try {{ ... }} catch err {{ ... }}`, or change `{fn_name}` to `throws {shown}`"
+                        )),
+                    );
+                }
+            }
+            None => self.err(
+                Diagnostic::error(
+                    codes::UNHANDLED_THROW,
+                    format!("`{shown}` is thrown here but never caught"),
+                    span,
+                )
+                .with_label(format!("may throw `{shown}`"))
+                .with_help(format!(
+                    "catch it with `try {{ ... }} catch err {{ ... }}`, or declare it on `{fn_name}`: `-> T throws {shown}`"
+                )),
+            ),
         }
     }
 
-    fn try_mismatch(&mut self, span: Span, on: &str, kind: &str, fn_name: &str, ret: &str) {
-        self.err(
-            Diagnostic::error(
-                codes::INVALID_TRY,
-                format!("`?` on {on} can only be used in a function that returns `{kind}`"),
-                span,
-            )
-            .with_label(format!("`{fn_name}` returns `{ret}`"))
-            .with_help(format!("change the return type of `{fn_name}` to `{kind}<...>`, or handle the value with `match`")),
-        );
+    fn try_catch(
+        &mut self,
+        e: ExprId,
+        body: &Block,
+        has_err: bool,
+        handler: &Block,
+        expected: Option<&Ty>,
+    ) -> Ty {
+        let caught = self.u.fresh();
+        self.handlers.push(Handler {
+            ty: caught.clone(),
+            used: false,
+        });
+        let body_ty = self.block(body, expected);
+        let used = self.handlers.pop().is_some_and(|h| h.used);
+        if !used {
+            let span = self.span(e);
+            self.err(
+                Diagnostic::warning(
+                    codes::TRY_CANNOT_THROW,
+                    "nothing in this `try` block can throw",
+                    Span::new(span.start, span.start + 3),
+                )
+                .with_label("unnecessary `try`")
+                .with_help("remove the `try`, or mark calls that throw with `?`"),
+            );
+            self.u.unify(&caught, &Ty::Error);
+        }
+        if has_err {
+            if let Some(&local) = self.mres.catch_locals.get(e) {
+                self.locals.insert(local, caught);
+            }
+        }
+        if let Some(x) = expected {
+            self.block(handler, Some(x));
+            return x.clone();
+        }
+        if matches!(self.u.shallow(&body_ty), Ty::Never) {
+            return self.block(handler, None);
+        }
+        self.block(handler, Some(&body_ty));
+        body_ty
     }
 
     fn binary(&mut self, op: BinOp, lhs: ExprId, rhs: ExprId) -> Ty {
@@ -1012,12 +1116,20 @@ impl Cx<'_, '_> {
             StmtKind::Return(value) => {
                 let ret = self.ret.clone();
                 match value {
-                    Some(v) => self.return_value(id, *v, &ret),
+                    Some(v) => {
+                        self.check(*v, &ret);
+                    }
                     None => {
                         let span = ast.stmts[id].span;
                         self.coerce(&Ty::Unit, &ret, span);
                     }
                 }
+                true
+            }
+            StmtKind::Throw(value) => {
+                let t = self.infer(*value);
+                let span = ast.stmts[id].span;
+                self.propagate(&t, span);
                 true
             }
             StmtKind::For { iter, body, .. } => {
@@ -1051,25 +1163,6 @@ impl Cx<'_, '_> {
                 self.check(*cond, &Ty::Bool);
                 self.block(body, None);
                 false
-            }
-        }
-    }
-
-    /// In a function returning `Result<T, E>`, `return x` with `x: T` means `return Ok(x)`.
-    fn return_value(&mut self, stmt: StmtId, value: ExprId, ret: &Ty) {
-        let Ty::Result(ok, _) = self.u.resolve(ret) else {
-            self.check(value, ret);
-            return;
-        };
-        let t = self.infer(value);
-        let span = self.span(value);
-        match self.u.resolve(&t) {
-            Ty::Result(..) | Ty::Error | Ty::Dynamic | Ty::Never => {
-                self.coerce(&t, ret, span);
-            }
-            _ => {
-                self.coerce(&t, &ok, span);
-                self.auto_ok.push(stmt);
             }
         }
     }
@@ -1174,14 +1267,14 @@ impl Cx<'_, '_> {
                     .collect::<Vec<_>>()
                     .join(".");
                 let (ctor_ty, payload) = match self.mres.pat_variants.get(p) {
-                    Some(ValueRes::Builtin(b)) => {
-                        let (a, e) = (self.u.fresh(), self.u.fresh());
-                        match b {
-                            Builtin::Some => (Ty::option(a.clone()), vec![a]),
-                            Builtin::None => (Ty::option(a), vec![]),
-                            Builtin::Ok => (Ty::result(a.clone(), e), vec![a]),
-                            _ => (Ty::result(a, e.clone()), vec![e]),
-                        }
+                    Some(ValueRes::Builtin(b @ (Builtin::Some | Builtin::None))) => {
+                        let a = self.u.fresh();
+                        let payload = if *b == Builtin::Some {
+                            vec![a.clone()]
+                        } else {
+                            vec![]
+                        };
+                        (Ty::option(a), payload)
                     }
                     Some(&ValueRes::Variant(d, i)) => {
                         let inst = self.fresh_args(d);
@@ -1244,8 +1337,6 @@ impl Cx<'_, '_> {
                 let ctor = match self.mres.pat_variants.get(p) {
                     Some(ValueRes::Builtin(Builtin::Some)) => Ctor::Some,
                     Some(ValueRes::Builtin(Builtin::None)) => Ctor::None,
-                    Some(ValueRes::Builtin(Builtin::Ok)) => Ctor::Ok,
-                    Some(ValueRes::Builtin(Builtin::Err)) => Ctor::Err,
                     Some(&ValueRes::Variant(_, i)) => Ctor::Variant(i),
                     _ => return DPat::Wild,
                 };
@@ -1264,8 +1355,6 @@ impl Cx<'_, '_> {
             (Ctor::False, _) => "false".to_owned(),
             (Ctor::Some, _) => "Some".to_owned(),
             (Ctor::None, _) => "None".to_owned(),
-            (Ctor::Ok, _) => "Ok".to_owned(),
-            (Ctor::Err, _) => "Err".to_owned(),
             (Ctor::Variant(i), Ty::Adt(d, _)) => {
                 let variant = self
                     .c
@@ -1299,7 +1388,6 @@ impl Ctors for Cx<'_, '_> {
         match self.u.resolve(ty) {
             Ty::Bool => Some(vec![(Ctor::True, vec![]), (Ctor::False, vec![])]),
             Ty::Option(t) => Some(vec![(Ctor::None, vec![]), (Ctor::Some, vec![*t])]),
-            Ty::Result(t, e) => Some(vec![(Ctor::Ok, vec![*t]), (Ctor::Err, vec![*e])]),
             Ty::Adt(d, args) => self.c.enums.get(&d).map(|vs| {
                 vs.iter()
                     .enumerate()

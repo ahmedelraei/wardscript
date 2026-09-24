@@ -12,7 +12,6 @@ pub enum Ty {
     List(Box<Ty>),
     Map(Box<Ty>, Box<Ty>),
     Option(Box<Ty>),
-    Result(Box<Ty>, Box<Ty>),
     /// A record or enum with its type arguments.
     Adt(DefId, Vec<Ty>),
     /// The `n`th generic parameter of the item being checked. Only equal to itself.
@@ -32,10 +31,6 @@ impl Ty {
 
     pub fn option(t: Ty) -> Ty {
         Ty::Option(Box::new(t))
-    }
-
-    pub fn result(t: Ty, e: Ty) -> Ty {
-        Ty::Result(Box::new(t), Box::new(e))
     }
 
     pub fn map(k: Ty, v: Ty) -> Ty {
@@ -65,7 +60,6 @@ impl Ty {
             Ty::List(t) => Ty::List(g(t)),
             Ty::Option(t) => Ty::Option(g(t)),
             Ty::Map(k, v) => Ty::Map(g(k), g(v)),
-            Ty::Result(t, e) => Ty::Result(g(t), g(e)),
             Ty::Adt(d, args) => Ty::Adt(*d, args.iter().map(|a| a.map_children(f)).collect()),
             t => t.clone(),
         }
@@ -75,7 +69,7 @@ impl Ty {
         pred(self)
             || match self {
                 Ty::List(t) | Ty::Option(t) => t.any(pred),
-                Ty::Map(a, b) | Ty::Result(a, b) => a.any(pred) || b.any(pred),
+                Ty::Map(a, b) => a.any(pred) || b.any(pred),
                 Ty::Adt(_, args) => args.iter().any(|a| a.any(pred)),
                 _ => false,
             }
@@ -138,7 +132,7 @@ impl Unifier {
             }
             (x, y) if x.is_lenient() || y.is_lenient() => true,
             (Ty::List(x), Ty::List(y)) | (Ty::Option(x), Ty::Option(y)) => self.unify(x, y),
-            (Ty::Map(k1, v1), Ty::Map(k2, v2)) | (Ty::Result(k1, v1), Ty::Result(k2, v2)) => {
+            (Ty::Map(k1, v1), Ty::Map(k2, v2)) => {
                 let first = self.unify(k1, k2);
                 self.unify(v1, v2) && first
             }

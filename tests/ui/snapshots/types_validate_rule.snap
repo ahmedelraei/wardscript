@@ -7,7 +7,7 @@ exit: Some(1)
 [W0123] Error: `validate` needs a rule: a function `fn(String) -> Bool`
    ╭─[ tests/ui/types_validate_rule.wardscript:6:20 ]
    │
- 6 │     validate(text, is_short)
+ 6 │     validate(text, is_short)?
    │                    ────┬───  
    │                        ╰───── not a matching rule function
    │ 
@@ -29,12 +29,12 @@ error: could not check `tests/ui/types_validate_rule.wardscript` due to 1 error
             "end": {
               "column": 28,
               "line": 6,
-              "offset": 118
+              "offset": 116
             },
             "start": {
               "column": 20,
               "line": 6,
-              "offset": 110
+              "offset": 108
             }
           }
         }
@@ -45,12 +45,12 @@ error: could not check `tests/ui/types_validate_rule.wardscript` due to 1 error
         "end": {
           "column": 28,
           "line": 6,
-          "offset": 118
+          "offset": 116
         },
         "start": {
           "column": 20,
           "line": 6,
-          "offset": 110
+          "offset": 108
         }
       }
     }

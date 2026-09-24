@@ -1,6 +1,0 @@
-fn f(ok: Bool) -> Result<String, String> {
-    if ok {
-        return 42
-    }
-    return Err(false)
-}

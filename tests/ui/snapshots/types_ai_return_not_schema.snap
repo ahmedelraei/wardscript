@@ -7,9 +7,9 @@ exit: Some(1)
 [W0120] Error: the return type of `ai fn classify` has no JSON schema
    ╭─[ tests/ui/types_ai_return_not_schema.wardscript:1:33 ]
    │
- 1 │ ai fn classify(text: String) -> Result<String, String> {
-   │                                 ───────────┬──────────  
-   │                                            ╰──────────── `Result` has no JSON representation
+ 1 │ ai fn classify(text: String) -> Map<Int, String> {
+   │                                 ────────┬───────  
+   │                                         ╰───────── JSON object keys must be `String`
    │ 
    │ Help: the model's answer is validated against a JSON schema; use strings, numbers, booleans, lists, options, `Map<String, _>`, records and enums
 ───╯
@@ -23,13 +23,13 @@ error: could not check `tests/ui/types_ai_return_not_schema.wardscript` due to 1
       "help": "the model's answer is validated against a JSON schema; use strings, numbers, booleans, lists, options, `Map<String, _>`, records and enums",
       "labels": [
         {
-          "message": "`Result` has no JSON representation",
+          "message": "JSON object keys must be `String`",
           "primary": true,
           "span": {
             "end": {
-              "column": 55,
+              "column": 49,
               "line": 1,
-              "offset": 54
+              "offset": 48
             },
             "start": {
               "column": 33,
@@ -43,9 +43,9 @@ error: could not check `tests/ui/types_ai_return_not_schema.wardscript` due to 1
       "severity": "error",
       "span": {
         "end": {
-          "column": 55,
+          "column": 49,
           "line": 1,
-          "offset": 54
+          "offset": 48
         },
         "start": {
           "column": 33,

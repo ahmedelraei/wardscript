@@ -7,8 +7,8 @@
 1. **One namespace for types and values at module level.** A record and a function
    can't share a name. It keeps `Priority.High` and `t.Ticket` unambiguous and the
    resolver simple; separate namespaces can be added later without breaking programs.
-2. **Enum variants are qualified (`Priority.High`)**, except the prelude's `Some`,
-   `None`, `Ok`, `Err`. A lone name in a pattern is therefore always a binding
+2. **Enum variants are qualified (`Priority.High`)**, except the prelude's `Some`
+   and `None` (`Ok`/`Err` until decision 005 removed `Result`). A lone name in a pattern is therefore always a binding
    (apart from `None`), which removes Rust's "typo becomes a catch-all" trap.
 3. **Bidirectional checking over unification.** Signatures are fully annotated, so
    inference stays local to one function; `check` pushes expected types down so

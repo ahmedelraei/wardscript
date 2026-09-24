@@ -36,30 +36,30 @@ fn total(scores: Scores) -> Int {
     sum
 }
 
-fn parse_level(s: String) -> Result<Int, String> {
+fn parse_level(s: String) -> Int throws String {
     if s == "high" {
-        Ok(2)
+        2
     } else if s == "low" {
-        Ok(1)
+        1
     } else {
-        Err("unknown level: {s}")
+        throw "unknown level: {s}"
     }
 }
 
-fn levels(inputs: List<String>) -> Result<List<Int>, String> {
+fn levels(inputs: List<String>) -> List<Int> throws String {
     let out = []
     for s in inputs {
         out = out.push(parse_level(s)?)
     }
-    Ok(out)
+    out
 }
 
-fn describe(x: Option<Result<Int, String>>) -> String {
+fn describe(x: Option<Option<Int>>) -> String {
     match x {
         None => "nothing",
-        Some(Ok(0)) => "zero",
-        Some(Ok(n)) => "number {n}",
-        Some(Err(e)) => "error: {e}",
+        Some(Some(0)) => "zero",
+        Some(Some(n)) => "number {n}",
+        Some(None) => "unknown",
     }
 }
 

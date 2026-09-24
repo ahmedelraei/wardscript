@@ -22,7 +22,7 @@ fn no_links(text: String) -> Bool {
     !text.contains("http://") && !text.contains("https://")
 }
 
-pub fn answer(email: Untrusted<String>, to: String) -> Result<String, String>
+pub fn answer(email: Untrusted<String>, to: String) -> String throws String
     uses {llm, mail.send}
 {
     let reply = draft_reply(email)

@@ -12,7 +12,8 @@
 2. **An unused block value may have any type.** Without semicolons every block's
    last line looks like its value; a function returning nothing must not be
    rejected because its last call returns something.
-3. **`return x` in a `Result<T, E>` function means `return Ok(x)`** when `x` is a
+3. *(Superseded by 005: `Result` was replaced by exceptions.)*
+   **`return x` in a `Result<T, E>` function means `return Ok(x)`** when `x` is a
    `T`. Errors stay explicit (`return Err(e)`, `?`). A final expression is not
    wrapped, so the only implicit `Ok` is on the keyword that says "leave with
    this value".

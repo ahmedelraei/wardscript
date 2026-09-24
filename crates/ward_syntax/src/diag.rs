@@ -59,6 +59,10 @@ pub mod codes {
     pub const CYCLIC_ALIAS: Code = Code("W0125");
     pub const INVALID_ASSIGNMENT: Code = Code("W0126");
     pub const UNREACHABLE_PATTERN: Code = Code("W0127");
+    pub const MISSING_PROPAGATE: Code = Code("W0128");
+    pub const UNHANDLED_THROW: Code = Code("W0129");
+    pub const AI_FN_THROWS: Code = Code("W0130");
+    pub const TRY_CANNOT_THROW: Code = Code("W0131");
 
     pub const ALL: &[Code] = &[
         UNEXPECTED_CHAR,
@@ -105,6 +109,10 @@ pub mod codes {
         CYCLIC_ALIAS,
         INVALID_ASSIGNMENT,
         UNREACHABLE_PATTERN,
+        MISSING_PROPAGATE,
+        UNHANDLED_THROW,
+        AI_FN_THROWS,
+        TRY_CANNOT_THROW,
     ];
 }
 

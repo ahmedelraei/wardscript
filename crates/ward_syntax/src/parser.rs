@@ -426,9 +426,14 @@ impl Parser<'_> {
                 )
                 .with_label("expected `fn`, `type`, `enum` or `import`");
                 let d = match t.kind {
-                    T::Let | T::If | T::Match | T::For | T::While | T::Return => {
-                        d.with_help("statements must be inside a function body")
-                    }
+                    T::Let
+                    | T::If
+                    | T::Match
+                    | T::For
+                    | T::While
+                    | T::Return
+                    | T::Throw
+                    | T::Try => d.with_help("statements must be inside a function body"),
                     T::Semi => d.with_help("items don't end with `;`"),
                     _ => d,
                 };
@@ -504,6 +509,27 @@ impl Parser<'_> {
             Some(_) => Some(self.ty()?),
             None => None,
         };
+        let throws = match self.eat(T::Throws) {
+            Some(kw) => {
+                let ty = self.ty()?;
+                if is_ai {
+                    let span = kw.span.to(self.module.types[ty].span);
+                    self.push(
+                        Diagnostic::error(
+                            codes::AI_FN_THROWS,
+                            "`ai fn` can't declare `throws`",
+                            span,
+                        )
+                        .with_label("remove this")
+                        .with_help(
+                            "a failed model call is a runtime error, not a declared exception",
+                        ),
+                    );
+                }
+                Some(ty)
+            }
+            None => None,
+        };
 
         let mut uses: Option<(Span, Vec<Path>)> = None;
         let mut budget: Option<(Span, Vec<BudgetEntry>)> = None;
@@ -561,6 +587,7 @@ impl Parser<'_> {
             generics,
             params,
             ret,
+            throws,
             uses: uses.map(|(_, u)| u),
             budget: budget.map(|(_, b)| b),
             body,
@@ -793,8 +820,10 @@ impl Parser<'_> {
                 Ok(StmtOut::Tail(e)) => tail = Some(e),
                 Err(Bail) => {
                     let stmt_start = |t: Token| {
-                        matches!(t.kind, T::Semi | T::Let | T::Return | T::For | T::While)
-                            || t.nl_before
+                        matches!(
+                            t.kind,
+                            T::Semi | T::Let | T::Return | T::Throw | T::For | T::While
+                        ) || t.nl_before
                     };
                     // Don't resync on the failing token itself when it starts a line.
                     if self.pos == before && self.tok().nl_before {
@@ -843,6 +872,12 @@ impl Parser<'_> {
                 self.stmt_end();
                 StmtKind::Return(value)
             }
+            T::Throw => {
+                self.bump();
+                let value = self.expr()?;
+                self.stmt_end();
+                StmtKind::Throw(value)
+            }
             T::For => {
                 self.bump();
                 let var = self.ident()?;
@@ -857,7 +892,7 @@ impl Parser<'_> {
                 let body = self.block()?;
                 StmtKind::While { cond, body }
             }
-            T::If | T::Match | T::LBrace => {
+            T::If | T::Match | T::Try | T::LBrace => {
                 // Like Rust: a statement-position `if`/`match`/block ends at its `}`.
                 let expr = self.block_like()?;
                 if self.at(T::RBrace) {
@@ -989,7 +1024,7 @@ impl Parser<'_> {
                     let close = self.close(open, T::RBracket, "`]`")?;
                     (ExprKind::Index { base: e, index }, close.span)
                 }
-                T::Question => (ExprKind::Try(e), self.bump().span),
+                T::Question => (ExprKind::Propagate(e), self.bump().span),
                 _ => return Ok(e),
             };
             e = self.alloc_expr(kind, start.to(end));
@@ -1036,7 +1071,7 @@ impl Parser<'_> {
                 let (items, span) = self.comma_list(T::LBracket, T::RBracket, |p| p.expr())?;
                 Ok(self.alloc_expr(ExprKind::List(items), span))
             }
-            T::If | T::Match | T::LBrace => self.block_like(),
+            T::If | T::Match | T::Try | T::LBrace => self.block_like(),
             _ => {
                 let found = self.found(t);
                 self.report(
@@ -1096,6 +1131,7 @@ impl Parser<'_> {
     fn block_like(&mut self) -> PResult<ExprId> {
         match self.peek() {
             T::If => self.if_expr(),
+            T::Try => self.try_catch(),
             T::Match => self.match_expr(),
             _ => {
                 let block = self.block()?;
@@ -1103,6 +1139,23 @@ impl Parser<'_> {
                 Ok(self.alloc_expr(ExprKind::Block(block), span))
             }
         }
+    }
+
+    fn try_catch(&mut self) -> PResult<ExprId> {
+        let kw = self.bump();
+        let body = self.block()?;
+        self.expect_with_help(
+            T::Catch,
+            "a `try` block needs a handler: `try { ... } catch err { ... }`",
+        )?;
+        let err = if self.eat(T::Underscore).is_some() {
+            None
+        } else {
+            Some(self.ident()?)
+        };
+        let handler = self.block()?;
+        let span = kw.span.to(self.prev_span());
+        Ok(self.alloc_expr(ExprKind::TryCatch { body, err, handler }, span))
     }
 
     fn if_expr(&mut self) -> PResult<ExprId> {

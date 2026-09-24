@@ -1,0 +1,59 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/throws_missing_mark.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0128] Error: `parse` can throw `String`, but this call isn't marked with `?`
+   ╭─[ tests/ui/throws_missing_mark.wardscript:9:5 ]
+   │
+ 9 │     parse(s)
+   │     ────┬───  
+   │         ╰───── add `?` after this call
+   │ 
+   │ Help: write `parse(...)?` to pass the error on, inside a `try` block or a function that `throws String`
+───╯
+error: could not check `tests/ui/throws_missing_mark.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0128",
+      "file": "tests/ui/throws_missing_mark.wardscript",
+      "help": "write `parse(...)?` to pass the error on, inside a `try` block or a function that `throws String`",
+      "labels": [
+        {
+          "message": "add `?` after this call",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 13,
+              "line": 9,
+              "offset": 148
+            },
+            "start": {
+              "column": 5,
+              "line": 9,
+              "offset": 140
+            }
+          }
+        }
+      ],
+      "message": "`parse` can throw `String`, but this call isn't marked with `?`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 13,
+          "line": 9,
+          "offset": 148
+        },
+        "start": {
+          "column": 5,
+          "line": 9,
+          "offset": 140
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/throws_missing_mark.wardscript"
+}

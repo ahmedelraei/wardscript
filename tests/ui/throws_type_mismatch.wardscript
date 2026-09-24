@@ -1,0 +1,16 @@
+fn parse(s: String) -> Int throws String {
+    throw "bad"
+}
+
+fn f(s: String) -> Int throws Int {
+    parse(s)?
+}
+
+fn g(s: String) -> Int {
+    try {
+        parse(s)?
+        throw 42
+    } catch err {
+        0
+    }
+}

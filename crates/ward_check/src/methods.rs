@@ -36,8 +36,6 @@ pub fn method(recv: &Ty, name: &str) -> Option<MethodSig> {
 
         (Ty::Option(_), "is_some" | "is_none") => sig(vec![], Ty::Bool),
         (Ty::Option(t), "unwrap_or") => sig(vec![(**t).clone()], (**t).clone()),
-        (Ty::Result(..), "is_ok" | "is_err") => sig(vec![], Ty::Bool),
-        (Ty::Result(t, _), "unwrap_or") => sig(vec![(**t).clone()], (**t).clone()),
 
         (Ty::Int | Ty::Float | Ty::Bool, "to_string") => sig(vec![], Ty::String),
         (Ty::Int, "to_float") => sig(vec![], Ty::Float),
@@ -48,7 +46,7 @@ pub fn method(recv: &Ty, name: &str) -> Option<MethodSig> {
 
 /// Method names available on `recv`, for "did you mean" suggestions.
 pub fn names(recv: &Ty) -> Vec<&'static str> {
-    const ALL: [&str; 27] = [
+    const ALL: [&str; 25] = [
         "len",
         "is_empty",
         "contains",
@@ -71,8 +69,6 @@ pub fn names(recv: &Ty) -> Vec<&'static str> {
         "is_some",
         "is_none",
         "unwrap_or",
-        "is_ok",
-        "is_err",
         "to_string",
         "to_float",
         "round",

@@ -1,0 +1,3 @@
+ai fn classify(text: String) -> String throws String {
+    "Classify: {text}"
+}

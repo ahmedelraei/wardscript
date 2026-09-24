@@ -77,8 +77,6 @@ pub struct Local {
 pub enum Builtin {
     Some,
     None,
-    Ok,
-    Err,
     Validate,
     Approve,
     Declassify,
@@ -89,8 +87,6 @@ impl Builtin {
         match self {
             Builtin::Some => "Some",
             Builtin::None => "None",
-            Builtin::Ok => "Ok",
-            Builtin::Err => "Err",
             Builtin::Validate => "validate",
             Builtin::Approve => "approve",
             Builtin::Declassify => "declassify",
@@ -123,13 +119,12 @@ pub enum Prim {
     List,
     Map,
     Option,
-    Result,
     Untrusted,
     Trusted,
 }
 
 impl Prim {
-    pub const ALL: [(&'static str, Prim); 10] = [
+    pub const ALL: [(&'static str, Prim); 9] = [
         ("Int", Prim::Int),
         ("Float", Prim::Float),
         ("String", Prim::String),
@@ -137,7 +132,6 @@ impl Prim {
         ("List", Prim::List),
         ("Map", Prim::Map),
         ("Option", Prim::Option),
-        ("Result", Prim::Result),
         ("Untrusted", Prim::Untrusted),
         ("Trusted", Prim::Trusted),
     ];
@@ -146,7 +140,7 @@ impl Prim {
         match self {
             Prim::Int | Prim::Float | Prim::String | Prim::Bool => 0,
             Prim::List | Prim::Option | Prim::Untrusted | Prim::Trusted => 1,
-            Prim::Map | Prim::Result => 2,
+            Prim::Map => 2,
         }
     }
 }
@@ -178,6 +172,8 @@ pub struct ModuleRes {
     pub params: HashMap<usize, Vec<LocalId>>,
     /// Variables bound by `let` and `for` statements.
     pub stmt_locals: ArenaMap<StmtId, LocalId>,
+    /// The error variable of each `try ... catch err`.
+    pub catch_locals: ArenaMap<ExprId, LocalId>,
 }
 
 pub struct Resolution {

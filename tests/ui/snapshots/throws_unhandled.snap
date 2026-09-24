@@ -1,0 +1,105 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/throws_unhandled.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0129] Error: `String` is thrown here but never caught
+   ╭─[ tests/ui/throws_unhandled.wardscript:6:5 ]
+   │
+ 6 │     parse(s)?
+   │     ────┬────  
+   │         ╰────── may throw `String`
+   │ 
+   │ Help: catch it with `try { ... } catch err { ... }`, or declare it on `f`: `-> T throws String`
+───╯
+[W0129] Error: `String` is thrown here but never caught
+    ╭─[ tests/ui/throws_unhandled.wardscript:10:5 ]
+    │
+ 10 │     throw "boom"
+    │     ──────┬─────  
+    │           ╰─────── may throw `String`
+    │ 
+    │ Help: catch it with `try { ... } catch err { ... }`, or declare it on `g`: `-> T throws String`
+────╯
+error: could not check `tests/ui/throws_unhandled.wardscript` due to 2 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0129",
+      "file": "tests/ui/throws_unhandled.wardscript",
+      "help": "catch it with `try { ... } catch err { ... }`, or declare it on `f`: `-> T throws String`",
+      "labels": [
+        {
+          "message": "may throw `String`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 14,
+              "line": 6,
+              "offset": 114
+            },
+            "start": {
+              "column": 5,
+              "line": 6,
+              "offset": 105
+            }
+          }
+        }
+      ],
+      "message": "`String` is thrown here but never caught",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 14,
+          "line": 6,
+          "offset": 114
+        },
+        "start": {
+          "column": 5,
+          "line": 6,
+          "offset": 105
+        }
+      }
+    },
+    {
+      "code": "W0129",
+      "file": "tests/ui/throws_unhandled.wardscript",
+      "help": "catch it with `try { ... } catch err { ... }`, or declare it on `g`: `-> T throws String`",
+      "labels": [
+        {
+          "message": "may throw `String`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 10,
+              "offset": 150
+            },
+            "start": {
+              "column": 5,
+              "line": 10,
+              "offset": 138
+            }
+          }
+        }
+      ],
+      "message": "`String` is thrown here but never caught",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 10,
+          "offset": 150
+        },
+        "start": {
+          "column": 5,
+          "line": 10,
+          "offset": 138
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/throws_unhandled.wardscript"
+}

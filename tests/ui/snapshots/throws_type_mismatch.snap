@@ -1,0 +1,105 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/throws_type_mismatch.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0110] Error: this throws `String`, but `f` declares `throws Int`
+   ╭─[ tests/ui/throws_type_mismatch.wardscript:6:5 ]
+   │
+ 6 │     parse(s)?
+   │     ────┬────  
+   │         ╰────── throws `String`
+   │ 
+   │ Help: catch it with `try { ... } catch err { ... }`, or change `f` to `throws String`
+───╯
+[W0110] Error: this throws `Int`, but the enclosing `try` already catches `String`
+    ╭─[ tests/ui/throws_type_mismatch.wardscript:12:9 ]
+    │
+ 12 │         throw 42
+    │         ────┬───  
+    │             ╰───── throws `Int`
+    │ 
+    │ Help: one `try` block catches one error type
+────╯
+error: could not check `tests/ui/throws_type_mismatch.wardscript` due to 2 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0110",
+      "file": "tests/ui/throws_type_mismatch.wardscript",
+      "help": "catch it with `try { ... } catch err { ... }`, or change `f` to `throws String`",
+      "labels": [
+        {
+          "message": "throws `String`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 14,
+              "line": 6,
+              "offset": 111
+            },
+            "start": {
+              "column": 5,
+              "line": 6,
+              "offset": 102
+            }
+          }
+        }
+      ],
+      "message": "this throws `String`, but `f` declares `throws Int`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 14,
+          "line": 6,
+          "offset": 111
+        },
+        "start": {
+          "column": 5,
+          "line": 6,
+          "offset": 102
+        }
+      }
+    },
+    {
+      "code": "W0110",
+      "file": "tests/ui/throws_type_mismatch.wardscript",
+      "help": "one `try` block catches one error type",
+      "labels": [
+        {
+          "message": "throws `Int`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 12,
+              "offset": 184
+            },
+            "start": {
+              "column": 9,
+              "line": 12,
+              "offset": 176
+            }
+          }
+        }
+      ],
+      "message": "this throws `Int`, but the enclosing `try` already catches `String`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 12,
+          "offset": 184
+        },
+        "start": {
+          "column": 9,
+          "line": 12,
+          "offset": 176
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/throws_type_mismatch.wardscript"
+}

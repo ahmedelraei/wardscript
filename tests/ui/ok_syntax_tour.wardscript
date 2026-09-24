@@ -46,21 +46,23 @@ fn sum_positive(xs: List<Int>) -> Int {
     total
 }
 
-fn first_item<T>(page: Page<T>) -> Result<T, String> {
+fn first_item<T>(page: Page<T>) -> T throws String {
     match page.items.first() {
-        Some(item) => Ok(item),
-        None => Err("empty page"),
+        Some(item) => item,
+        None => {
+            throw "empty page"
+        }
     }
 }
 
-fn lookup(pages: List<Page<Id>>, i: Int) -> Result<Id, String> {
+fn lookup(pages: List<Page<Id>>, i: Int) -> Id throws String {
     let page = pages[i]
     let first = first_item(page)?
     let label = match first {
         "" => "empty",
         other => other,
     }
-    Ok("{label}: {page.items[0]}")
+    "{label}: {page.items[0]}"
 }
 
 fn origin() -> Page<Int> {

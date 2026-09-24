@@ -1,20 +1,20 @@
-// Statements end at line breaks; `return x` in a `Result` function means `return Ok(x)`.
+// Statements end at line breaks.
 type Order {
     id: Int,
     total: Float,
 }
 
-fn parse_total(text: String) -> Result<Float, String> {
+fn parse_total(text: String) -> Float throws String {
     let clean = text
         .trim()
         .lower()
     if clean.is_empty() {
-        return Err("empty total")
+        throw "empty total"
     }
     if clean == "free" {
         return 0.0
     }
-    Ok(1.5)
+    1.5
 }
 
 fn describe(order: Order) -> String {
@@ -37,11 +37,11 @@ fn touch(xs: List<Int>) {
     xs.push(1)
 }
 
-fn first_big(xs: List<Int>) -> Result<Int, String> {
+fn first_big(xs: List<Int>) -> Int throws String {
     for x in xs {
         if x > 100 {
             return x
         }
     }
-    Err("none")
+    throw "none"
 }
