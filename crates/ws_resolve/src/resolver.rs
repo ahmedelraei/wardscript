@@ -226,7 +226,7 @@ impl BodyResolver<'_> {
         }
         match &f.body {
             FnBody::Block(b) => self.block(b),
-            FnBody::Llm { prompt } => self.expr(*prompt),
+            FnBody::Ai { prompt } => self.expr(*prompt),
         }
         self.locals.pop();
     }

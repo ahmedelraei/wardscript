@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_ai_extra_after_prompt.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0016] Error: expected a prompt string in `ai fn`, found string
+   ╭─[ tests/ui/syntax_ai_extra_after_prompt.wardscript:2:25 ]
+   │
+ 2 │     "Summarize: {text}" "twice"
+   │                         ───┬───  
+   │                            ╰───── the prompt must be the only thing in an `ai fn` body
+   │ 
+   │ Help: write the prompt as a string literal, using `{...}` to insert parameters: `{ "Summarize: {text}" }`
+───╯
+error: could not check `tests/ui/syntax_ai_extra_after_prompt.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0016",
+      "file": "tests/ui/syntax_ai_extra_after_prompt.wardscript",
+      "help": "write the prompt as a string literal, using `{...}` to insert parameters: `{ \"Summarize: {text}\" }`",
+      "labels": [
+        {
+          "message": "the prompt must be the only thing in an `ai fn` body",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 32,
+              "line": 2,
+              "offset": 73
+            },
+            "start": {
+              "column": 25,
+              "line": 2,
+              "offset": 66
+            }
+          }
+        }
+      ],
+      "message": "expected a prompt string in `ai fn`, found string",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 32,
+          "line": 2,
+          "offset": 73
+        },
+        "start": {
+          "column": 25,
+          "line": 2,
+          "offset": 66
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_ai_extra_after_prompt.wardscript"
+}

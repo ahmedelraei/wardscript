@@ -9,8 +9,9 @@ fn b(y: ) -> Int {
     y
 }
 
-fn c() -> String
-    by llm prompt
+ai fn c() -> String {
+    prompt
+}
 
 fn d() -> Bool {
     1 < 2 < 3

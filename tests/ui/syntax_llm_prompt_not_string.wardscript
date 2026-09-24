@@ -1,3 +1,0 @@
-fn summarize(text: String) -> String
-    uses {llm}
-    by llm text

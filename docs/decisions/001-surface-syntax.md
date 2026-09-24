@@ -16,6 +16,7 @@
 4. **Interpolations are re-lexed from the file text**, so their spans point at the
    real source location and diagnostics inside templates are exact.
 5. **`by llm` requires a string-literal prompt and a return type at parse time.**
+   *(The `by llm "prompt"` form was replaced by `ai fn`; see 003. The rules stand.)*
    A prompt built at runtime would hide what data reaches the model, and the
    return type is what the output gets validated against.
 6. **Type arguments use `<...>` and there is no `>>` token**, so nested generics

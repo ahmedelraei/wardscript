@@ -9,7 +9,7 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
   to the end of the line.
 - **Identifiers**: `[A-Za-z_][A-Za-z0-9_]*`. A lone `_` is the wildcard pattern.
 - **Keywords** (reserved; can't be used as names):
-  `fn pub let type enum match if else for in while return import as uses budget by llm true false`
+  `ai fn pub let type enum match if else for in while return import as uses budget true false`
 - **Integers**: `[0-9][0-9_]*`, 64-bit signed. `_` separators are ignored (`1_000`).
 - **Floats**: `[0-9][0-9_]*.[0-9][0-9_]*`. No exponent form; a leading digit is required.
 - **Strings**: `"..."`, may span lines. Escapes: `\n \r \t \0 \\ \"`.
@@ -23,17 +23,18 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
 
 ```ebnf
 module      = item* ;
-item        = import | ["pub"] (fn | type | enum) ;
+item        = import | ["pub"] (fn | ai_fn | type | enum) ;
 
 import      = "import" path ["as" IDENT]                 (* module import *)
             | "import" IDENT STRING "as" IDENT ;         (* tool import: import mcp "gmail" as mail *)
 
-fn          = "fn" IDENT [generics] "(" [param ("," param)* [","]] ")"
-              ["->" type] clause* (block | "by" "llm" STRING) ;
+fn          = "fn" IDENT signature block ;
+ai_fn       = "ai" "fn" IDENT signature "{" STRING "}" ;   (* the body is only the prompt *)
+signature   = [generics] "(" [param ("," param)* [","]] ")" ["->" type] clause* ;
 param       = IDENT ":" type ;
 clause      = "uses" "{" [effect ("," effect)* [","]] "}"
             | "budget" "{" [IDENT ":" expr ("," IDENT ":" expr)* [","]] "}" ;
-effect      = name ("." name)* ;                         (* name = IDENT | "llm" *)
+effect      = IDENT ("." IDENT)* ;                       (* llm, net.read, mail.send *)
 
 type_decl   = "type" IDENT [generics] "{" [field ("," field)* [","]] "}"   (* record *)
             | "type" IDENT [generics] "=" type ;                           (* alias *)
@@ -98,22 +99,26 @@ As in Rust, an `if`, `match` or `{ ... }` at the start of a statement ends that
 statement at its closing `}`, and needs no `;`. So `match x { ... }.len()` in
 statement position is two statements; write `(match x { ... }).len()`.
 
-### Model-backed functions
+### AI functions
 
-`by llm "prompt"` replaces the function body. The prompt must be a string literal
-(error W0016), and it may interpolate parameters. The function must declare a return
-type (error W0017), because the model's answer is parsed and validated against it.
+An `ai fn` is answered by a model. Its body is exactly one prompt string (error
+W0016 otherwise), which may interpolate parameters. It must declare a return type
+(error W0017), because the model's answer is parsed and validated against it.
+`ai fn` implies the `llm` effect; other effects and a `budget` go between the
+signature and the body, as for any function.
 
 ```wardscript
-fn triage(email: Untrusted<String>) -> Ticket
-    uses {llm}
+ai fn triage(email: Untrusted<String>) -> Ticket
     budget {tokens: 2000, calls: 3}
-    by llm "Fill in a ticket for this email:\n{email}"
+{
+    "Fill in a ticket for this email:\n{email}"
+}
 ```
 
 ## Canonical formatting
 
 `ws_syntax::printer::print` turns an AST back into canonical source (4-space indent,
-trailing commas on multi-line lists, function clauses on their own lines). Printing
+trailing commas on multi-line lists; `uses` and `budget` clauses on their own
+lines, with the body's `{` on the next line). Printing
 is a fixed point: parsing the printed output and printing again yields the same
 text. Comments are not preserved yet.

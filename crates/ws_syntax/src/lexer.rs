@@ -47,10 +47,8 @@ pub enum TokenKind {
     Uses,
     #[token("budget")]
     Budget,
-    #[token("by")]
-    By,
-    #[token("llm")]
-    Llm,
+    #[token("ai")]
+    Ai,
     #[token("true")]
     True,
     #[token("false")]
@@ -167,8 +165,7 @@ impl TokenKind {
             As => "`as`",
             Uses => "`uses`",
             Budget => "`budget`",
-            By => "`by`",
-            Llm => "`llm`",
+            Ai => "`ai`",
             True => "`true`",
             False => "`false`",
             Ident => "identifier",
@@ -227,8 +224,7 @@ impl TokenKind {
                 | As
                 | Uses
                 | Budget
-                | By
-                | Llm
+                | Ai
                 | True
                 | False
         )

@@ -22,7 +22,7 @@ fn tail_expr(parse: &Parse) -> ExprId {
     match parse.module.items.first() {
         Some(Item::Fn(f)) => match &f.body {
             FnBody::Block(b) => b.tail.expect("block has a tail expression"),
-            FnBody::Llm { .. } => panic!("expected a block body"),
+            FnBody::Ai { .. } => panic!("expected a block body"),
         },
         _ => panic!("expected a function"),
     }
@@ -50,7 +50,7 @@ fn assert_round_trips(src: &str) -> String {
 fn lexes_keywords_operators_and_literals() {
     let mut diags = Vec::new();
     let kinds: Vec<_> = lex(
-        "fn by llm x_1 _ 42 1_000 3.14 \"hi\" -> => <= && // c\n!",
+        "ai fn llm x_1 _ 42 1_000 3.14 \"hi\" -> => <= && // c\n!",
         0,
         &mut diags,
     )
@@ -61,9 +61,9 @@ fn lexes_keywords_operators_and_literals() {
     assert_eq!(
         kinds,
         [
+            T::Ai,
             T::Fn,
-            T::By,
-            T::Llm,
+            T::Ident,
             T::Ident,
             T::Underscore,
             T::Int,
@@ -134,13 +134,16 @@ enum Shape {
     Circle(Float),
 }
 
-pub fn classify(text: Untrusted<String>) -> Label
-    uses {llm}
+pub ai fn classify(text: Untrusted<String>) -> Label
+    uses {llm, net.read}
     budget {tokens: 500, cost: 0.01}
-    by llm "Label this: {text}"
+{
+    "Label this: {text}"
+}
 
-fn echo(text: String) -> String
-    by llm "Repeat: {text}"
+ai fn echo(text: String) -> String {
+    "Repeat: {text}"
+}
 
 fn area(s: Shape) -> Float {
     match s {

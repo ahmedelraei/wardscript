@@ -23,8 +23,8 @@ optional `help`, plus the `file` it's in (programs can span several modules). Sp
 | W0013 | expected a type |
 | W0014 | expected a pattern |
 | W0015 | missing `;` |
-| W0016 | `by llm` prompt is not a string literal |
-| W0017 | `by llm` function has no return type |
+| W0016 | `ai fn` body is not a single prompt string |
+| W0017 | `ai fn` has no return type |
 | W0018 | duplicate `uses` or `budget` clause |
 | W0019 | chained comparison (`a < b < c`) |
 | W0020 | invalid assignment target |
@@ -59,7 +59,7 @@ optional `help`, plus the `file` it's in (programs can span several modules). Sp
 | W0117 | non-exhaustive `match` (names a value that isn't covered) |
 | W0118 | invalid `?`: not a `Result`/`Option`, incompatible error type, or the function doesn't return one |
 | W0119 | operator or `for`/index applied to a type that doesn't support it |
-| W0120 | `by llm` return type has no JSON schema |
+| W0120 | `ai fn` return type has no JSON schema |
 | W0121 | type can't be inferred; annotation needed |
 | W0122 | no such method |
 | W0123 | `validate` rule isn't a function `fn(T) -> Bool` |

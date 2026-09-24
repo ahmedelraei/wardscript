@@ -1,3 +1,0 @@
-fn summarize(text: String)
-    uses {llm}
-    by llm "Summarize: {text}"
