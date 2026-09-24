@@ -120,6 +120,43 @@ impl Ty {
         })
     }
 
+    /// The type as written in Wardscript, e.g. `List<Ticket>`. `generics` names the
+    /// enclosing item's type parameters.
+    pub fn display(&self, program: &ward_resolve::Program, generics: &[String]) -> String {
+        use ward_syntax::ast::Item;
+        let show = |t: &Ty| t.display(program, generics);
+        match self {
+            Ty::Int => "Int".into(),
+            Ty::Float => "Float".into(),
+            Ty::String => "String".into(),
+            Ty::Bool => "Bool".into(),
+            Ty::Unit => "()".into(),
+            Ty::Never => "never".into(),
+            Ty::List(t) => format!("List<{}>", show(t)),
+            Ty::Option(t) => format!("Option<{}>", show(t)),
+            Ty::Map(k, v) => format!("Map<{}, {}>", show(k), show(v)),
+            Ty::Adt(d, args) => {
+                let name = match program.item(*d) {
+                    Item::Record(r) => r.name.name.as_str(),
+                    Item::Enum(e) => e.name.name.as_str(),
+                    Item::Alias(a) => a.name.name.as_str(),
+                    _ => "?",
+                };
+                if args.is_empty() {
+                    name.to_owned()
+                } else {
+                    let args: Vec<String> = args.iter().map(show).collect();
+                    format!("{name}<{}>", args.join(", "))
+                }
+            }
+            Ty::Param(i) => generics.get(*i).cloned().unwrap_or_else(|| "?".into()),
+            Ty::Var(_) => "_".into(),
+            Ty::Dynamic => "dynamic".into(),
+            Ty::Error => "{unknown}".into(),
+            Ty::Refined(t, _) => show(t),
+        }
+    }
+
     /// Types that unify with anything.
     pub fn is_lenient(&self) -> bool {
         matches!(self, Ty::Never | Ty::Dynamic | Ty::Error)

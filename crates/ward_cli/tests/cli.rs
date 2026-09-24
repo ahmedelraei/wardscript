@@ -316,3 +316,31 @@ fn test_record_needs_a_model() {
     let out = common::ward(&["test", "examples/triage.wardscript", "--record"]);
     assert_eq!(out.status.code(), Some(2), "{}", common::render(&out));
 }
+
+#[test]
+fn editor_grammar_knows_every_keyword() {
+    let root = common::repo_root();
+    let spec = std::fs::read_to_string(root.join("docs/spec/syntax.md")).expect("read spec");
+    let line = spec
+        .lines()
+        .find(|l| l.trim_start().starts_with("`ai fn pub let"))
+        .expect("keyword line in docs/spec/syntax.md");
+    let grammar =
+        std::fs::read_to_string(root.join("editors/vscode/syntaxes/ward.tmLanguage.json"))
+            .expect("read grammar");
+    let contextual = ["model", "check", "where", "test", "assert"];
+    for word in line
+        .trim()
+        .trim_matches(|c| c == '`' || c == '.')
+        .split_whitespace()
+        .chain(contextual)
+    {
+        assert!(
+            grammar.contains(&format!("|{word}|"))
+                || grammar.contains(&format!("({word}|"))
+                || grammar.contains(&format!("|{word})"))
+                || grammar.contains(&format!("({word})")),
+            "the VS Code grammar doesn't highlight `{word}`"
+        );
+    }
+}

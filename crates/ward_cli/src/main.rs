@@ -105,6 +105,8 @@ enum Command {
         #[arg(long)]
         trace_dir: Option<PathBuf>,
     },
+    /// Run the language server (LSP over stdio), for editors
+    Lsp,
     /// Read the audit traces `ward run` and the runtime write
     Trace {
         #[command(subcommand)]
@@ -206,6 +208,14 @@ fn main() -> ExitCode {
                 trace_dir,
             },
         ),
+        Command::Lsp => match ward_lsp::serve(std::io::stdin().lock(), std::io::stdout().lock()) {
+            Ok(true) => ExitCode::SUCCESS,
+            Ok(false) => ExitCode::from(1),
+            Err(e) => {
+                eprintln!("error: {e}");
+                ExitCode::from(exit::INTERNAL)
+            }
+        },
         Command::Trace { command } => trace(command),
     }
 }
