@@ -80,10 +80,17 @@ class Budget:
         self._used["calls"] += 1
         return self._check()
 
-    def charge_usage(self, tokens: float, cost: float) -> tuple[str, float, float] | None:
+    def charge_usage(self, tokens: float, cost: float | None = None) -> tuple[str, float, float] | None:
         self._used["tokens"] += tokens
-        self._used["cost"] += cost
+        self._used["cost"] += 0.0 if cost is None else cost
         return self._check()
+
+    @property
+    def limits_cost(self) -> bool:
+        return self._limits["cost"] is not None
+
+    def unenforceable(self, cost: float | None = None) -> bool:
+        return cost is None and self.limits_cost
 
     def check_time(self) -> tuple[str, float, float] | None:
         return self._over("time", _monotonic() - self._started)
@@ -110,6 +117,7 @@ _EVENTS = {
     "approve": ("site", "approved", "leaves"),
     "declassify": ("site", "reason", "leaves"),
     "budget_exceeded": ("function", "resource", "limit", "used"),
+    "budget_unenforceable": ("function", "when"),
 }
 _FLOATS = {"tokens", "calls", "cost", "limit", "used"}
 
@@ -191,8 +199,9 @@ def otlp(records: str) -> str:
                 attrs = [
                     _attr("ward.attempt", r["attempt"]),
                     _attr("gen_ai.usage.total_tokens", r["tokens"]),
-                    _attr("ward.cost", r["cost"]),
                 ]
+                if r["cost"] is not None:
+                    attrs.append(_attr("ward.cost", r["cost"]))
             else:
                 span_name = f"{r['tool']}.{r['function']}"
                 attrs = [_attr("ward.site", r["site"])]
@@ -226,6 +235,9 @@ def otlp(records: str) -> str:
                 _attr("ward.used", r["used"]),
             ]
             events.append({"timeUnixNano": t, "name": "budget_exceeded", "attributes": attrs})
+        elif kind == "budget_unenforceable":
+            attrs = [_attr("ward.function", r["function"]), _attr("ward.when", r["when"])]
+            events.append({"timeUnixNano": t, "name": "budget_unenforceable", "attributes": attrs})
     spans.insert(
         0,
         {

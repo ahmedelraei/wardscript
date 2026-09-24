@@ -2,7 +2,7 @@
 
 Work through one milestone at a time. Each milestone lists its tasks, the checks it must pass before moving on ("Done when") Read `AGENTS.md` and `docs/spec/` first.
 
-Status: M0–M6 done, including M6 additions (runtime sink checks, OTLP collectors, async code, text streaming; decision 010). Next: M6.1, then M7.
+Status: M0–M6.1 done, including M6 additions (runtime sink checks, OTLP collectors, async code, text streaming; decision 010) and unknown model cost failing closed (decision 011). Next: M7.
 
 ---
 

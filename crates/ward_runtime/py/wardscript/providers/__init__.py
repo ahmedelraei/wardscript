@@ -49,10 +49,10 @@ def object_schema(schema: dict) -> dict:
     return wrapped
 
 
-def cost(prices: tuple[float, float] | None, input_tokens: int, output_tokens: int) -> float:
-    """Dollars, from prices per million input and output tokens; 0 without prices."""
+def cost(prices: tuple[float, float] | None, input_tokens: int, output_tokens: int) -> float | None:
+    """Dollars, from prices per million input and output tokens; unknown without prices."""
     if prices is None:
-        return 0.0
+        return None
     return (input_tokens * prices[0] + output_tokens * prices[1]) / 1_000_000
 
 

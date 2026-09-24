@@ -22,7 +22,8 @@ class AsyncModel:
 
     async def complete(self, request):
         await asyncio.sleep(0)
-        return json.dumps(self.answers[request.function])
+        # Free, so `handle`'s cost budget can count it.
+        return Completion(json.dumps(self.answers[request.function]), cost=0.0)
 
 
 class StreamingModel(AsyncModel):
@@ -31,7 +32,7 @@ class StreamingModel(AsyncModel):
         for i in range(0, len(text), 5):
             await asyncio.sleep(0)
             yield text[i : i + 5]
-        yield Completion("", tokens=len(text))
+        yield Completion("", tokens=len(text), cost=0.0)
 
 
 class Mail:

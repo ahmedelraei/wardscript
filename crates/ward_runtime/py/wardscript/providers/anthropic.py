@@ -22,7 +22,7 @@ class Anthropic:
         client: Any = None,
     ) -> None:
         """`prices` are dollars per million input and output tokens, for `cost` budgets;
-        without them every call costs 0. `client` defaults to `anthropic.Anthropic()`,
+        without them the cost is unknown, and a `cost` budget refuses the call. `client` defaults to `anthropic.Anthropic()`,
         which reads `ANTHROPIC_API_KEY`."""
         if client is None:
             import anthropic
