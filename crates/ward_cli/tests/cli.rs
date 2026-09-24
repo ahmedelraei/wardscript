@@ -344,3 +344,21 @@ fn editor_grammar_knows_every_keyword() {
         );
     }
 }
+
+#[test]
+fn init_makes_a_project_that_checks_and_tests() {
+    let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("init");
+    let _ = std::fs::remove_dir_all(&dir);
+    let d = dir.to_str().expect("utf-8");
+    let out = common::ward(&["init", d]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+    let main = dir.join("main.ward");
+    let main = main.to_str().expect("utf-8");
+    let out = common::ward(&["check", main]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+    let out = common::ward(&["test", main]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+    // It never overwrites.
+    let out = common::ward(&["init", d]);
+    assert_eq!(out.status.code(), Some(2), "{}", common::render(&out));
+}
