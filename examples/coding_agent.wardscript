@@ -43,7 +43,7 @@ ai fn write_patch(goal: String, path: String, source: Untrusted<String>) -> Patc
 
 // Only the project's own test runner, with no shell tricks appended.
 fn allowed_test_command(command: String) -> Bool {
-    let safe = !command.contains(";") && !command.contains("&") && !command.contains("|");
+    let safe = !command.contains(";") && !command.contains("&") && !command.contains("|")
     safe && (command == "cargo test" || command.starts_with("cargo test -p "))
 }
 
@@ -55,8 +55,8 @@ fn run_tests(command: String) -> Result<Verdict, String>
     uses {sh.run}
 {
     // The model proposed this command, so it must match the allowlist before it runs.
-    let checked = validate(command, allowed_test_command)?;
-    let result = sh.run(checked);
+    let checked = validate(command, allowed_test_command)?
+    let result = sh.run(checked)
     if result.exit_code == 0 {
         Ok(Verdict.Pass)
     } else {
@@ -68,29 +68,29 @@ pub fn fix_issue(repo: String, number: Int) -> Result<String, String>
     uses {llm, gh.read, gh.write, sh.run}
     budget {tokens: 60000, cost: 2.00, time: 900}
 {
-    let issue = gh.get_issue(repo, number);
-    let plan = plan_fix(issue);
+    let issue = gh.get_issue(repo, number)
+    let plan = plan_fix(issue)
 
-    let changed = [];
+    let changed = []
     for path in plan.files {
         // Paths come from the model too: keep writes inside the repository.
-        let target = validate(path, inside_repo)?;
-        let source = gh.read_file(repo, target);
-        let patch = write_patch(plan.summary, target, source);
-        sh.write_file(target, patch.contents);
-        changed = changed + [target];
+        let target = validate(path, inside_repo)?
+        let source = gh.read_file(repo, target)
+        let patch = write_patch(plan.summary, target, source)
+        sh.write_file(target, patch.contents)
+        changed = changed + [target]
     }
 
     match run_tests(plan.test_command)? {
         Verdict.Pass => {}
         Verdict.Fail(log) => {
-            return Err("tests failed: {log}");
+            return Err("tests failed: {log}")
         }
     }
 
     // A human reviews the full diff before anything is pushed.
-    let diff = approve(sh.diff(changed));
+    let diff = approve(sh.diff(changed))
     // Only trusted values in the title: `issue.title` here would be rejected (W0107).
-    let url = gh.open_pull_request(repo, "Fix #{number}", diff);
+    let url = gh.open_pull_request(repo, "Fix #{number}", diff)
     Ok(url)
 }

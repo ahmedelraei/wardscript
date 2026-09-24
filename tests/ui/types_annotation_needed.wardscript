@@ -1,4 +1,4 @@
 fn f() -> Int {
-    let items = [];
+    let items = []
     1
 }

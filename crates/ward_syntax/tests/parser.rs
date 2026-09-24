@@ -149,7 +149,7 @@ fn area(s: Shape) -> Float {
     match s {
         Shape.Point => 0.0,
         Shape.Circle(r) => {
-            let r2 = r * r;
+            let r2 = r * r
             3.14 * r2
         }
         _ => -1.0,
@@ -159,20 +159,20 @@ fn area(s: Shape) -> Float {
 fn loops(xs: List<Int>) -> Int
     uses {net.read}
 {
-    let total = 0;
+    let total = 0
     for x in xs {
         if x > 0 && !skip(x) {
-            total = total + x;
+            total = total + x
         } else if x == 0 {
-            continue_later();
+            continue_later()
         }
     }
     while total > 100 {
-        total = total - 100;
+        total = total - 100
     }
-    let p = Point { x: 1, y };
+    let p = Point { x: 1, y }
     if (Point { x: 1, y: 2 }) == p {
-        return -total;
+        return -total
     }
     total
 }
@@ -252,7 +252,7 @@ fn record_literals_are_not_parsed_in_conditions() {
 fn recovers_and_reports_every_error() {
     let src = "
 fn a() {
-    let x = 1
+    let x = 1 2
     let y = ;
     let z = 3;
 }
@@ -299,4 +299,58 @@ fn record_literals_may_name_a_module_type() {
     assert_eq!(assert_round_trips(src), src);
     // Field access followed by a block is still field access in conditions.
     assert!(codes("fn f() { if t.ok { 1 } else { 2 } }").is_empty());
+}
+
+fn stmt_count(src: &str) -> usize {
+    let parse = parse_ok(src);
+    match parse.module.items.first() {
+        Some(Item::Fn(f)) => match &f.body {
+            FnBody::Block(b) => b.stmts.len() + usize::from(b.tail.is_some()),
+            FnBody::Ai { .. } => 0,
+        },
+        _ => panic!("expected a function"),
+    }
+}
+
+#[test]
+fn line_breaks_end_statements() {
+    assert_eq!(stmt_count("fn f() {\n    let x = a\n    -b\n}"), 2);
+    assert_eq!(stmt_count("fn f() {\n    g(x)\n    (y)\n}"), 2);
+    assert_eq!(stmt_count("fn f() {\n    xs\n    [0]\n}"), 2);
+    assert_eq!(
+        stmt_count("fn f() {\n    let a = 1; let b = 2\n    a\n}"),
+        3
+    );
+    // A line break doesn't split an operator from its right operand, a leading `.`,
+    // or anything inside parentheses or brackets.
+    assert_eq!(
+        stmt_count("fn f() {\n    let x = a +\n        b\n    x\n}"),
+        2
+    );
+    assert_eq!(
+        stmt_count("fn f() {\n    text\n        .trim()\n        .lower()\n}"),
+        1
+    );
+    assert_eq!(stmt_count("fn f() {\n    g(a,\n      b\n      + c)\n}"), 1);
+    assert_eq!(
+        stmt_count("fn f() {\n    let xs = [\n        1,\n        2,\n    ]\n    xs\n}"),
+        2
+    );
+}
+
+#[test]
+fn line_break_before_brace_is_not_a_record_literal() {
+    // `x` then a block statement, not `x { ... }`.
+    assert_eq!(stmt_count("fn f() {\n    x\n    {\n        1\n    }\n}"), 2);
+}
+
+#[test]
+fn match_arms_may_be_separated_by_line_breaks() {
+    let src = "fn f(x: Int) -> Int {\n    match x {\n        0 => 1\n        _ => 2\n    }\n}";
+    assert!(codes(src).is_empty());
+}
+
+#[test]
+fn two_statements_on_one_line_need_a_semicolon() {
+    assert_eq!(codes("fn f() {\n    let x = 1 let y = 2\n}"), ["W0015"]);
 }

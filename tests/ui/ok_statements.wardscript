@@ -1,0 +1,47 @@
+// Statements end at line breaks; `return x` in a `Result` function means `return Ok(x)`.
+type Order {
+    id: Int,
+    total: Float,
+}
+
+fn parse_total(text: String) -> Result<Float, String> {
+    let clean = text
+        .trim()
+        .lower()
+    if clean.is_empty() {
+        return Err("empty total")
+    }
+    if clean == "free" {
+        return 0.0
+    }
+    Ok(1.5)
+}
+
+fn describe(order: Order) -> String {
+    let label = "order #{order.id}: " +
+        order.total.to_string()
+    label
+}
+
+fn collect(xs: List<Int>) -> List<Int> {
+    let out = []; let seen = 0
+    for x in xs {
+        out = out.push(x)
+        seen = seen + 1
+    }
+    out
+}
+
+// The last expression's value is unused here, so its type doesn't matter.
+fn touch(xs: List<Int>) {
+    xs.push(1)
+}
+
+fn first_big(xs: List<Int>) -> Result<Int, String> {
+    for x in xs {
+        if x > 100 {
+            return x
+        }
+    }
+    Err("none")
+}

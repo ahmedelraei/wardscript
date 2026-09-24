@@ -1,6 +1,6 @@
 fn f(name: String, n: Int) -> Int {
-    let a = name - 1;
-    let b = n + 2.5;
-    let c = !n;
+    let a = name - 1
+    let b = n + 2.5
+    let c = !n
     n
 }

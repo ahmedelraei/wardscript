@@ -7,7 +7,7 @@ exit: Some(1)
 [W0101] Error: cannot find record type `Tikcet`
    ╭─[ tests/ui/names_unknown_record.wardscript:2:13 ]
    │
- 2 │     let t = Tikcet { title: "x" };
+ 2 │     let t = Tikcet { title: "x" }
    │             ───┬──  
    │                ╰──── not found
 ───╯

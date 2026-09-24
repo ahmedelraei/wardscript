@@ -7,9 +7,9 @@ exit: Some(1)
 [W0121] Error: type annotations needed for `items`
    ╭─[ tests/ui/types_annotation_needed.wardscript:2:5 ]
    │
- 2 │     let items = [];
-   │     ───────┬───────  
-   │            ╰───────── the type `List<_>` isn't fully known
+ 2 │     let items = []
+   │     ───────┬──────  
+   │            ╰──────── the type `List<_>` isn't fully known
    │ 
    │ Help: add a type, e.g. `let items: List<String> = ...`
 ───╯
@@ -27,9 +27,9 @@ error: could not check `tests/ui/types_annotation_needed.wardscript` due to 1 er
           "primary": true,
           "span": {
             "end": {
-              "column": 20,
+              "column": 19,
               "line": 2,
-              "offset": 35
+              "offset": 34
             },
             "start": {
               "column": 5,
@@ -43,9 +43,9 @@ error: could not check `tests/ui/types_annotation_needed.wardscript` due to 1 er
       "severity": "error",
       "span": {
         "end": {
-          "column": 20,
+          "column": 19,
           "line": 2,
-          "offset": 35
+          "offset": 34
         },
         "start": {
           "column": 5,

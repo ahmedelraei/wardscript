@@ -22,7 +22,7 @@ optional `help`, plus the `file` it's in (programs can span several modules). Sp
 | W0012 | expected an expression |
 | W0013 | expected a type |
 | W0014 | expected a pattern |
-| W0015 | missing `;` |
+| W0015 | statement doesn't end: two statements on one line without `;` |
 | W0016 | `ai fn` body is not a single prompt string |
 | W0017 | `ai fn` has no return type |
 | W0018 | duplicate `uses` or `budget` clause |

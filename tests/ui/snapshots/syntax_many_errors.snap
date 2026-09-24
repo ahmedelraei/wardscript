@@ -4,35 +4,35 @@ description: tests/ui/syntax_many_errors.wardscript
 ---
 exit: Some(1)
 --- human ---
-[W0015] Error: expected `;`, found `x`
+[W0015] Error: expected a line break or `;`, found `x`
    ╭─[ tests/ui/syntax_many_errors.wardscript:4:13 ]
    │
- 4 │     let x = 1
+ 4 │     let x = 1 x
    │             ┬  
-   │             ╰── expected `;` after this
+   │             ╰── the statement should end after this
    │ 
-   │ Help: statements end with `;`
+   │ Help: put each statement on its own line, or separate them with `;`
 ───╯
 [W0013] Error: expected a type, found `)`
-   ╭─[ tests/ui/syntax_many_errors.wardscript:8:9 ]
+   ╭─[ tests/ui/syntax_many_errors.wardscript:7:9 ]
    │
- 8 │ fn b(y: ) -> Int {
+ 7 │ fn b(y: ) -> Int {
    │         ┬  
    │         ╰── expected a type such as `String` or `List<Int>`
 ───╯
 [W0016] Error: expected a prompt string in `ai fn`, found `prompt`
-    ╭─[ tests/ui/syntax_many_errors.wardscript:13:5 ]
+    ╭─[ tests/ui/syntax_many_errors.wardscript:12:5 ]
     │
- 13 │     prompt
+ 12 │     prompt
     │     ───┬──  
     │        ╰──── the body of an `ai fn` is a prompt string
     │ 
     │ Help: write the prompt as a string literal, using `{...}` to insert parameters: `{ "Summarize: {text}" }`
 ────╯
 [W0019] Error: comparison operators can't be chained
-    ╭─[ tests/ui/syntax_many_errors.wardscript:17:11 ]
+    ╭─[ tests/ui/syntax_many_errors.wardscript:16:11 ]
     │
- 17 │     1 < 2 < 3
+ 16 │     1 < 2 < 3
     │       ┬   ┬  
     │       ╰────── first comparison
     │           │  
@@ -41,9 +41,9 @@ exit: Some(1)
     │ Help: split it with `&&`, e.g. `a < b && b < c`
 ────╯
 [W0012] Error: expected an expression, found `;`
-    ╭─[ tests/ui/syntax_many_errors.wardscript:21:18 ]
+    ╭─[ tests/ui/syntax_many_errors.wardscript:20:18 ]
     │
- 21 │     let z = (1 + ;
+ 20 │     let z = (1 + ;
     │                  ┬  
     │                  ╰── expected an expression
 ────╯
@@ -54,10 +54,10 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
     {
       "code": "W0015",
       "file": "tests/ui/syntax_many_errors.wardscript",
-      "help": "statements end with `;`",
+      "help": "put each statement on its own line, or separate them with `;`",
       "labels": [
         {
-          "message": "expected `;` after this",
+          "message": "the statement should end after this",
           "primary": true,
           "span": {
             "end": {
@@ -73,7 +73,7 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
           }
         }
       ],
-      "message": "expected `;`, found `x`",
+      "message": "expected a line break or `;`, found `x`",
       "severity": "error",
       "span": {
         "end": {
@@ -99,13 +99,13 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
           "span": {
             "end": {
               "column": 10,
-              "line": 8,
-              "offset": 126
+              "line": 7,
+              "offset": 122
             },
             "start": {
               "column": 9,
-              "line": 8,
-              "offset": 125
+              "line": 7,
+              "offset": 121
             }
           }
         }
@@ -115,13 +115,13 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
       "span": {
         "end": {
           "column": 10,
-          "line": 8,
-          "offset": 126
+          "line": 7,
+          "offset": 122
         },
         "start": {
           "column": 9,
-          "line": 8,
-          "offset": 125
+          "line": 7,
+          "offset": 121
         }
       }
     },
@@ -136,13 +136,13 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
           "span": {
             "end": {
               "column": 11,
-              "line": 13,
-              "offset": 177
+              "line": 12,
+              "offset": 173
             },
             "start": {
               "column": 5,
-              "line": 13,
-              "offset": 171
+              "line": 12,
+              "offset": 167
             }
           }
         }
@@ -152,13 +152,13 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
       "span": {
         "end": {
           "column": 11,
-          "line": 13,
-          "offset": 177
+          "line": 12,
+          "offset": 173
         },
         "start": {
           "column": 5,
-          "line": 13,
-          "offset": 171
+          "line": 12,
+          "offset": 167
         }
       }
     },
@@ -173,13 +173,13 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
           "span": {
             "end": {
               "column": 12,
-              "line": 17,
-              "offset": 209
+              "line": 16,
+              "offset": 205
             },
             "start": {
               "column": 11,
-              "line": 17,
-              "offset": 208
+              "line": 16,
+              "offset": 204
             }
           }
         },
@@ -189,13 +189,13 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
           "span": {
             "end": {
               "column": 8,
-              "line": 17,
-              "offset": 205
+              "line": 16,
+              "offset": 201
             },
             "start": {
               "column": 7,
-              "line": 17,
-              "offset": 204
+              "line": 16,
+              "offset": 200
             }
           }
         }
@@ -205,13 +205,13 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
       "span": {
         "end": {
           "column": 12,
-          "line": 17,
-          "offset": 209
+          "line": 16,
+          "offset": 205
         },
         "start": {
           "column": 11,
-          "line": 17,
-          "offset": 208
+          "line": 16,
+          "offset": 204
         }
       }
     },
@@ -226,13 +226,13 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
           "span": {
             "end": {
               "column": 19,
-              "line": 21,
-              "offset": 249
+              "line": 20,
+              "offset": 245
             },
             "start": {
               "column": 18,
-              "line": 21,
-              "offset": 248
+              "line": 20,
+              "offset": 244
             }
           }
         }
@@ -242,13 +242,13 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
       "span": {
         "end": {
           "column": 19,
-          "line": 21,
-          "offset": 249
+          "line": 20,
+          "offset": 245
         },
         "start": {
           "column": 18,
-          "line": 21,
-          "offset": 248
+          "line": 20,
+          "offset": 244
         }
       }
     }

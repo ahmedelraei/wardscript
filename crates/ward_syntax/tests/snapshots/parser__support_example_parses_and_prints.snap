@@ -55,27 +55,27 @@ pub fn handle(email: Untrusted<String>, to: String) -> Outcome
     uses {llm, mail.send}
     budget {tokens: 8000, cost: 0.10, time: 60}
 {
-    let ticket = triage(email);
-    let reply = draft_reply(ticket);
+    let ticket = triage(email)
+    let reply = draft_reply(ticket)
     if needs_human(ticket) {
-        let approved = approve(reply);
-        mail.send(to, approved.subject, approved.body);
-        return Ok("sent after review: {ticket.summary}");
+        let approved = approve(reply)
+        mail.send(to, approved.subject, approved.body)
+        return "sent after review: {ticket.summary}"
     }
-    let subject = validate(reply.subject, single_line)?;
-    let body = validate(reply.body, no_links)?;
-    mail.send(to, subject, body);
+    let subject = validate(reply.subject, single_line)?
+    let body = validate(reply.body, no_links)?
+    mail.send(to, subject, body)
     Ok("sent: {ticket.summary}")
 }
 
 pub fn handle_all(inbox: List<Untrusted<String>>, to: String) -> Int
     uses {llm, mail.send}
 {
-    let sent = 0;
+    let sent = 0
     for email in inbox {
         match handle(email, to) {
             Ok(_) => {
-                sent = sent + 1;
+                sent = sent + 1
             }
             Err(_) => {}
         }

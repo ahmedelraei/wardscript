@@ -7,7 +7,7 @@ exit: Some(1)
 [W0124] Error: function `helper` can't be used as a value
    ╭─[ tests/ui/types_function_as_value.wardscript:6:13 ]
    │
- 6 │     let g = helper;
+ 6 │     let g = helper
    │             ───┬──  
    │                ╰──── not a value
    │ 

@@ -189,7 +189,8 @@ pub enum StmtKind {
         target: ExprId,
         value: ExprId,
     },
-    /// `semi` is false only for block-like expressions (`if`, `match`, blocks).
+    /// `semi`: written with a trailing `;`. Only affects a block's last statement, where
+    /// `x;` discards the value and a bare `x` would be the block's value instead.
     Expr {
         expr: ExprId,
         semi: bool,

@@ -7,7 +7,7 @@ exit: Some(1)
 [W0016] Error: expected a prompt string in `ai fn`, found `let`
    ╭─[ tests/ui/syntax_ai_body_not_only_prompt.wardscript:2:5 ]
    │
- 2 │     let short = text;
+ 2 │     let short = text
    │     ─┬─  
    │      ╰─── the body of an `ai fn` is a prompt string
    │ 

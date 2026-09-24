@@ -25,12 +25,12 @@ fn no_links(text: String) -> Bool {
 pub fn answer(email: Untrusted<String>, to: String) -> Result<String, String>
     uses {llm, mail.send}
 {
-    let reply = draft_reply(email);
+    let reply = draft_reply(email)
     // `mail.send` is a sensitive action: anything derived from the email must be validated first.
-    let subject = validate(reply.subject, no_links)?;
-    let body = validate(reply.body, no_links)?;
-    mail.send(to, subject, body);
-    Ok("sent")
+    let subject = validate(reply.subject, no_links)?
+    let body = validate(reply.body, no_links)?
+    mail.send(to, subject, body)
+    return "sent"
 }
 ```
 

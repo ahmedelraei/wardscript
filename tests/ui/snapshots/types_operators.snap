@@ -7,7 +7,7 @@ exit: Some(1)
 [W0119] Error: `-` can't be applied to `String`
    ╭─[ tests/ui/types_operators.wardscript:2:13 ]
    │
- 2 │     let a = name - 1;
+ 2 │     let a = name - 1
    │             ──┬─  
    │               ╰─── this has type `String`
    │ 
@@ -16,14 +16,14 @@ exit: Some(1)
 [W0110] Error: mismatched types: expected `Int`, found `Float`
    ╭─[ tests/ui/types_operators.wardscript:3:17 ]
    │
- 3 │     let b = n + 2.5;
+ 3 │     let b = n + 2.5
    │                 ─┬─  
    │                  ╰─── expected `Int`, found `Float`
 ───╯
 [W0110] Error: mismatched types: expected `Bool`, found `Int`
    ╭─[ tests/ui/types_operators.wardscript:4:14 ]
    │
- 4 │     let c = !n;
+ 4 │     let c = !n
    │              ┬  
    │              ╰── expected `Bool`, found `Int`
 ───╯
@@ -80,12 +80,12 @@ error: could not check `tests/ui/types_operators.wardscript` due to 3 errors
             "end": {
               "column": 20,
               "line": 3,
-              "offset": 77
+              "offset": 76
             },
             "start": {
               "column": 17,
               "line": 3,
-              "offset": 74
+              "offset": 73
             }
           }
         }
@@ -96,12 +96,12 @@ error: could not check `tests/ui/types_operators.wardscript` due to 3 errors
         "end": {
           "column": 20,
           "line": 3,
-          "offset": 77
+          "offset": 76
         },
         "start": {
           "column": 17,
           "line": 3,
-          "offset": 74
+          "offset": 73
         }
       }
     },
@@ -117,12 +117,12 @@ error: could not check `tests/ui/types_operators.wardscript` due to 3 errors
             "end": {
               "column": 15,
               "line": 4,
-              "offset": 93
+              "offset": 91
             },
             "start": {
               "column": 14,
               "line": 4,
-              "offset": 92
+              "offset": 90
             }
           }
         }
@@ -133,12 +133,12 @@ error: could not check `tests/ui/types_operators.wardscript` due to 3 errors
         "end": {
           "column": 15,
           "line": 4,
-          "offset": 93
+          "offset": 91
         },
         "start": {
           "column": 14,
           "line": 4,
-          "offset": 92
+          "offset": 90
         }
       }
     }

@@ -7,7 +7,7 @@ exit: Some(1)
 [W0010] Error: expected identifier, found keyword `match`
    ╭─[ tests/ui/syntax_keyword_as_name.wardscript:2:9 ]
    │
- 2 │     let match = 1;
+ 2 │     let match = 1
    │         ──┬──  
    │           ╰──── reserved keyword
    │ 

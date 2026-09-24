@@ -3,6 +3,6 @@ fn helper(x: Int) -> Int {
 }
 
 fn f() -> Int {
-    let g = helper;
+    let g = helper
     1
 }

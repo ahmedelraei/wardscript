@@ -7,7 +7,7 @@ exit: Some(1)
 [W0001] Error: unexpected character `@`
    ╭─[ tests/ui/syntax_unexpected_char.wardscript:2:15 ]
    │
- 2 │     let x = 1 @ 2;
+ 2 │     let x = 1 @ 2
    │               ┬  
    │               ╰── not valid in Wardscript source
 ───╯

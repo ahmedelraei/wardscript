@@ -27,7 +27,11 @@ inside a body, `let` types are inferred (`let xs = [];` gets its element type fr
 later use; if it never does, that's W0121).
 
 - A block's type is its final expression's type, `()` if it has none, or *never*
-  if it always `return`s. *never* fits any expected type.
+  if it always `return`s. *never* fits any expected type. Where `()` is expected,
+  the final expression's value is discarded, whatever its type.
+- In a function returning `Result<T, E>`, `return x` with `x: T` means
+  `return Ok(x)`. Returning a `Result` (`return Err(e)`, `return other()`) is
+  unchanged. Only `return` wraps: a final expression must still be `Ok(x)`.
 - `if` without `else` has type `()`. With `else`, both branches must agree.
 - `match` arms must agree, and the arms must be **exhaustive** (W0117). The check
   understands nested patterns over `Bool`, `Option`, `Result` and enums. Numbers

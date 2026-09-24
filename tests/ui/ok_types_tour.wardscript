@@ -29,9 +29,9 @@ fn page_of<T>(items: List<T>) -> Page<T> {
 }
 
 fn total(scores: Scores) -> Int {
-    let sum = 0;
+    let sum = 0
     for name in scores.keys() {
-        sum = sum + scores[name];
+        sum = sum + scores[name]
     }
     sum
 }
@@ -47,9 +47,9 @@ fn parse_level(s: String) -> Result<Int, String> {
 }
 
 fn levels(inputs: List<String>) -> Result<List<Int>, String> {
-    let out = [];
+    let out = []
     for s in inputs {
-        out = out.push(parse_level(s)?);
+        out = out.push(parse_level(s)?)
     }
     Ok(out)
 }
@@ -73,10 +73,10 @@ fn check_flag(on: Bool) -> Int {
 fn early(xs: List<Int>) -> Int {
     for x in xs {
         if x < 0 {
-            return x;
+            return x
         }
     }
-    let p = page_of(xs);
+    let p = page_of(xs)
     match first(p.items) {
         Some(x) => x,
         None => -1,

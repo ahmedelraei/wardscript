@@ -235,17 +235,29 @@ impl TokenKind {
 pub struct Token {
     pub kind: TokenKind,
     pub span: Span,
+    /// A line break comes between the previous token and this one; ends statements.
+    pub nl_before: bool,
 }
 
 /// Lexes `src`, whose first byte sits at `offset` in the file. Always ends with an `Eof` token.
 pub fn lex(src: &str, offset: u32, diags: &mut Vec<Diagnostic>) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut lexer = TokenKind::lexer(src);
+    let mut prev_end = 0;
     while let Some(result) = lexer.next() {
         let r = lexer.span();
         let span = Span::new(offset + r.start as u32, offset + r.end as u32);
+        // Skipped text (whitespace, comments, rejected chars) since the last token.
+        let nl_before = src
+            .get(prev_end..r.start)
+            .is_some_and(|gap| gap.contains('\n'));
+        prev_end = r.end;
         match result {
-            Ok(kind) => tokens.push(Token { kind, span }),
+            Ok(kind) => tokens.push(Token {
+                kind,
+                span,
+                nl_before,
+            }),
             Err(LexError::UnterminatedString) => {
                 let quote = Span::new(span.start, span.start + 1);
                 diags.push(
@@ -256,6 +268,7 @@ pub fn lex(src: &str, offset: u32, diags: &mut Vec<Diagnostic>) -> Vec<Token> {
                 tokens.push(Token {
                     kind: TokenKind::UnterminatedStr,
                     span,
+                    nl_before,
                 });
             }
             Err(LexError::UnexpectedChar) => {
@@ -275,6 +288,7 @@ pub fn lex(src: &str, offset: u32, diags: &mut Vec<Diagnostic>) -> Vec<Token> {
     tokens.push(Token {
         kind: TokenKind::Eof,
         span: Span::new(end, end),
+        nl_before: true,
     });
     tokens
 }
