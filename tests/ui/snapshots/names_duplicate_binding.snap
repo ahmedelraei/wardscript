@@ -1,0 +1,77 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/names_duplicate_binding.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0103] Error: the binding `a` is defined more than once
+    ╭─[ tests/ui/names_duplicate_binding.wardscript:14:21 ]
+    │
+ 14 │         Pair.Two(a, a) => a,
+    │                  ┬  ┬  
+    │                  ╰───── first defined here
+    │                     │  
+    │                     ╰── redefined here
+    │ 
+    │ Help: each name can be bound only once per pattern
+────╯
+error: could not check `tests/ui/names_duplicate_binding.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0103",
+      "file": "tests/ui/names_duplicate_binding.wardscript",
+      "help": "each name can be bound only once per pattern",
+      "labels": [
+        {
+          "message": "redefined here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 22,
+              "line": 14,
+              "offset": 197
+            },
+            "start": {
+              "column": 21,
+              "line": 14,
+              "offset": 196
+            }
+          }
+        },
+        {
+          "message": "first defined here",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 14,
+              "offset": 194
+            },
+            "start": {
+              "column": 18,
+              "line": 14,
+              "offset": 193
+            }
+          }
+        }
+      ],
+      "message": "the binding `a` is defined more than once",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 22,
+          "line": 14,
+          "offset": 197
+        },
+        "start": {
+          "column": 21,
+          "line": 14,
+          "offset": 196
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/names_duplicate_binding.wardscript"
+}

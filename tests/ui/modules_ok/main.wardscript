@@ -1,0 +1,10 @@
+// Importing records, enums and functions from another module.
+import support.tickets as t
+
+fn escalate(ticket: t.Ticket) -> t.Ticket {
+    t.Ticket { title: ticket.title, priority: t.Priority.High }
+}
+
+fn is_urgent(ticket: t.Ticket) -> Bool {
+    t.urgent(ticket)
+}

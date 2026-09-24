@@ -26,3 +26,27 @@ fn examples_check_ok() {
         assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
     }
 }
+
+#[test]
+fn diagnostic_codes_are_unique_and_documented() {
+    use ws_syntax::diag::codes::ALL;
+    let spec = std::fs::read_to_string(common::repo_root().join("docs/spec/diagnostics.md"))
+        .expect("read diagnostics spec");
+    let mut seen = std::collections::HashSet::new();
+    for code in ALL {
+        assert!(seen.insert(code.0), "{} is assigned twice", code.0);
+        assert!(
+            spec.contains(&format!("| {} |", code.0)),
+            "{} is missing from docs/spec/diagnostics.md",
+            code.0
+        );
+    }
+    let declared = include_str!("../../ws_syntax/src/diag.rs")
+        .matches("Code(\"W")
+        .count();
+    assert_eq!(
+        declared,
+        ALL.len(),
+        "every code must be listed in `codes::ALL`"
+    );
+}

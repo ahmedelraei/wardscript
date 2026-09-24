@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/names_type_as_value.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0106] Error: `Ticket` is a type, not a value
+    ╭─[ tests/ui/names_type_as_value.wardscript:12:5 ]
+    │
+ 12 │     Ticket
+    │     ───┬──  
+    │        ╰──── used as a value here
+    │ 
+    │ Help: build a value with `Ticket { ... }`
+────╯
+error: could not check `tests/ui/names_type_as_value.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0106",
+      "file": "tests/ui/names_type_as_value.wardscript",
+      "help": "build a value with `Ticket { ... }`",
+      "labels": [
+        {
+          "message": "used as a value here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 11,
+              "line": 12,
+              "offset": 135
+            },
+            "start": {
+              "column": 5,
+              "line": 12,
+              "offset": 129
+            }
+          }
+        }
+      ],
+      "message": "`Ticket` is a type, not a value",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 11,
+          "line": 12,
+          "offset": 135
+        },
+        "start": {
+          "column": 5,
+          "line": 12,
+          "offset": 129
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/names_type_as_value.wardscript"
+}

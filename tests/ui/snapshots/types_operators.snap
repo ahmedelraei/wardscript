@@ -1,0 +1,147 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_operators.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0119] Error: `-` can't be applied to `String`
+   ╭─[ tests/ui/types_operators.wardscript:2:13 ]
+   │
+ 2 │     let a = name - 1;
+   │             ──┬─  
+   │               ╰─── this has type `String`
+   │ 
+   │ Help: `-` works on numbers
+───╯
+[W0110] Error: mismatched types: expected `Int`, found `Float`
+   ╭─[ tests/ui/types_operators.wardscript:3:17 ]
+   │
+ 3 │     let b = n + 2.5;
+   │                 ─┬─  
+   │                  ╰─── expected `Int`, found `Float`
+───╯
+[W0110] Error: mismatched types: expected `Bool`, found `Int`
+   ╭─[ tests/ui/types_operators.wardscript:4:14 ]
+   │
+ 4 │     let c = !n;
+   │              ┬  
+   │              ╰── expected `Bool`, found `Int`
+───╯
+error: could not check `tests/ui/types_operators.wardscript` due to 3 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0119",
+      "file": "tests/ui/types_operators.wardscript",
+      "help": "`-` works on numbers",
+      "labels": [
+        {
+          "message": "this has type `String`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 2,
+              "offset": 52
+            },
+            "start": {
+              "column": 13,
+              "line": 2,
+              "offset": 48
+            }
+          }
+        }
+      ],
+      "message": "`-` can't be applied to `String`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 2,
+          "offset": 52
+        },
+        "start": {
+          "column": 13,
+          "line": 2,
+          "offset": 48
+        }
+      }
+    },
+    {
+      "code": "W0110",
+      "file": "tests/ui/types_operators.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Int`, found `Float`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 20,
+              "line": 3,
+              "offset": 77
+            },
+            "start": {
+              "column": 17,
+              "line": 3,
+              "offset": 74
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Int`, found `Float`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 20,
+          "line": 3,
+          "offset": 77
+        },
+        "start": {
+          "column": 17,
+          "line": 3,
+          "offset": 74
+        }
+      }
+    },
+    {
+      "code": "W0110",
+      "file": "tests/ui/types_operators.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Bool`, found `Int`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 15,
+              "line": 4,
+              "offset": 93
+            },
+            "start": {
+              "column": 14,
+              "line": 4,
+              "offset": 92
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Bool`, found `Int`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 15,
+          "line": 4,
+          "offset": 93
+        },
+        "start": {
+          "column": 14,
+          "line": 4,
+          "offset": 92
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_operators.wardscript"
+}

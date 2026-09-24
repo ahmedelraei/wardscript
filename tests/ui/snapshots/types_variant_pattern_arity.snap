@@ -1,0 +1,105 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_variant_pattern_arity.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0115] Error: variant `Shape.Point` has 0 fields, but this pattern has 1
+   ╭─[ tests/ui/types_variant_pattern_arity.wardscript:8:9 ]
+   │
+ 8 │         Shape.Point(x) => 0.0,
+   │         ───────┬──────  
+   │                ╰──────── expected 0 fields
+   │ 
+   │ Help: write `Shape.Point` without parentheses
+───╯
+[W0115] Error: variant `Shape.Circle` has 1 field, but this pattern has 0
+   ╭─[ tests/ui/types_variant_pattern_arity.wardscript:9:9 ]
+   │
+ 9 │         Shape.Circle => 1.0,
+   │         ──────┬─────  
+   │               ╰─────── expected 1 field
+   │ 
+   │ Help: use `_` to ignore fields: `Shape.Circle(_)`
+───╯
+error: could not check `tests/ui/types_variant_pattern_arity.wardscript` due to 2 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0115",
+      "file": "tests/ui/types_variant_pattern_arity.wardscript",
+      "help": "write `Shape.Point` without parentheses",
+      "labels": [
+        {
+          "message": "expected 0 fields",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 23,
+              "line": 8,
+              "offset": 111
+            },
+            "start": {
+              "column": 9,
+              "line": 8,
+              "offset": 97
+            }
+          }
+        }
+      ],
+      "message": "variant `Shape.Point` has 0 fields, but this pattern has 1",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 23,
+          "line": 8,
+          "offset": 111
+        },
+        "start": {
+          "column": 9,
+          "line": 8,
+          "offset": 97
+        }
+      }
+    },
+    {
+      "code": "W0115",
+      "file": "tests/ui/types_variant_pattern_arity.wardscript",
+      "help": "use `_` to ignore fields: `Shape.Circle(_)`",
+      "labels": [
+        {
+          "message": "expected 1 field",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 21,
+              "line": 9,
+              "offset": 140
+            },
+            "start": {
+              "column": 9,
+              "line": 9,
+              "offset": 128
+            }
+          }
+        }
+      ],
+      "message": "variant `Shape.Circle` has 1 field, but this pattern has 0",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 21,
+          "line": 9,
+          "offset": 140
+        },
+        "start": {
+          "column": 9,
+          "line": 9,
+          "offset": 128
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_variant_pattern_arity.wardscript"
+}

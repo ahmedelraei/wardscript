@@ -1,0 +1,7 @@
+fn add(x: Int, y: Int) -> Int {
+    x + y
+}
+
+fn f() -> Int {
+    add(1)
+}

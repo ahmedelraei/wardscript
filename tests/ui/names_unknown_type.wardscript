@@ -1,0 +1,7 @@
+pub type Ticket {
+    title: String,
+}
+
+fn f(t: Tiket) -> String {
+    t.title
+}

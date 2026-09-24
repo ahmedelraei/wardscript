@@ -17,6 +17,7 @@ error: could not check `tests/ui/syntax_missing_fat_arrow.wardscript` due to 1 e
   "diagnostics": [
     {
       "code": "W0010",
+      "file": "tests/ui/syntax_missing_fat_arrow.wardscript",
       "help": null,
       "labels": [
         {

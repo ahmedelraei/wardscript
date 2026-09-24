@@ -1,0 +1,7 @@
+fn is_short(n: Int) -> Bool {
+    n < 10
+}
+
+fn f(text: String) -> Result<String, String> {
+    validate(text, is_short)
+}

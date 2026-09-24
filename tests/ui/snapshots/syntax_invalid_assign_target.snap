@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_invalid_assign_target.wardscript` due to
   "diagnostics": [
     {
       "code": "W0020",
+      "file": "tests/ui/syntax_invalid_assign_target.wardscript",
       "help": "only variables, fields and list elements can be assigned to",
       "labels": [
         {

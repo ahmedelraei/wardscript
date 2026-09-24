@@ -17,6 +17,7 @@ error: could not check `tests/ui/syntax_unexpected_char.wardscript` due to 1 err
   "diagnostics": [
     {
       "code": "W0001",
+      "file": "tests/ui/syntax_unexpected_char.wardscript",
       "help": null,
       "labels": [
         {

@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/names_unknown_type.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0101] Error: cannot find type `Tiket`
+   ╭─[ tests/ui/names_unknown_type.wardscript:5:9 ]
+   │
+ 5 │ fn f(t: Tiket) -> String {
+   │         ──┬──  
+   │           ╰──── not found
+   │ 
+   │ Help: a similar name exists: `Ticket`
+───╯
+error: could not check `tests/ui/names_unknown_type.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0101",
+      "file": "tests/ui/names_unknown_type.wardscript",
+      "help": "a similar name exists: `Ticket`",
+      "labels": [
+        {
+          "message": "not found",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 14,
+              "line": 5,
+              "offset": 53
+            },
+            "start": {
+              "column": 9,
+              "line": 5,
+              "offset": 48
+            }
+          }
+        }
+      ],
+      "message": "cannot find type `Tiket`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 14,
+          "line": 5,
+          "offset": 53
+        },
+        "start": {
+          "column": 9,
+          "line": 5,
+          "offset": 48
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/names_unknown_type.wardscript"
+}

@@ -1,0 +1,16 @@
+pub type Ticket {
+    title: String,
+    priority: Priority,
+}
+
+pub enum Priority {
+    Low,
+    High,
+}
+
+fn score(p: Option<Priority>) -> Int {
+    match p {
+        None => 0,
+        Some(Priority.Low) => 1,
+    }
+}

@@ -1,0 +1,75 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/names_duplicate_param.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0103] Error: parameter `x` is defined more than once
+   ╭─[ tests/ui/names_duplicate_param.wardscript:1:16 ]
+   │
+ 1 │ fn add(x: Int, x: Int) -> Int {
+   │        ┬       ┬  
+   │        ╰────────── first defined here
+   │                │  
+   │                ╰── redefined here
+───╯
+error: could not check `tests/ui/names_duplicate_param.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0103",
+      "file": "tests/ui/names_duplicate_param.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "redefined here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 1,
+              "offset": 16
+            },
+            "start": {
+              "column": 16,
+              "line": 1,
+              "offset": 15
+            }
+          }
+        },
+        {
+          "message": "first defined here",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "start": {
+              "column": 8,
+              "line": 1,
+              "offset": 7
+            }
+          }
+        }
+      ],
+      "message": "parameter `x` is defined more than once",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 1,
+          "offset": 16
+        },
+        "start": {
+          "column": 16,
+          "line": 1,
+          "offset": 15
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/names_duplicate_param.wardscript"
+}

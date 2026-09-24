@@ -13,12 +13,22 @@ exit: Some(1)
    │ 
    │ Help: re-exporting imported names isn't supported
 ───╯
-error: could not check `tests/ui/syntax_pub_import.wardscript` due to 1 error
+[W0102] Error: cannot find module `support.tickets`
+   ╭─[ tests/ui/syntax_pub_import.wardscript:1:12 ]
+   │
+ 1 │ pub import support.tickets
+   │            ───────┬───────  
+   │                   ╰───────── no such module
+   │ 
+   │ Help: looked for `tests/ui/support/tickets.wardscript`
+───╯
+error: could not check `tests/ui/syntax_pub_import.wardscript` due to 2 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0023",
+      "file": "tests/ui/syntax_pub_import.wardscript",
       "help": "re-exporting imported names isn't supported",
       "labels": [
         {
@@ -50,6 +60,43 @@ error: could not check `tests/ui/syntax_pub_import.wardscript` due to 1 error
           "column": 1,
           "line": 1,
           "offset": 0
+        }
+      }
+    },
+    {
+      "code": "W0102",
+      "file": "tests/ui/syntax_pub_import.wardscript",
+      "help": "looked for `tests/ui/support/tickets.wardscript`",
+      "labels": [
+        {
+          "message": "no such module",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 27,
+              "line": 1,
+              "offset": 26
+            },
+            "start": {
+              "column": 12,
+              "line": 1,
+              "offset": 11
+            }
+          }
+        }
+      ],
+      "message": "cannot find module `support.tickets`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 27,
+          "line": 1,
+          "offset": 26
+        },
+        "start": {
+          "column": 12,
+          "line": 1,
+          "offset": 11
         }
       }
     }

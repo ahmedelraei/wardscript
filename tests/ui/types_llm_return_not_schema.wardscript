@@ -1,0 +1,3 @@
+fn classify(text: String) -> Result<String, String>
+    uses {llm}
+    by llm "Classify: {text}"

@@ -1,0 +1,57 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_list_elements.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0110] Error: mismatched types: expected `Int`, found `String`
+   ╭─[ tests/ui/types_list_elements.wardscript:2:12 ]
+   │
+ 2 │     [1, 2, "three"]
+   │            ───┬───  
+   │               ╰───── expected `Int`, found `String`
+───╯
+error: could not check `tests/ui/types_list_elements.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0110",
+      "file": "tests/ui/types_list_elements.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Int`, found `String`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 2,
+              "offset": 40
+            },
+            "start": {
+              "column": 12,
+              "line": 2,
+              "offset": 33
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Int`, found `String`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 19,
+          "line": 2,
+          "offset": 40
+        },
+        "start": {
+          "column": 12,
+          "line": 2,
+          "offset": 33
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_list_elements.wardscript"
+}

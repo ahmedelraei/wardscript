@@ -3,16 +3,16 @@
 This is the normative description of Wardscript. It is kept in sync with the
 implementation: every language feature lands together with its section here.
 
-Status: **M1 (lexer and parser)**.
+Status: **M2 (names and base types)**.
 
 ## Contents
 
 | Section | Status |
 |---|---|
 | [Lexical structure and syntax](syntax.md) | implemented (M1) |
-| [Diagnostics](diagnostics.md) | syntax codes (M1) |
-| Names, modules and imports | planned (M2) |
-| Types | planned (M2) |
+| [Diagnostics](diagnostics.md) | syntax (M1), names and types (M2) |
+| [Names, modules and imports](names.md) | implemented (M2) |
+| [Types](types.md) | implemented (M2) |
 | Trust labels (`Trusted` / `Untrusted`, sources, sinks, `validate` / `approve` / `declassify`) | planned (M4) |
 | Effects, budgets, Rule of Two | planned (M5) |
 | Runtime and audit trace | planned (M3, M6) |
@@ -26,7 +26,8 @@ it is assigned; retired codes are not reused.
 | Range | Area |
 |---|---|
 | W00xx | syntax ([list](diagnostics.md)) |
-| W01xx | names, types and trust labels (W0107: untrusted data reaches a sensitive action) |
+| W010x | names and modules (W0107 reserved: untrusted data reaches a sensitive action) |
+| W011x-W012x | types |
 | W02xx | effects, budgets, Rule of Two |
 
 ## `ward` exit codes

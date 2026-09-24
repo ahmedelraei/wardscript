@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_validate_rule.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0123] Error: `validate` needs a rule: a function `fn(String) -> Bool`
+   ╭─[ tests/ui/types_validate_rule.wardscript:6:20 ]
+   │
+ 6 │     validate(text, is_short)
+   │                    ────┬───  
+   │                        ╰───── not a matching rule function
+   │ 
+   │ Help: declare one, e.g. `fn is_valid(x: String) -> Bool { ... }`, and pass its name
+───╯
+error: could not check `tests/ui/types_validate_rule.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0123",
+      "file": "tests/ui/types_validate_rule.wardscript",
+      "help": "declare one, e.g. `fn is_valid(x: String) -> Bool { ... }`, and pass its name",
+      "labels": [
+        {
+          "message": "not a matching rule function",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 28,
+              "line": 6,
+              "offset": 118
+            },
+            "start": {
+              "column": 20,
+              "line": 6,
+              "offset": 110
+            }
+          }
+        }
+      ],
+      "message": "`validate` needs a rule: a function `fn(String) -> Bool`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 28,
+          "line": 6,
+          "offset": 118
+        },
+        "start": {
+          "column": 20,
+          "line": 6,
+          "offset": 110
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_validate_rule.wardscript"
+}

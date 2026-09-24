@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_missing_param_type.wardscript` due to 1 
   "diagnostics": [
     {
       "code": "W0010",
+      "file": "tests/ui/syntax_missing_param_type.wardscript",
       "help": "parameters need a type: `name: Type`",
       "labels": [
         {

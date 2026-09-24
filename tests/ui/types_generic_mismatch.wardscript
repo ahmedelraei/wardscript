@@ -1,0 +1,7 @@
+fn first<T>(xs: List<T>) -> Option<T> {
+    xs.first()
+}
+
+fn f() -> Bool {
+    first([1, 2]) == Some("a")
+}

@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_keyword_as_name.wardscript` due to 1 err
   "diagnostics": [
     {
       "code": "W0010",
+      "file": "tests/ui/syntax_keyword_as_name.wardscript",
       "help": "keywords can't be used as names; pick another name",
       "labels": [
         {

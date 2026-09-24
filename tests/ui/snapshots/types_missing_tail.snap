@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_missing_tail.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0110] Error: mismatched types: expected `Int`, found `()`
+   ╭─[ tests/ui/types_missing_tail.wardscript:3:1 ]
+   │
+ 3 │ }
+   │ ┬  
+   │ ╰── this block has no final expression
+   │ 
+   │ Help: remove the `;` after the last expression to make it the block's value
+───╯
+error: could not check `tests/ui/types_missing_tail.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0110",
+      "file": "tests/ui/types_missing_tail.wardscript",
+      "help": "remove the `;` after the last expression to make it the block's value",
+      "labels": [
+        {
+          "message": "this block has no final expression",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 2,
+              "line": 3,
+              "offset": 34
+            },
+            "start": {
+              "column": 1,
+              "line": 3,
+              "offset": 33
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Int`, found `()`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 3,
+          "offset": 34
+        },
+        "start": {
+          "column": 1,
+          "line": 3,
+          "offset": 33
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_missing_tail.wardscript"
+}

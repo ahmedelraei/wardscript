@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_unmatched_brace_in_string.wardscript` du
   "diagnostics": [
     {
       "code": "W0004",
+      "file": "tests/ui/syntax_unmatched_brace_in_string.wardscript",
       "help": "write `}}` for a literal brace",
       "labels": [
         {

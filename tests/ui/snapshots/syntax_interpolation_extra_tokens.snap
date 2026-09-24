@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_interpolation_extra_tokens.wardscript` d
   "diagnostics": [
     {
       "code": "W0004",
+      "file": "tests/ui/syntax_interpolation_extra_tokens.wardscript",
       "help": "an interpolation holds a single expression",
       "labels": [
         {

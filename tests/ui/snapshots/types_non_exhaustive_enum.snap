@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_non_exhaustive_enum.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0117] Error: non-exhaustive match: `Priority.High` not covered
+    ╭─[ tests/ui/types_non_exhaustive_enum.wardscript:12:11 ]
+    │
+ 12 │     match p {
+    │           ┬  
+    │           ╰── pattern `Priority.High` not covered
+    │ 
+    │ Help: add an arm for it, or a catch-all arm `_ => ...`
+────╯
+error: could not check `tests/ui/types_non_exhaustive_enum.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0117",
+      "file": "tests/ui/types_non_exhaustive_enum.wardscript",
+      "help": "add an arm for it, or a catch-all arm `_ => ...`",
+      "labels": [
+        {
+          "message": "pattern `Priority.High` not covered",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 12,
+              "line": 12,
+              "offset": 148
+            },
+            "start": {
+              "column": 11,
+              "line": 12,
+              "offset": 147
+            }
+          }
+        }
+      ],
+      "message": "non-exhaustive match: `Priority.High` not covered",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 12,
+          "line": 12,
+          "offset": 148
+        },
+        "start": {
+          "column": 11,
+          "line": 12,
+          "offset": 147
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_non_exhaustive_enum.wardscript"
+}

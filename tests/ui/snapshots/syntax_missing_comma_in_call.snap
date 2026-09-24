@@ -17,6 +17,7 @@ error: could not check `tests/ui/syntax_missing_comma_in_call.wardscript` due to
   "diagnostics": [
     {
       "code": "W0010",
+      "file": "tests/ui/syntax_missing_comma_in_call.wardscript",
       "help": null,
       "labels": [
         {

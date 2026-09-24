@@ -1,0 +1,3 @@
+fn f(ticket: String) -> String {
+    tiket
+}

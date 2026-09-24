@@ -1,0 +1,8 @@
+fn helper(x: Int) -> Int {
+    x
+}
+
+fn f() -> Int {
+    let g = helper;
+    1
+}

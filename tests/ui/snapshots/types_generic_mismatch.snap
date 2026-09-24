@@ -1,0 +1,57 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_generic_mismatch.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0110] Error: mismatched types: expected `Option<Int>`, found `Option<String>`
+   ╭─[ tests/ui/types_generic_mismatch.wardscript:6:22 ]
+   │
+ 6 │     first([1, 2]) == Some("a")
+   │                      ────┬────  
+   │                          ╰────── expected `Option<Int>`, found `Option<String>`
+───╯
+error: could not check `tests/ui/types_generic_mismatch.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0110",
+      "file": "tests/ui/types_generic_mismatch.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Option<Int>`, found `Option<String>`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 31,
+              "line": 6,
+              "offset": 105
+            },
+            "start": {
+              "column": 22,
+              "line": 6,
+              "offset": 96
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Option<Int>`, found `Option<String>`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 31,
+          "line": 6,
+          "offset": 105
+        },
+        "start": {
+          "column": 22,
+          "line": 6,
+          "offset": 96
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_generic_mismatch.wardscript"
+}

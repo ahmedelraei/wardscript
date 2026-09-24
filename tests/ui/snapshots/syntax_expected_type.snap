@@ -17,6 +17,7 @@ error: could not check `tests/ui/syntax_expected_type.wardscript` due to 1 error
   "diagnostics": [
     {
       "code": "W0013",
+      "file": "tests/ui/syntax_expected_type.wardscript",
       "help": null,
       "labels": [
         {

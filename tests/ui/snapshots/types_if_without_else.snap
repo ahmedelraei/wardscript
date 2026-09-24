@@ -1,0 +1,61 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_if_without_else.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0110] Error: `if` without `else` has type `()`, but `Int` is expected
+   ╭─[ tests/ui/types_if_without_else.wardscript:2:18 ]
+   │
+ 2 │ ╭─▶     let x: Int = if ok {
+   ┆ ┆   
+ 4 │ ├─▶     };
+   │ │            
+   │ ╰──────────── expected `Int`
+   │     
+   │     Help: add an `else` branch that produces a value
+───╯
+error: could not check `tests/ui/types_if_without_else.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0110",
+      "file": "tests/ui/types_if_without_else.wardscript",
+      "help": "add an `else` branch that produces a value",
+      "labels": [
+        {
+          "message": "expected `Int`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 6,
+              "line": 4,
+              "offset": 65
+            },
+            "start": {
+              "column": 18,
+              "line": 2,
+              "offset": 41
+            }
+          }
+        }
+      ],
+      "message": "`if` without `else` has type `()`, but `Int` is expected",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 4,
+          "offset": 65
+        },
+        "start": {
+          "column": 18,
+          "line": 2,
+          "offset": 41
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_if_without_else.wardscript"
+}

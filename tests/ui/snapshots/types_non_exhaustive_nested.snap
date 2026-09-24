@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_non_exhaustive_nested.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0117] Error: non-exhaustive match: `Some(Priority.High)` not covered
+    ╭─[ tests/ui/types_non_exhaustive_nested.wardscript:12:11 ]
+    │
+ 12 │     match p {
+    │           ┬  
+    │           ╰── pattern `Some(Priority.High)` not covered
+    │ 
+    │ Help: add an arm for it, or a catch-all arm `_ => ...`
+────╯
+error: could not check `tests/ui/types_non_exhaustive_nested.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0117",
+      "file": "tests/ui/types_non_exhaustive_nested.wardscript",
+      "help": "add an arm for it, or a catch-all arm `_ => ...`",
+      "labels": [
+        {
+          "message": "pattern `Some(Priority.High)` not covered",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 12,
+              "line": 12,
+              "offset": 156
+            },
+            "start": {
+              "column": 11,
+              "line": 12,
+              "offset": 155
+            }
+          }
+        }
+      ],
+      "message": "non-exhaustive match: `Some(Priority.High)` not covered",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 12,
+          "line": 12,
+          "offset": 156
+        },
+        "start": {
+          "column": 11,
+          "line": 12,
+          "offset": 155
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_non_exhaustive_nested.wardscript"
+}

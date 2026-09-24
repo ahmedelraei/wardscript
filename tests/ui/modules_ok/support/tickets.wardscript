@@ -1,0 +1,16 @@
+pub type Ticket {
+    title: String,
+    priority: Priority,
+}
+
+pub enum Priority {
+    Low,
+    High,
+}
+
+pub fn urgent(ticket: Ticket) -> Bool {
+    match ticket.priority {
+        Priority.High => true,
+        Priority.Low => false,
+    }
+}

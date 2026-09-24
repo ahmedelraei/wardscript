@@ -1,0 +1,59 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/types_unreachable_arm.wardscript
+---
+exit: Some(0)
+--- human ---
+[W0127] Warning: unreachable pattern
+    ╭─[ tests/ui/types_unreachable_arm.wardscript:14:9 ]
+    │
+ 14 │         Priority.High => 1,
+    │         ──────┬──────  
+    │               ╰──────── this arm is never reached
+    │ 
+    │ Help: an earlier arm already matches every value this one would
+────╯
+ok: tests/ui/types_unreachable_arm.wardscript (1 warning)
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0127",
+      "file": "tests/ui/types_unreachable_arm.wardscript",
+      "help": "an earlier arm already matches every value this one would",
+      "labels": [
+        {
+          "message": "this arm is never reached",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 22,
+              "line": 14,
+              "offset": 188
+            },
+            "start": {
+              "column": 9,
+              "line": 14,
+              "offset": 175
+            }
+          }
+        }
+      ],
+      "message": "unreachable pattern",
+      "severity": "warning",
+      "span": {
+        "end": {
+          "column": 22,
+          "line": 14,
+          "offset": 188
+        },
+        "start": {
+          "column": 9,
+          "line": 14,
+          "offset": 175
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/types_unreachable_arm.wardscript"
+}

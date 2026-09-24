@@ -19,6 +19,7 @@ error: could not check `tests/ui/syntax_interpolation_in_import.wardscript` due 
   "diagnostics": [
     {
       "code": "W0022",
+      "file": "tests/ui/syntax_interpolation_in_import.wardscript",
       "help": "write `{{` for a literal brace",
       "labels": [
         {

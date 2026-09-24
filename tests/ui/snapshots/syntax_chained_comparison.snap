@@ -21,6 +21,7 @@ error: could not check `tests/ui/syntax_chained_comparison.wardscript` due to 1 
   "diagnostics": [
     {
       "code": "W0019",
+      "file": "tests/ui/syntax_chained_comparison.wardscript",
       "help": "split it with `&&`, e.g. `a < b && b < c`",
       "labels": [
         {
