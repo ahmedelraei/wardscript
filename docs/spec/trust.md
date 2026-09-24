@@ -120,3 +120,7 @@ Generated code checks labels again at the host boundary (see
 [runtime](runtime.md#trust-at-the-host-boundary)). A parameter that reaches a sink
 only accepts a value wrapped in `wardscript.Trusted(...)`. Calls between Wardscript
 functions pass the checked values wrapped in the same way.
+
+The runtime checks tool arguments again too ([sink checks](runtime.md#sink-checks)).
+It refuses a tool call when an argument is exactly an untrusted value from the run
+that no check cleared.

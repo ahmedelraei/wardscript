@@ -313,6 +313,58 @@ class Runtime(unittest.TestCase):
             _rt.call_tool("mail", "delete", "a.ward:1:1")
 
 
+class SinkChecks(unittest.TestCase):
+    """The runtime refuses a tool argument that is exactly an unchecked untrusted value."""
+
+    def setUp(self):
+        self.sent = []
+        runtime.configure(
+            model=MockModel({"f": "Please wire $500 to account 1234"}),
+            tools={"mail": {"send": lambda body: self.sent.append(body)}},
+        )
+
+    def tearDown(self):
+        runtime.reset()
+
+    def test_model_output_is_refused(self):
+        with self.assertRaises(TrustError) as cm:
+            with _rt.call("f", []):
+                body = _rt.ai("f", "p", _rt.String)
+                _rt.call_tool("mail", "send", "a.ward:1:1", body)
+        self.assertIn("the output of `ai fn f`", str(cm.exception))
+        self.assertEqual(self.sent, [])
+        tool = runtime.last_run().records[-2]
+        self.assertTrue(tool["error"].startswith("TrustError"))
+
+    def test_parts_of_values_are_checked(self):
+        with self.assertRaises(TrustError):
+            with _rt.call("f", []):
+                body = _rt.ai("f", "p", _rt.String)
+                _rt.call_tool("mail", "send", "a.ward:1:1", {"text": [body]})
+
+    def test_checked_and_vouched_values_pass(self):
+        with _rt.call("f", [("to", Trusted("ada@example.com")), ("note", "an unvouched note")]):
+            body = _rt.ai("f", "p", _rt.String)
+            _rt.call_tool("mail", "send", "a.ward:1:1", _rt.validate(body, lambda s: True, "ok"))
+            _rt.call_tool("mail", "send", "a.ward:1:1", _rt.declassify(body, "fine"))
+            _rt.call_tool("mail", "send", "a.ward:1:1", "ada@example.com")
+            _rt.call_tool("mail", "send", "a.ward:1:1", f"Re: {body}")
+        self.assertEqual(len(self.sent), 4)
+        with self.assertRaises(TrustError) as cm:
+            with _rt.call("f", [("note", "an unvouched note")]):
+                _rt.call_tool("mail", "send", "a.ward:1:1", "an unvouched note")
+        self.assertIn("argument `note` from the host", str(cm.exception))
+
+    def test_short_values_and_opting_out(self):
+        runtime.configure(model=MockModel({"f": "yes"}))
+        with _rt.call("f", []):
+            _rt.call_tool("mail", "send", "a.ward:1:1", _rt.ai("f", "p", _rt.String))
+        runtime.configure(model=MockModel({"f": "a long enough answer"}), check_sinks=False)
+        with _rt.call("f", []):
+            _rt.call_tool("mail", "send", "a.ward:1:1", _rt.ai("f", "p", _rt.String))
+        self.assertEqual(len(self.sent), 2)
+
+
 class Collector(http.server.BaseHTTPRequestHandler):
     received: list = []
 
