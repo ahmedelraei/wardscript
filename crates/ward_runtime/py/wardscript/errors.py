@@ -52,6 +52,23 @@ class BudgetExceeded(WardError):
         self.used = used
 
 
+class BudgetUnenforceable(WardError):
+    """A function has a `cost` budget, but the model's cost is unknown (a provider
+    without `prices`), so the budget can't be enforced. `when` is `"before"` when the
+    request was refused unsent, `"after"` when an answer came back without a cost.
+    `configure(unpriced="warn")` turns this into a warning."""
+
+    def __init__(self, function: str, when: str) -> None:
+        why = (
+            "the model has no prices; give the provider `prices=(input, output)`"
+            if when == "before"
+            else "the model's answer didn't say what it cost"
+        )
+        super().__init__(f"`{function}` has a cost budget, but {why}")
+        self.function = function
+        self.when = when
+
+
 class ApprovalDenied(WardError):
     pass
 

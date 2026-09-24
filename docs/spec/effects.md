@@ -67,7 +67,9 @@ as a function goes over:
 - `calls` before each model request, so a request over the limit is never sent;
 - `tokens` and `cost` after each answer, from what the model reports
   ([`Completion`](runtime.md#the-runtime)); without a report, tokens are estimated
-  from the text's length and cost is 0;
+  from the text's length. An unknown cost under a `cost` budget stops the run with
+  `BudgetUnenforceable`, before the request when the model has no prices
+  ([unknown cost](runtime.md#unknown-cost));
 - `time` before and after each model and tool call. A call in progress isn't
   interrupted.
 

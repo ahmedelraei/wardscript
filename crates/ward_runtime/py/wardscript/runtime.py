@@ -59,6 +59,10 @@ class Config:
     check_sinks: bool = True
     #: Streams answers from models that can, passing each piece here.
     on_stream: StreamObserver | None = None
+    #: What to do when a `cost` budget meets a model whose cost is unknown: `"error"`
+    #: raises `BudgetUnenforceable` (before the request when the model has no prices);
+    #: `"warn"` warns once per function and counts the call as free.
+    unpriced: str = "error"
 
 
 _config = Config()
@@ -75,6 +79,7 @@ def configure(
     otlp_endpoint: str | None = _UNSET,
     check_sinks: bool = _UNSET,
     on_stream: StreamObserver | None = _UNSET,
+    unpriced: str = _UNSET,
 ) -> None:
     """Sets the runtime's configuration. Arguments left out keep their current value."""
     if model is not _UNSET:
@@ -95,6 +100,10 @@ def configure(
         _config.check_sinks = bool(check_sinks)
     if on_stream is not _UNSET:
         _config.on_stream = on_stream
+    if unpriced is not _UNSET:
+        if unpriced not in ("error", "warn"):
+            raise ValueError('unpriced must be "error" or "warn"')
+        _config.unpriced = unpriced
 
 
 def last_run() -> audit.Run | None:
@@ -123,6 +132,7 @@ def reset() -> None:
     """Restores the default configuration."""
     global _config
     _config = Config()
+    budget.reset_warnings()
 
 
 def config() -> Config:
@@ -143,6 +153,9 @@ class _Attempt:
         self.returns = returns
         self.request = AiRequest(function, prompt, json_schema(returns), len(errors), tuple(errors))
         self.text = ""
+        strict = _config.unpriced == "error"
+        # A model that says it has no prices (`prices=None`) can't be counted.
+        budget.before_priced_call(getattr(model, "prices", ()) is not None, strict)
         budget.before_model_call()
         self.started = audit.now()
 
@@ -171,14 +184,14 @@ class _Attempt:
         if isinstance(answer, Completion):
             text, tokens, cost = answer.text, answer.tokens, answer.cost
         else:
-            text, tokens, cost = answer, None, 0.0
+            text, tokens, cost = answer, None, None
         if tokens is None:
             tokens = estimate_tokens(self.request.prompt) + estimate_tokens(str(text))
         run = audit.current()
         if run is not None:
             run.calls += 1
             run.tokens += tokens
-            run.cost += cost
+            run.cost += cost or 0.0
         error, value, ok = None, None, False
         try:
             value = decode(self.returns, json.loads(text))
@@ -195,11 +208,11 @@ class _Attempt:
             prompt=self.request.prompt,
             answer=str(text),
             tokens=float(tokens),
-            cost=float(cost),
+            cost=None if cost is None else float(cost),
             error=error,
             leaves=audit.leaves(value) if ok else [],
         )
-        budget.after_model_call(tokens, cost)
+        budget.after_model_call(tokens, cost, _config.unpriced == "error")
         return ok, value, error
 
 

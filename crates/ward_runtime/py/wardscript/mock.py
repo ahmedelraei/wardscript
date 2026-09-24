@@ -24,7 +24,7 @@ class Raw:
 class Usage:
     """An answer with what it cost: `Usage("yes", tokens=500, cost=0.01)`."""
 
-    def __init__(self, answer: Any, tokens: int | None = None, cost: float = 0.0) -> None:
+    def __init__(self, answer: Any, tokens: int | None = None, cost: float | None = 0.0) -> None:
         self.answer = answer
         self.tokens = tokens
         self.cost = cost
@@ -60,7 +60,10 @@ class MockModel:
         self.calls.append(request)
         if request.function not in self.answers:
             raise MockError(f"the mock model has no answer for `{request.function}`")
-        return self._text(request, self.answers[request.function])
+        answer = self._text(request, self.answers[request.function])
+        # Mock answers cost nothing (unless a `Usage` says otherwise), so `cost` budgets
+        # can run against the mock.
+        return Completion(answer, None, 0.0) if isinstance(answer, str) else answer
 
     def _text(self, request: AiRequest, answer: Any) -> str | Completion:
         if isinstance(answer, Seq):

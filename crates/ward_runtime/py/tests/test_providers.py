@@ -81,7 +81,7 @@ class Providers(unittest.TestCase):
     def test_anthropic_without_a_tool_call(self):
         client = FakeAnthropic([NS(type="text", text="not json")])
         self.assertEqual(Anthropic(client=client).complete(AiRequest("f", "p", SCHEMA)).text, "not json")
-        self.assertEqual(Anthropic(client=client).complete(AiRequest("f", "p", SCHEMA)).cost, 0.0)
+        self.assertEqual(Anthropic(client=client).complete(AiRequest("f", "p", SCHEMA)).cost, None)
 
     def test_openai(self):
         client = FakeOpenAI(json.dumps({"value": [1, 2]}))

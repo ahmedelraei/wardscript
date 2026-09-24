@@ -86,6 +86,7 @@ catches:
 | `NoModelError` | an `ai fn` is called with no model configured |
 | `AiOutputError` | the model's answers didn't match the return type on every attempt; `.errors` says why, per attempt |
 | `BudgetExceeded` | a function went over its `budget`; `.function`, `.resource`, `.limit`, `.used` |
+| `BudgetUnenforceable` | a function has a `cost` budget but the model's cost is unknown; `.function`, `.when` (`before` or `after`); see [unknown cost](#unknown-cost) |
 | `ApprovalDenied` | `approve` was refused, or no approver is configured |
 | `ToolError` | a tool or tool function isn't configured |
 | `TrustError` | the host passed a parameter that must be trusted without vouching for it |
@@ -103,12 +104,13 @@ Every record has `run`, `seq`, `time` (Unix nanoseconds) and a `kind`:
 | `kind` | Fields |
 |---|---|
 | `run_start` | `function`; `args`, each with `name`, `value`, `vouched` and `leaves` |
-| `ai_call` | `started`, `function`, `attempt`, `prompt`, `answer`, `tokens`, `cost`, `error` (why it was rejected), `leaves` of the decoded output |
+| `ai_call` | `started`, `function`, `attempt`, `prompt`, `answer`, `tokens`, `cost` (`null` when unknown), `error` (why it was rejected), `leaves` of the decoded output |
 | `tool_call` | `started`, `tool`, `function`, `site`, `args`, `digests` of the args, `error`, `leaves` of the result |
 | `validate` | `rule`, `site`, `passed`, `leaves` of the checked value |
 | `approve` | `site`, `approved`, `leaves` |
 | `declassify` | `site`, `reason`, `leaves` |
 | `budget_exceeded` | `function`, `resource`, `limit`, `used` |
+| `budget_unenforceable` | `function`, `when` (`before` or `after`) |
 | `run_end` | `status` (`ok`, `threw`, `error`), `error`, and the run's `tokens`, `calls`, `cost` |
 
 `leaves` are `{path, digest}` for a value and each of its parts (`$`, `$.subject`,
@@ -155,8 +157,9 @@ runtime.configure(model=OpenAI("<model>", prices=(..., ...)))
 - `Anthropic` gives the return type's schema as a tool the model must call; `OpenAI`
   gives it as a JSON-schema response format. Either way the answer is still decoded
   and retried as usual.
-- `prices` are dollars per million input and output tokens. Without them, calls
-  cost 0 and `cost` budgets never run out.
+- `prices` are dollars per million input and output tokens. Without them the cost
+  is unknown (`Completion.cost` is `None`), and a `cost` budget refuses the call
+  ([unknown cost](#unknown-cost)).
 - They need the SDK (`pip install wardscript[anthropic]` or `[openai]`) and read
   `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`; `client=` takes a configured client.
 - `providers.load("anthropic:claude-sonnet-5")` is what `ward run --model` uses.
@@ -170,6 +173,23 @@ runs the triage and support examples (`tests/live`) with `WARD_LIVE_MODEL`, defa
 A function with a `budget` runs inside `wardscript._rt.budget(...)`, which charges
 every model call made while it runs, in callees too. Going over raises
 `BudgetExceeded`; see [effects](effects.md#budgets) for when each resource is checked.
+
+### Unknown cost
+
+A `cost` budget fails closed when the cost can't be counted:
+
+- **Before a request**, if a `cost` budget is active and the model has
+  `prices=None` (a provider built without prices), the runtime raises
+  `BudgetUnenforceable` with `when="before"` and sends nothing.
+- **After an answer**, if its cost is unknown (`Completion.cost` is `None`, or the
+  model returned plain text) and a `cost` budget is active, it raises
+  `BudgetUnenforceable` with `when="after"`.
+
+Either way a `budget_unenforceable` record goes into the trace. Without a `cost`
+budget, unknown costs are fine and count as 0. `configure(unpriced="warn")` turns
+the error into a `RuntimeWarning`, once per function, and counts those calls as
+free. The mock model's answers cost 0 unless a `Usage` says otherwise. Both runtime
+cores make the same decision (`Budget.unenforceable(cost)`).
 
 ## Trust at the host boundary
 
@@ -226,7 +246,9 @@ defaults.
 - **`model`**: anything with `complete(request: AiRequest) -> str | Completion`
   (and optionally `stream`, [below](#streaming)),
   returning JSON text, or a `Completion(text, tokens, cost)` that also says what the
-  answer cost, for [budgets](effects.md#budgets). `AiRequest` has the `function` name, the `prompt` with arguments filled in,
+  answer cost, for [budgets](effects.md#budgets) (`cost=None`, the default, means
+  unknown; plain text has an unknown cost too). A model with a `prices` attribute
+  set to `None` is known to be unpriced. `AiRequest` has the `function` name, the `prompt` with arguments filled in,
   the JSON `schema` of the return type, the `attempt` number and the `errors` of
   earlier attempts; `request.instructions()` combines them into one prompt.
 - **`approver`**: called by `approve(x)` with an `ApprovalRequest(value, site, run)`;
