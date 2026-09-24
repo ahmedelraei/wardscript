@@ -83,4 +83,51 @@ fn support_trace() {
         .map(|e| e["name"].as_str().unwrap_or(""))
         .collect();
     assert_eq!(events, ["approve", "usage"]);
+
+    let (endpoint, received) = collector();
+    let sent = common::ward(&["trace", "export", "--dir", dir, "--endpoint", &endpoint]);
+    assert_eq!(sent.status.code(), Some(0), "{}", common::render(&sent));
+    let request = received.join().expect("collector");
+    assert!(request.starts_with("POST /v1/traces "), "{request}");
+    assert!(
+        request
+            .to_ascii_lowercase()
+            .contains("content-type: application/json")
+    );
+    let body = request.split("\r\n\r\n").nth(1).expect("body");
+    let sent: serde_json::Value = serde_json::from_str(body).expect("OTLP JSON");
+    assert_eq!(sent, otlp);
+}
+
+/// A one-request OTLP collector: its endpoint, and the request it got.
+fn collector() -> (String, std::thread::JoinHandle<String>) {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+    let endpoint = format!("http://{}", listener.local_addr().expect("addr"));
+    let handle = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("accept");
+        let mut data = Vec::new();
+        let mut buf = [0; 8192];
+        loop {
+            let n = stream.read(&mut buf).expect("read");
+            data.extend_from_slice(&buf[..n]);
+            let text = String::from_utf8_lossy(&data);
+            if let Some((head, body)) = text.split_once("\r\n\r\n") {
+                let length = head
+                    .lines()
+                    .find_map(|l| {
+                        let (k, v) = l.split_once(':')?;
+                        k.eq_ignore_ascii_case("content-length")
+                            .then(|| v.trim().parse::<usize>().ok())?
+                    })
+                    .unwrap_or(0);
+                if body.len() >= length || n == 0 {
+                    break;
+                }
+            }
+        }
+        let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n");
+        String::from_utf8_lossy(&data).into_owned()
+    });
+    (endpoint, handle)
 }

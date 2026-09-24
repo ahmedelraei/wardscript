@@ -41,6 +41,9 @@ class Config:
     #: Where each run's audit trace is written; else `WARD_TRACE_DIR`, else nowhere
     #: (the last run is still in `wardscript.runtime.last_run()`).
     trace_dir: str | None = None
+    #: Also sends each run to this OTLP/HTTP collector (e.g. `http://localhost:4318`);
+    #: else `OTEL_EXPORTER_OTLP_ENDPOINT`, else nowhere.
+    otlp_endpoint: str | None = None
 
 
 _config = Config()
@@ -54,6 +57,7 @@ def configure(
     tools: Mapping[str, Any] = _UNSET,
     retries: int = _UNSET,
     trace_dir: str | None = _UNSET,
+    otlp_endpoint: str | None = _UNSET,
 ) -> None:
     """Sets the runtime's configuration. Arguments left out keep their current value."""
     if model is not _UNSET:
@@ -68,6 +72,8 @@ def configure(
         _config.retries = retries
     if trace_dir is not _UNSET:
         _config.trace_dir = None if trace_dir is None else str(trace_dir)
+    if otlp_endpoint is not _UNSET:
+        _config.otlp_endpoint = otlp_endpoint
 
 
 def last_run() -> audit.Run | None:

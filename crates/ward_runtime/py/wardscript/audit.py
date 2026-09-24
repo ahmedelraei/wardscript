@@ -11,6 +11,8 @@ import dataclasses
 import json
 import os
 import time
+import urllib.request
+import warnings
 from typing import Any, Iterator
 
 from . import core
@@ -94,6 +96,30 @@ def _trace_dir() -> str | None:
     return config().trace_dir or os.environ.get("WARD_TRACE_DIR") or None
 
 
+def _otlp_url() -> str | None:
+    from .runtime import config
+
+    base = config().otlp_endpoint or os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
+    if not base:
+        return None
+    base = base.rstrip("/")
+    return base if base.endswith("/v1/traces") else base + "/v1/traces"
+
+
+def send_otlp(run: Run, url: str) -> None:
+    """POSTs the run's spans to an OTLP/HTTP collector. A failure only warns: losing
+    telemetry mustn't fail the run (the trace file still has it)."""
+    body = core.otlp(json.dumps(run.records)).encode("utf-8")
+    request = urllib.request.Request(
+        url, data=body, headers={"Content-Type": "application/json"}, method="POST"
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            response.read()
+    except Exception as e:
+        warnings.warn(f"wardscript: couldn't send run {run.id} to {url}: {e}", stacklevel=2)
+
+
 @contextlib.contextmanager
 def call(function: str, args: list[tuple[str, Any]]) -> Iterator[None]:
     """Entered by every generated function; the outermost one is a run."""
@@ -126,6 +152,12 @@ def call(function: str, args: list[tuple[str, Any]]) -> Iterator[None]:
         record("run_end", status=status, error=error, tokens=run.tokens, calls=run.calls, cost=run.cost)
         _current.reset(token)
         _last = run
+        close = getattr(run.recorder, "close", None)
+        if callable(close):
+            close()
+        url = _otlp_url()
+        if url is not None:
+            send_otlp(run, url)
 
 
 def now() -> int:

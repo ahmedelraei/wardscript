@@ -87,6 +87,10 @@ enum TraceCommand {
         dir: PathBuf,
         #[arg(long, value_enum, default_value_t = TraceFormat::Otlp)]
         format: TraceFormat,
+        /// Send the spans to an OTLP/HTTP collector (e.g. `http://localhost:4318`) instead
+        /// of printing them
+        #[arg(long, conflicts_with = "format")]
+        endpoint: Option<String>,
     },
 }
 
@@ -388,6 +392,13 @@ fn trace(command: TraceCommand) -> ExitCode {
             return ExitCode::from(exit::INTERNAL);
         }
     };
+    if let TraceCommand::Export {
+        endpoint: Some(endpoint),
+        ..
+    } = &command
+    {
+        return send_otlp(endpoint, &ward_runtime::otlp::export(&records));
+    }
     let text = match command {
         TraceCommand::Show { .. } => ward_runtime::show::render(&records),
         TraceCommand::Export {
@@ -412,5 +423,32 @@ fn trace(command: TraceCommand) -> ExitCode {
             eprintln!("error: {e}");
             ExitCode::from(exit::INTERNAL)
         }
+    }
+}
+
+/// POSTs spans to `<endpoint>/v1/traces`, as OTLP/HTTP with the JSON encoding.
+fn send_otlp(endpoint: &str, spans: &serde_json::Value) -> ExitCode {
+    let url = otlp_url(endpoint);
+    match ureq::post(&url)
+        .header("Content-Type", "application/json")
+        .send(spans.to_string())
+    {
+        Ok(_) => {
+            eprintln!("sent to {url}");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("error: sending the trace to {url}: {e}");
+            ExitCode::from(exit::INTERNAL)
+        }
+    }
+}
+
+fn otlp_url(endpoint: &str) -> String {
+    let base = endpoint.trim_end_matches('/');
+    if base.ends_with("/v1/traces") {
+        base.to_owned()
+    } else {
+        format!("{base}/v1/traces")
     }
 }

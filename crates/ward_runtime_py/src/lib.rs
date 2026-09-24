@@ -119,12 +119,22 @@ fn leaves(value: &str) -> PyResult<Vec<(String, String)>> {
         .collect())
 }
 
+/// A run's records (a JSON list) as OTLP/JSON spans.
+#[pyfunction]
+fn otlp(records: &str) -> PyResult<String> {
+    let records: Vec<trace::Record> =
+        serde_json::from_str(records).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    serde_json::to_string(&ward_runtime::otlp::export(&records))
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+}
+
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Budget>()?;
     m.add_class::<Recorder>()?;
     m.add_function(wrap_pyfunction!(digest, m)?)?;
     m.add_function(wrap_pyfunction!(leaves, m)?)?;
+    m.add_function(wrap_pyfunction!(otlp, m)?)?;
     m.add("IMPLEMENTATION", "rust")?;
     Ok(())
 }

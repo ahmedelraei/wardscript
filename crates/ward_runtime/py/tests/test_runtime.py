@@ -1,9 +1,12 @@
 import asyncio
 import dataclasses
 import enum
+import http.server
 import json
 import tempfile
+import threading
 import unittest
+import warnings
 
 from wardscript import (
     AiOutputError,
@@ -310,8 +313,53 @@ class Runtime(unittest.TestCase):
             _rt.call_tool("mail", "delete", "a.ward:1:1")
 
 
-if __name__ == "__main__":
-    unittest.main()
+class Collector(http.server.BaseHTTPRequestHandler):
+    received: list = []
+
+    def do_POST(self):
+        body = self.rfile.read(int(self.headers["Content-Length"]))
+        Collector.received.append((self.path, self.headers["Content-Type"], json.loads(body)))
+        self.send_response(200)
+        self.end_headers()
+
+    def log_message(self, *args):
+        pass
+
+
+class Otlp(unittest.TestCase):
+    def setUp(self):
+        Collector.received = []
+        self.server = http.server.HTTPServer(("127.0.0.1", 0), Collector)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        runtime.reset()
+
+    def test_runs_are_sent_to_the_collector(self):
+        port = self.server.server_address[1]
+        runtime.configure(otlp_endpoint=f"http://127.0.0.1:{port}/")
+        with _rt.call("run_me", []):
+            _rt.declassify("x", "fine", "a.ward:1:1")
+        path, content_type, body = Collector.received[0]
+        self.assertEqual((path, content_type), ("/v1/traces", "application/json"))
+        root = body["resourceSpans"][0]["scopeSpans"][0]["spans"][0]
+        self.assertEqual(root["name"], "run run_me")
+        self.assertEqual([e["name"] for e in root["events"]], ["declassify", "usage"])
+
+    def test_an_unreachable_collector_only_warns(self):
+        port = self.server.server_address[1]
+        self.server.shutdown()
+        self.server.server_close()
+        runtime.configure(otlp_endpoint=f"http://127.0.0.1:{port}")
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            with _rt.call("f", []):
+                pass
+        self.assertIn("couldn't send run", str(caught[0].message))
+        self.server = http.server.HTTPServer(("127.0.0.1", 0), Collector)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
 
 class Cores(unittest.TestCase):
@@ -347,8 +395,26 @@ class Cores(unittest.TestCase):
                 del rec["run"], rec["time"]
             self.assertEqual(json.dumps(rust), json.dumps(py))
 
+    def test_otlp(self):
+        runtime.configure(model=MockModel({"f": Usage(1, tokens=10, cost=0.5)}), approver=lambda r: False)
+        try:
+            with _rt.call("f", [("x", 1)]):
+                _rt.ai("f", "p", _rt.Int)
+                _rt.approve(1, "a.ward:1:1")
+        except ApprovalDenied:
+            pass
+        finally:
+            runtime.reset()
+        records = json.dumps(runtime.last_run().records)
+        rust, py = (json.loads(c.otlp(records)) for c in self.cores)
+        self.assertEqual(rust, py)
+
     def test_budgets(self):
         for core in self.cores:
             b = core.Budget("f", calls=1)
             self.assertIsNone(b.charge_call())
             self.assertEqual(b.charge_call(), ("calls", 1.0, 2.0))
+
+
+if __name__ == "__main__":
+    unittest.main()
