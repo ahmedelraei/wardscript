@@ -87,6 +87,7 @@ catches:
 | `AiOutputError` | the model's answers didn't match the return type on every attempt; `.errors` says why, per attempt |
 | `BudgetExceeded` | a function went over its `budget`; `.function`, `.resource`, `.limit`, `.used` |
 | `BudgetUnenforceable` | a function has a `cost` budget but the model's cost is unknown; `.function`, `.when` (`before` or `after`); see [unknown cost](#unknown-cost) |
+| `ModelError` | a provider failed to answer after its retries and every fallback; `RateLimited` and `ModelUnavailable` (timeouts, 5xx) are retryable, `.status` has the HTTP status |
 | `ApprovalDenied` | `approve` was refused, or no approver is configured |
 | `ToolError` | a tool or tool function isn't configured |
 | `TrustError` | the host passed a parameter that must be trusted without vouching for it |
@@ -104,7 +105,7 @@ Every record has `run`, `seq`, `time` (Unix nanoseconds) and a `kind`:
 | `kind` | Fields |
 |---|---|
 | `run_start` | `function`; `args`, each with `name`, `value`, `vouched` and `leaves` |
-| `ai_call` | `started`, `function`, `attempt`, `prompt`, `answer`, `tokens`, `cost` (`null` when unknown), `error` (why it was rejected), `leaves` of the decoded output |
+| `ai_call` | `started`, `function`, `attempt` (counting every request of the call), `model` (the alias asked, or `null` for the default model), `prompt`, `answer`, `tokens`, `cost` (`null` when unknown), `error` (why it was rejected), `leaves` of the decoded output |
 | `tool_call` | `started`, `tool`, `function`, `site`, `args`, `digests` of the args, `error`, `leaves` of the result |
 | `validate` | `rule`, `site`, `passed`, `leaves` of the checked value |
 | `approve` | `site`, `approved`, `leaves` |
@@ -173,6 +174,52 @@ runs the triage and support examples (`tests/live`) with `WARD_LIVE_MODEL`, defa
 A function with a `budget` runs inside `wardscript._rt.budget(...)`, which charges
 every model call made while it runs, in callees too. Going over raises
 `BudgetExceeded`; see [effects](effects.md#budgets) for when each resource is checked.
+
+## Model policies
+
+An `ai fn` can say which models it asks and how it retries them:
+
+```ward
+ai fn triage(email: Untrusted<String>) -> Ticket
+    model {primary: fast, fallback: [smart, backup], retries: 2, backoff: 0.5}
+{
+    "..."
+}
+```
+
+| Setting | Value | Default |
+|---|---|---|
+| `primary` | the alias of the model asked first | the configured `model` |
+| `fallback` | an alias, or a list of them, tried in order | none |
+| `retries` | retries of a request that failed with a retryable `ModelError` | `configure(model_retries=...)`, 2 |
+| `backoff` | seconds before the first such retry; each next one waits twice as long | `configure(backoff=...)`, 1.0 |
+
+Aliases are bound at run time: `configure(models={"fast": ..., "smart": ...})`
+(`ward run --model fast=anthropic:<model>`; aliases left out use the plain
+`--model`, and `--mock` answers for all of them). An alias that isn't configured
+raises `NoModelError`. Mistakes in the clause itself are W0230 and W0231.
+
+Each model in turn:
+
+1. A request that fails with a retryable `ModelError` (`RateLimited`,
+   `ModelUnavailable`) is sent again after the backoff, up to `retries` times.
+2. An answer that doesn't fit the return type is retried with the error, as always
+   (`configure(retries=...)`).
+3. When the model keeps failing, or its answers stay invalid, the next one is
+   tried. A `ModelError` that isn't retryable (a rejected request) moves on at
+   once.
+
+When every model fails, the last one's error is raised: its `ModelError`, or
+`AiOutputError`. Other exceptions from a model aren't retried. The providers turn
+their SDK's errors into `ModelError`s by HTTP status, and turn off the SDK's own
+retries so the policy decides.
+
+Every request counts against budgets: `calls` before it is sent, so a retry over
+the limit is never sent; `tokens` and `cost` from the model that answered (a failed
+request costs nothing); and the [unknown cost](#unknown-cost) check applies to each
+model. Backoff sleeps count against `time`. Each request is an `ai_call` in the
+trace, with its `model` and, for a failed one, its error. The mock model raises
+exceptions given as answers, e.g. `Seq(RateLimited("429"), answer)`.
 
 ### Unknown cost
 

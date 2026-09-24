@@ -236,3 +236,34 @@ fn run_connects_to_mcp_servers() {
     assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
     assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "3");
 }
+
+#[test]
+fn run_answers_every_model_alias_from_the_mock() {
+    let answers = mock("fallback.json", r#"{"summarize": "short"}"#);
+    let out = common::ward(&[
+        "run",
+        "tests/e2e/fallback.ward",
+        "digest",
+        "\"a long text\"",
+        "--mock",
+        &answers,
+        "--no-trace",
+    ]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+    assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "\"short\"");
+}
+
+#[test]
+fn run_rejects_an_unused_model_alias() {
+    let out = common::ward(&[
+        "run",
+        "tests/e2e/fallback.ward",
+        "digest",
+        "\"a long text\"",
+        "--model",
+        "fastest=anthropic",
+        "--no-trace",
+    ]);
+    assert_eq!(out.status.code(), Some(2), "{}", common::render(&out));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("alias `fastest`"));
+}

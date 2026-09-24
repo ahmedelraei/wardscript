@@ -58,9 +58,11 @@ enum Command {
         #[arg(long, conflicts_with = "model")]
         mock: Option<PathBuf>,
         /// Answer `ai fn` calls with a real model: `anthropic`, `anthropic:<model>` or
-        /// `openai:<model>`. Needs the provider's SDK and API key.
+        /// `openai:<model>`. Needs the provider's SDK and API key. Repeat as
+        /// `alias=<provider>:<model>` for the aliases in `model {...}` clauses; aliases
+        /// left out use the plain `--model`.
         #[arg(long)]
-        model: Option<String>,
+        model: Vec<String>,
         /// Where to write the run's audit trace
         #[arg(long, default_value = ".ward/traces")]
         trace_dir: PathBuf,
@@ -242,7 +244,7 @@ fn build(file: &Path, target: Target, out: &Path, asyncio: bool) -> ExitCode {
 
 struct RunOptions {
     mock: Option<PathBuf>,
-    model: Option<String>,
+    model: Vec<String>,
     trace_dir: Option<PathBuf>,
 }
 
@@ -329,8 +331,17 @@ fn run(file: &Path, function: &str, args: &[String], opts: &RunOptions) -> ExitC
     if let Some(mock) = &mock {
         cmd.env("WARD_MOCK", mock);
     }
-    if let Some(model) = &opts.model {
-        cmd.env("WARD_MODEL", model);
+    if !opts.model.is_empty() {
+        // `{"": default, "alias": spec}`
+        let specs: serde_json::Map<String, serde_json::Value> = opts
+            .model
+            .iter()
+            .map(|m| match m.split_once('=') {
+                Some((alias, spec)) => (alias.to_owned(), spec.into()),
+                None => (String::new(), m.as_str().into()),
+            })
+            .collect();
+        cmd.env("WARD_MODEL", serde_json::Value::Object(specs).to_string());
     }
     if let Some(dir) = &trace_dir {
         cmd.env("WARD_TRACE_DIR", dir);

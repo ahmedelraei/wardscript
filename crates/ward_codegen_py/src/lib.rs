@@ -458,16 +458,29 @@ pub fn runner(program: &Program, function: &str) -> Option<Runner> {
         .iter()
         .map(|&t| if t { "True" } else { "False" })
         .collect();
+    // Every model alias the program's `model {...}` clauses use.
+    let mut aliases: Vec<&str> = program
+        .modules
+        .iter()
+        .flat_map(|m| &m.fns)
+        .filter_map(|f| f.model.as_ref())
+        .flat_map(|p| p.models.iter().flatten())
+        .map(String::as_str)
+        .collect();
+    aliases.sort_unstable();
+    aliases.dedup();
+    let aliases: Vec<String> = aliases.into_iter().map(names::string).collect();
     let mut script = String::from(RUNNER_PRELUDE);
     for line in scope.import_lines() {
         let _ = writeln!(script, "{line}");
     }
     let _ = write!(
         script,
-        "\nsys.exit(main({}, {target}, [{}], [{}]))\n",
+        "\nsys.exit(main({}, {target}, [{}], [{}], [{}]))\n",
         names::string(function),
         params.join(", "),
-        trusted.join(", ")
+        trusted.join(", "),
+        aliases.join(", ")
     );
     Some(Runner {
         script,
@@ -484,9 +497,9 @@ from wardscript.mock import MockModel
 
 
 # Arguments on the command line come from whoever runs it, so they're vouched for.
-def main(name, fn, params, trusted):
+def main(name, fn, params, trusted, aliases):
     mock = os.environ.get("WARD_MOCK")
-    model = os.environ.get("WARD_MODEL")
+    specs = json.loads(os.environ.get("WARD_MODEL") or "{}")
     mcp_config = os.environ.get("WARD_MCP_CONFIG")
     if mcp_config:
         from wardscript import mcp
@@ -494,15 +507,29 @@ def main(name, fn, params, trusted):
         runtime.configure(tools=mcp.load_config(mcp_config))
     if mock:
         with open(mock, encoding="utf-8") as f:
-            runtime.configure(model=MockModel.from_json(f.read()))
-    elif model:
+            model = MockModel.from_json(f.read())
+        # The mock answers for every alias.
+        runtime.configure(model=model, models={a: model for a in aliases})
+    elif specs:
         from wardscript.providers import load
 
+        for alias in specs:
+            if alias and alias not in aliases:
+                print(f"error: no `model {{...}}` clause uses the alias `{alias}`", file=sys.stderr)
+                return 2
+        loaded = {}
         try:
-            runtime.configure(model=load(model))
+            for alias in ["", *aliases]:
+                spec = specs.get(alias) or specs.get("")
+                if spec and spec not in loaded:
+                    loaded[spec] = load(spec)
         except (ImportError, ValueError) as e:
-            print(f"error: model `{model}`: {e}", file=sys.stderr)
+            print(f"error: model `{spec}`: {e}", file=sys.stderr)
             return 2
+        runtime.configure(
+            model=loaded.get(specs.get("")),
+            models={a: loaded[s] for a in aliases if (s := specs.get(a) or specs.get(""))},
+        )
     try:
         return call(name, fn, params, trusted)
     finally:

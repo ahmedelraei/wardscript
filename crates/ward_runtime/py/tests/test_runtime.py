@@ -544,10 +544,15 @@ class Cores(unittest.TestCase):
             self.assertEqual(json.dumps(rust), json.dumps(py))
 
     def test_otlp(self):
-        runtime.configure(model=MockModel({"f": Usage(1, tokens=10, cost=0.5)}), approver=lambda r: False)
+        runtime.configure(
+            model=MockModel({"f": Usage(1, tokens=10, cost=0.5)}),
+            models={"fast": MockModel({"f": Usage(2, tokens=5, cost=None)})},
+            approver=lambda r: False,
+        )
         try:
             with _rt.call("f", [("x", 1)]):
                 _rt.ai("f", "p", _rt.Int)
+                _rt.ai("f", "p", _rt.Int, models=("fast",))
                 _rt.approve(1, "a.ward:1:1")
         except ApprovalDenied:
             pass

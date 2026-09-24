@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use ward_syntax::ast::{ExprId, ExprKind, FnBody, Item, Lit, TemplatePart};
+use ward_syntax::ast::{ExprId, ExprKind, FnBody, Item, Lit, ModelValue, TemplatePart};
 use ward_syntax::lexer::{TokenKind as T, lex};
 use ward_syntax::printer::{print, print_expr_parenthesized};
 use ward_syntax::{Parse, parse};
@@ -391,4 +391,38 @@ fn annotations() {
     assert_eq!(codes("@allow(a = b)\nfn f() {}\n"), ["W0010"]);
     assert_eq!(codes("@allow(a = \"{x}\")\nfn f() {}\n"), ["W0022"]);
     assert_eq!(codes("@\nfn f() {}\n"), ["W0010"]);
+}
+
+#[test]
+fn model_clause() {
+    let src = "ai fn f(x: String) -> String\n    budget {calls: 4}\n    model {primary: fast, fallback: [smart, backup], retries: 2, backoff: 0.5}\n{\n    \"{x}\"\n}\n";
+    let parse = parse_ok(src);
+    let Some(Item::Fn(f)) = parse.module.items.first() else {
+        panic!("expected a function");
+    };
+    let Some(model) = &f.model else {
+        panic!("expected a model clause");
+    };
+    let names: Vec<&str> = model.entries.iter().map(|e| e.name.name.as_str()).collect();
+    assert_eq!(names, ["primary", "fallback", "retries", "backoff"]);
+    assert!(matches!(&model.entries[1].value, ModelValue::Names(v, _) if v.len() == 2));
+    assert!(matches!(&model.entries[3].value, ModelValue::Number(n, _) if n == "0.5"));
+    assert_eq!(assert_round_trips(src), src);
+
+    // `model` is still a name everywhere else.
+    parse_ok("fn model(model: Int) -> Int {\n    let model = model\n    model\n}\n");
+    assert_eq!(
+        codes(
+            "ai fn f() -> Int\n    model {primary: fast}\n    model {retries: 1}\n{\n    \"x\"\n}\n"
+        ),
+        ["W0018"]
+    );
+    assert_eq!(
+        codes("ai fn f() -> Int\n    model {primary: \"fast\"}\n{\n    \"x\"\n}\n"),
+        ["W0010"]
+    );
+    assert_eq!(
+        codes("ai fn f() -> Int\n    model {primary fast}\n{\n    \"x\"\n}\n"),
+        ["W0010"]
+    );
 }

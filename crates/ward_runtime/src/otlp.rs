@@ -61,6 +61,7 @@ pub fn export(records: &[Record]) -> Value {
                 started,
                 function,
                 attempt,
+                model,
                 tokens,
                 cost,
                 error,
@@ -69,6 +70,9 @@ pub fn export(records: &[Record]) -> Value {
                 let attributes: Vec<Value> = [
                     Some(attr("ward.attempt", json!(attempt))),
                     Some(attr("gen_ai.usage.total_tokens", json!(tokens))),
+                    model
+                        .as_ref()
+                        .map(|m| attr("gen_ai.request.model", json!(m))),
                     cost.map(|c| attr("ward.cost", json!(c))),
                 ]
                 .into_iter()

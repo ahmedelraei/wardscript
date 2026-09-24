@@ -7,7 +7,7 @@ import json
 from typing import Any, Iterator
 
 from ..model import AiRequest, Completion
-from . import cost, object_schema, prompt_text
+from . import cost, object_schema, prompt_text, provider_errors
 
 
 class OpenAI:
@@ -18,11 +18,12 @@ class OpenAI:
         prices: tuple[float, float] | None = None,
         client: Any = None,
     ) -> None:
-        """`client` defaults to `openai.OpenAI()`, which reads `OPENAI_API_KEY`."""
+        """`client` defaults to `openai.OpenAI()`, which reads `OPENAI_API_KEY`, without
+        the SDK's own retries: the runtime retries by the `ai fn`'s model policy."""
         if client is None:
             import openai
 
-            client = openai.OpenAI()
+            client = openai.OpenAI(max_retries=0)
         self.client = client
         self.model = model
         self.prices = prices
@@ -52,11 +53,16 @@ class OpenAI:
         )
 
     def complete(self, request: AiRequest) -> Completion:
-        response = self.client.chat.completions.create(**self._request(request))
+        with provider_errors():
+            response = self.client.chat.completions.create(**self._request(request))
         return self._completion(response.choices[0].message.content or "", response.usage)
 
     def stream(self, request: AiRequest) -> Iterator[str | Completion]:
         """Yields the answer's JSON (`{"value": ...}`) as it arrives, then the answer."""
+        with provider_errors():
+            yield from self._stream(request)
+
+    def _stream(self, request: AiRequest) -> Iterator[str | Completion]:
         chunks = self.client.chat.completions.create(
             **self._request(request), stream=True, stream_options={"include_usage": True}
         )

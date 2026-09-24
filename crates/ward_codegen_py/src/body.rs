@@ -161,8 +161,29 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 } else {
                     "_rt.ai"
                 };
+                let mut policy = String::new();
+                if let Some(m) = &f.model {
+                    if m.models.len() > 1 || m.models.first().is_some_and(Option::is_some) {
+                        let models: Vec<String> = m
+                            .models
+                            .iter()
+                            .map(|a| a.as_deref().map_or("None".to_owned(), names::string))
+                            .collect();
+                        let models = match models.len() {
+                            1 => format!("({},)", models[0]),
+                            _ => format!("({})", models.join(", ")),
+                        };
+                        policy.push_str(&format!(", models={models}"));
+                    }
+                    if let Some(r) = m.retries {
+                        policy.push_str(&format!(", retries={r}"));
+                    }
+                    if let Some(b) = m.backoff {
+                        policy.push_str(&format!(", backoff={b:?}"));
+                    }
+                }
                 self.line(format!(
-                    "return {call}({}, {}, {returns})",
+                    "return {call}({}, {}, {returns}{policy})",
                     names::string(&f.name),
                     prompt.text
                 ));

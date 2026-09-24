@@ -89,6 +89,8 @@ See [effects](effects.md).
 | W0220 | Rule of Two: untrusted input, private reads and external changes in one function |
 | W0221 | invalid annotation, or `@allow` without a reason |
 | W0222 | *warning*: `@allow(rule_of_two)` on a function that doesn't need it |
+| W0230 | invalid `model` clause: unknown setting, wrong kind of value, a setting or model listed twice |
+| W0231 | `model` clause on a function that isn't an `ai fn` |
 
 ## W03xx: tools
 

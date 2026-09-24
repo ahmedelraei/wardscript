@@ -109,6 +109,15 @@ pub struct Tool {
     pub source: String,
 }
 
+/// Which models an `ai fn` asks, in order, and how it retries provider errors. `None`
+/// in `models` is the runtime's default model.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ModelPolicy {
+    pub models: Vec<Option<String>>,
+    pub retries: Option<u32>,
+    pub backoff: Option<f64>,
+}
+
 /// A tool function's schema, as the runtime needs it.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ToolSchema {
@@ -132,6 +141,8 @@ pub struct Fn {
     pub trusted: Vec<bool>,
     /// `budget {...}` limits, checked by the runtime: `tokens`, `calls`, `cost`, `time`.
     pub budget: Vec<(String, BudgetValue)>,
+    /// An `ai fn`'s `model {...}` clause.
+    pub model: Option<ModelPolicy>,
     pub ret: Ty,
     pub throws: Option<Ty>,
     pub locals: Arena<Local>,

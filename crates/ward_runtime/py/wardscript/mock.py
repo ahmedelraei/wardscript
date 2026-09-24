@@ -40,8 +40,9 @@ class Seq:
 class MockModel:
     """Answers each `ai fn` from `answers`, keyed by function name. An answer is a
     value (encoded as JSON, so records and enums work), a `Raw` text, a `Seq` of
-    answers, a `Usage` with what the answer cost, or a callable taking the `AiRequest`
-    and returning one of those."""
+    answers, a `Usage` with what the answer cost, an exception to raise (like
+    `RateLimited("slow down")`, to test retries and fallbacks), or a callable taking
+    the `AiRequest` and returning one of those."""
 
     def __init__(self, answers: Mapping[str, Any] | None = None) -> None:
         self.answers = dict(answers or {})
@@ -66,6 +67,9 @@ class MockModel:
         return Completion(answer, None, 0.0) if isinstance(answer, str) else answer
 
     def _text(self, request: AiRequest, answer: Any) -> str | Completion:
+        if isinstance(answer, BaseException):
+            # E.g. `Seq(RateLimited("slow down"), answer)`: the provider fails first.
+            raise answer
         if isinstance(answer, Seq):
             n = self._next.get(request.function, 0)
             if n >= len(answer.answers):

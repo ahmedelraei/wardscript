@@ -111,7 +111,7 @@ def _new_run_id() -> str:
 _EVENTS = {
     "run_start": ("function", "args"),
     "run_end": ("status", "error", "tokens", "calls", "cost"),
-    "ai_call": ("started", "function", "attempt", "prompt", "answer", "tokens", "cost", "error", "leaves"),
+    "ai_call": ("started", "function", "attempt", "model", "prompt", "answer", "tokens", "cost", "error", "leaves"),
     "tool_call": ("started", "tool", "function", "site", "args", "digests", "error", "leaves"),
     "validate": ("rule", "site", "passed", "leaves"),
     "approve": ("site", "approved", "leaves"),
@@ -200,6 +200,8 @@ def otlp(records: str) -> str:
                     _attr("ward.attempt", r["attempt"]),
                     _attr("gen_ai.usage.total_tokens", r["tokens"]),
                 ]
+                if r["model"] is not None:
+                    attrs.append(_attr("gen_ai.request.model", r["model"]))
                 if r["cost"] is not None:
                     attrs.append(_attr("ward.cost", r["cost"]))
             else:

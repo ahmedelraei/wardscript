@@ -50,6 +50,32 @@ pub fn lower(analysis: &Analysis) -> Result<Program, LowerError> {
     Ok(Program { modules })
 }
 
+fn model_policy(clause: &ast::ModelClause) -> ModelPolicy {
+    let mut primary = None;
+    let mut fallback = Vec::new();
+    let mut policy = ModelPolicy::default();
+    for e in &clause.entries {
+        let number = match &e.value {
+            ast::ModelValue::Number(text, _) => Some(text.replace('_', "")),
+            _ => None,
+        };
+        match (e.name.name.as_str(), &e.value) {
+            ("primary", ast::ModelValue::Name(n)) => primary = Some(n.name.clone()),
+            ("fallback", ast::ModelValue::Name(n)) => fallback = vec![n.name.clone()],
+            ("fallback", ast::ModelValue::Names(ns, _)) => {
+                fallback = ns.iter().map(|n| n.name.clone()).collect();
+            }
+            ("retries", _) => policy.retries = number.and_then(|n| n.parse().ok()),
+            ("backoff", _) => policy.backoff = number.and_then(|n| n.parse().ok()),
+            _ => {}
+        }
+    }
+    policy.models = std::iter::once(primary)
+        .chain(fallback.into_iter().map(Some))
+        .collect();
+    policy
+}
+
 fn lower_module(
     program: &ward_resolve::Program,
     m: ModuleId,
@@ -173,8 +199,10 @@ fn lower_module(
                         Ok((e.name.name.clone(), value))
                     })
                     .collect::<Result<_, LowerError>>()?;
+                let model = f.model.as_ref().map(model_policy);
                 module.fns.push(Fn {
                     budget,
+                    model,
                     def,
                     name: f.name.name.clone(),
                     is_pub: f.is_pub,
