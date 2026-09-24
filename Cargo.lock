@@ -801,6 +801,7 @@ dependencies = [
  "ward_check",
  "ward_codegen_py",
  "ward_ir",
+ "ward_lsp",
  "ward_resolve",
  "ward_runtime",
  "ward_syntax",
@@ -819,6 +820,16 @@ version = "0.0.1"
 dependencies = [
  "la-arena",
  "thiserror",
+ "ward_check",
+ "ward_resolve",
+ "ward_syntax",
+]
+
+[[package]]
+name = "ward_lsp"
+version = "0.0.1"
+dependencies = [
+ "serde_json",
  "ward_check",
  "ward_resolve",
  "ward_syntax",

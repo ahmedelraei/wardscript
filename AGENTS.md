@@ -19,6 +19,7 @@ crates/
   ward_ir          # WIR: fully typed IR with explicit labels + provenance metadata
   ward_codegen_py  # WIR -> Python (+ .pyi stubs)
   ward_runtime     # runtime core (Rust) + bindings: py/ (PyO3/maturin), node/ (napi-rs, later)
+  ward_lsp         # language server (`ward lsp`)
   ward_cli         # `ward` binary
 tests/
   ui/            # .ward programs + expected diagnostics (insta snapshots)
@@ -26,6 +27,7 @@ tests/
   e2e/           # build to Python, run with a mocked LLM, check the output
 examples/
 docs/spec/       # language spec, kept up to date with the implementation
+editors/vscode/  # VS Code extension: grammar + `ward lsp` client
 ```
 
 ## Rules

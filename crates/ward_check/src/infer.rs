@@ -223,32 +223,7 @@ impl Cx<'_, '_> {
     }
 
     fn show(&self, t: &Ty) -> String {
-        match self.u.resolve(t) {
-            Ty::Int => "Int".into(),
-            Ty::Float => "Float".into(),
-            Ty::String => "String".into(),
-            Ty::Bool => "Bool".into(),
-            Ty::Unit => "()".into(),
-            Ty::Never => "never".into(),
-            Ty::List(t) => format!("List<{}>", self.show(&t)),
-            Ty::Option(t) => format!("Option<{}>", self.show(&t)),
-            Ty::Map(k, v) => format!("Map<{}, {}>", self.show(&k), self.show(&v)),
-            Ty::Adt(d, args) => {
-                let name = item_name(self.c.program.item(d));
-                if args.is_empty() {
-                    name.to_owned()
-                } else {
-                    let args: Vec<String> = args.iter().map(|a| self.show(a)).collect();
-                    format!("{name}<{}>", args.join(", "))
-                }
-            }
-            Ty::Param(i) => self.generics.get(i).cloned().unwrap_or_else(|| "?".into()),
-            Ty::Var(_) => "_".into(),
-            Ty::Dynamic => "dynamic".into(),
-            Ty::Error => "{unknown}".into(),
-            // `resolve` drops refinements.
-            Ty::Refined(t, _) => self.show(&t),
-        }
+        self.u.resolve(t).display(self.c.program, &self.generics)
     }
 
     fn coerce(&mut self, found: &Ty, expected: &Ty, span: Span) -> bool {

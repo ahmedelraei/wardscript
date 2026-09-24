@@ -67,6 +67,12 @@ cargo run -p ward_cli -- lock examples/inbox/mcp.json       # pin the MCP server
 cargo run -p ward_cli -- test examples/triage.wardscript      # replay the recorded tests
 ```
 
+## Editor support
+
+`ward lsp` is a language server: diagnostics as you type, types on hover, and go to
+definition. [editors/vscode](editors/vscode) is a VS Code extension with
+highlighting that starts it; other editors can run `ward lsp` over stdio.
+
 ## License
 
 Licensed under either of

@@ -1,0 +1,17 @@
+[package]
+name = "ward_lsp"
+description = "The Wardscript language server: diagnostics, hover and go-to-definition."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde_json.workspace = true
+ward_syntax.workspace = true
+ward_resolve.workspace = true
+ward_check.workspace = true
+
+[lints]
+workspace = true

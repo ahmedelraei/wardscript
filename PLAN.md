@@ -164,7 +164,7 @@ BAML defines tests in its files and runs them with `baml-cli test`.
 - Typed streaming of partial decoded values (BAML has it; text streaming already exists, see decision 010).
 - TypeScript backend (`ward_codegen_ts`) + napi-rs runtime binding.
 - AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility).
-- LSP (`tower-lsp`) + VS Code extension (syntax highlighting for `.ward`).
+- [x] LSP (`ward lsp`: diagnostics, hover, go to definition) + VS Code extension (`editors/vscode`); decision 016.
 - `salsa` for incremental checking.
 - WASM backend via `wasm-encoder` (sandboxed execution).
 
