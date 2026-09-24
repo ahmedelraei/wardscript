@@ -527,6 +527,7 @@ impl FnLower<'_> {
                     tool,
                     name: name.name.clone(),
                     args: self.exprs(args)?,
+                    site: self.site(span),
                 }
             }
             _ => return Err(self.bug("call of something that isn't a function")),

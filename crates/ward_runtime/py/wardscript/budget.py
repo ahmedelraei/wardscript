@@ -1,47 +1,24 @@
 """Budget counters. A function declared with `budget {...}` runs inside `budget()`;
 every model call is charged to all the budgets active around it, and the run stops
-with `BudgetExceeded` as soon as one is used up."""
+with `BudgetExceeded` as soon as one is used up. The counting is the runtime core's."""
 
 from __future__ import annotations
 
 import contextlib
 import contextvars
-import time
-from dataclasses import dataclass, field
-from typing import Iterator
+from typing import Any, Iterator
 
+from . import audit, core
 from .errors import BudgetExceeded
 
-
-@dataclass
-class Budget:
-    function: str
-    #: `tokens`, `calls`, `cost` (dollars) and `time` (seconds); missing means unlimited.
-    limits: dict[str, float]
-    used: dict[str, float] = field(default_factory=lambda: {"tokens": 0, "calls": 0, "cost": 0.0})
-    started: float = field(default_factory=time.monotonic)
-
-    def elapsed(self) -> float:
-        return time.monotonic() - self.started
-
-    def check(self) -> None:
-        for resource in ("tokens", "calls", "cost"):
-            limit = self.limits.get(resource)
-            if limit is not None and self.used[resource] > limit:
-                raise BudgetExceeded(self.function, resource, limit, self.used[resource])
-        limit = self.limits.get("time")
-        if limit is not None and self.elapsed() > limit:
-            raise BudgetExceeded(self.function, "time", limit, self.elapsed())
-
-
-_active: contextvars.ContextVar[tuple[Budget, ...]] = contextvars.ContextVar(
+_active: contextvars.ContextVar[tuple[Any, ...]] = contextvars.ContextVar(
     "wardscript_budgets", default=()
 )
 
 
 @contextlib.contextmanager
-def budget(function: str, **limits: float) -> Iterator[Budget]:
-    b = Budget(function, dict(limits))
+def budget(function: str, **limits: float) -> Iterator[Any]:
+    b = core.Budget(function, **limits)
     token = _active.set((*_active.get(), b))
     try:
         yield b
@@ -49,26 +26,31 @@ def budget(function: str, **limits: float) -> Iterator[Budget]:
         _active.reset(token)
 
 
-def active() -> tuple[Budget, ...]:
+def active() -> tuple[Any, ...]:
     return _active.get()
+
+
+def _raise(b: Any, over: tuple[str, float, float] | None) -> None:
+    if over is not None:
+        resource, limit, used = over
+        audit.record(
+            "budget_exceeded", function=b.function, resource=resource, limit=limit, used=used
+        )
+        raise BudgetExceeded(b.function, resource, limit, used)
 
 
 def check_time() -> None:
     for b in _active.get():
-        if "time" in b.limits:
-            b.check()
+        _raise(b, b.check_time())
 
 
 def before_model_call() -> None:
     """Charges one call, refusing it if that goes over a `calls` budget."""
     for b in _active.get():
-        b.used["calls"] += 1
-        b.check()
+        _raise(b, b.charge_call())
 
 
 def after_model_call(tokens: int, cost: float) -> None:
-    for b in _active.get():
-        b.used["tokens"] += tokens
-        b.used["cost"] += cost
-    for b in _active.get():
-        b.check()
+    overs = [(b, b.charge_usage(tokens, cost)) for b in _active.get()]
+    for b, over in overs:
+        _raise(b, over)

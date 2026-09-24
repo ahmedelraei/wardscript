@@ -6,9 +6,22 @@ requires-python = ">=3.10"
 license = "MIT OR Apache-2.0"
 dependencies = []
 
-[build-system]
-requires = ["setuptools>=77"]
-build-backend = "setuptools.build_meta"
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40"]
+openai = ["openai>=1.40"]
 
-[tool.setuptools]
-packages = ["wardscript"]
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+# The Rust core (`wardscript._core`) is the `ward_runtime_py` crate. Without it, the
+# package uses `wardscript/_core_py.py` instead.
+[tool.maturin]
+manifest-path = "../../ward_runtime_py/Cargo.toml"
+module-name = "wardscript._core"
+python-source = "."
+python-packages = ["wardscript"]
+features = ["extension-module"]
+# The macOS 27 `strip` corrupts the library ("mis-aligned LINKEDIT string pool" when it
+# loads), and release builds strip debug info by default.
+config = ["profile.release.strip=false"]

@@ -1,28 +1,43 @@
 # Python backend and runtime
 
 Status: implemented in M3 (`ward_ir`, `ward_codegen_py`, `crates/ward_runtime/py`);
-trust at the host boundary in M4, budgets in M5. The audit trace (M6) isn't
-written yet. The design is recorded in
-[decision 006](../decisions/006-python-backend.md).
+trust at the host boundary in M4, budgets in M5; the Rust core, audit trace and
+model providers in M6. The design is recorded in decisions
+[006](../decisions/006-python-backend.md) and
+[009](../decisions/009-runtime-core-and-trace.md).
 
 ## Building
 
 ```bash
 ward build app.wardscript -o build      # build/app.py, build/app.pyi
 ward run app.wardscript route '"an email"' --mock answers.json
+ward run app.wardscript route '"an email"' --model anthropic
+ward trace show                         # the latest run's trace
 ```
 
 `ward build --target python` writes one `.py` module and one `.pyi` stub per
 Wardscript module; `import support.tickets` becomes `build/support/tickets.py`.
-Generated code needs Python 3.10+ and the `wardscript` runtime package
-(`crates/ward_runtime/py`) on the import path.
+Generated code needs Python 3.10+ and the `wardscript` runtime package. Build and
+install it with its Rust core:
+
+```bash
+cd crates/ward_runtime/py && maturin build --release -o dist && pip install dist/*.whl
+```
+
+The package also works from source (`crates/ward_runtime/py` on the import path),
+with a pure-Python core instead of the Rust one; `wardscript.core.IMPLEMENTATION`
+says which is in use. Both write the same traces, and tests check they agree.
 
 `ward run FILE FUNCTION ARGS...` builds to a temporary directory and calls a
 function of the entry module. Arguments are JSON values, decoded by the
 parameters' types; the result is printed as JSON. `--mock FILE` answers `ai fn`
-calls from a JSON object keyed by function name. Arguments come from whoever runs
-the command, so `ward run` vouches for them (see below). `ward run` embeds the
-runtime, so it doesn't need the package installed. It uses `python3`, or `WARD_PYTHON`.
+calls from a JSON object keyed by function name; `--model anthropic`,
+`anthropic:<model>` or `openai:<model>` uses a real model instead
+([providers](#model-providers)). Arguments come from whoever runs the command, so
+`ward run` vouches for them (see below). The run's audit trace goes to
+`.ward/traces` (`--trace-dir DIR`, or `--no-trace`), and its id is printed on stderr.
+`ward run` embeds the runtime (with the pure-Python core), so it doesn't need the
+package installed. It uses `python3`, or `WARD_PYTHON`.
 
 ## Values
 
@@ -75,6 +90,70 @@ catches:
 | `PanicError` | integer division by zero, an index out of bounds, a missing map key |
 | `DecodeError` | a JSON value doesn't match a type (`ward run` arguments, `wardscript.decode`) |
 
+## The audit trace
+
+A **run** is one call from the host into Wardscript; calls between Wardscript
+functions are part of it. Each run gets an id (sortable by start time) and a trace:
+one JSON object per line, in `<trace_dir>/<run>.jsonl`, written as events happen.
+
+Every record has `run`, `seq`, `time` (Unix nanoseconds) and a `kind`:
+
+| `kind` | Fields |
+|---|---|
+| `run_start` | `function`; `args`, each with `name`, `value`, `vouched` and `leaves` |
+| `ai_call` | `started`, `function`, `attempt`, `prompt`, `answer`, `tokens`, `cost`, `error` (why it was rejected), `leaves` of the decoded output |
+| `tool_call` | `started`, `tool`, `function`, `site`, `args`, `digests` of the args, `error`, `leaves` of the result |
+| `validate` | `rule`, `site`, `passed`, `leaves` of the checked value |
+| `approve` | `site`, `approved`, `leaves` |
+| `declassify` | `site`, `reason`, `leaves` |
+| `budget_exceeded` | `function`, `resource`, `limit`, `used` |
+| `run_end` | `status` (`ok`, `threw`, `error`), `error`, and the run's `tokens`, `calls`, `cost` |
+
+`leaves` are `{path, digest}` for a value and each of its parts (`$`, `$.subject`,
+`$.items[0]`); a digest is FNV-1a 64 of the value's canonical JSON. They let
+`ward trace show` link a value that reached a tool back through the check that
+cleared it to where it came from, without the trace holding more than the events:
+
+```text
+#4   tool   `gmail.send` at support.wardscript:61:9
+         arg 1: "ada@example.com" ← argument `to` from the host, vouched for by the host
+         arg 2: "Your refund" ← $.subject of a value approved by a human (#3, support.wardscript:60:24) ← that value: the output of `ai fn draft_reply` (#2), untrusted
+```
+
+A value computed from several sources (a concatenation) has no exact match, and is
+shown as such. `ward trace show [RUN]` takes a run id or a unique prefix, and shows
+the latest run without one; `ward trace export [RUN] --format otlp` prints the run
+as OpenTelemetry spans in OTLP/JSON (the run is the root span, model and tool calls
+its children, and checks, approvals and declassifications events on the root),
+`--format jsonl` the trace as written. Both read `--dir`, else `WARD_TRACE_DIR`,
+else `.ward/traces`.
+
+## Model providers
+
+`wardscript.providers` has `Model`s for real APIs, which report the tokens used (and,
+given prices, the cost) to budgets:
+
+```python
+from wardscript.providers.anthropic import Anthropic
+from wardscript.providers.openai import OpenAI
+
+runtime.configure(model=Anthropic("claude-sonnet-5", prices=(3.0, 15.0)))
+runtime.configure(model=OpenAI("<model>", prices=(..., ...)))
+```
+
+- `Anthropic` gives the return type's schema as a tool the model must call; `OpenAI`
+  gives it as a JSON-schema response format. Either way the answer is still decoded
+  and retried as usual.
+- `prices` are dollars per million input and output tokens. Without them, calls
+  cost 0 and `cost` budgets never run out.
+- They need the SDK (`pip install wardscript[anthropic]` or `[openai]`) and read
+  `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`; `client=` takes a configured client.
+- `providers.load("anthropic:claude-sonnet-5")` is what `ward run --model` uses.
+
+Tests against real models are opt-in: `WARD_LIVE=1 cargo test -p ward_cli --test live`
+runs the triage and support examples (`tests/live`) with `WARD_LIVE_MODEL`, default
+`anthropic`.
+
 ## Budgets
 
 A function with a `budget` runs inside `wardscript._rt.budget(...)`, which charges
@@ -122,13 +201,18 @@ defaults.
   answer cost, for [budgets](effects.md#budgets). `AiRequest` has the `function` name, the `prompt` with arguments filled in,
   the JSON `schema` of the return type, the `attempt` number and the `errors` of
   earlier attempts; `request.instructions()` combines them into one prompt.
-- **`approver`**: called by `approve(x)` with an `ApprovalRequest(value, site)`;
-  `site` is where `approve` was written, e.g. `support.wardscript:60:24`. Returning
-  `False` raises `ApprovalDenied`.
+- **`approver`**: called by `approve(x)` with an `ApprovalRequest(value, site, run)`;
+  `site` is where `approve` was written, e.g. `support.wardscript:60:24`, and `run`
+  the id of the run's trace. Returning `False` raises `ApprovalDenied`. It may be
+  `async`: the program waits for the coroutine, on its own event loop (in a worker
+  thread if one is already running). A model's `complete` may be `async` too.
 - **`tools`**: implementations for `import mcp "source" as x`, keyed by `source`.
   Each is a mapping of functions or an object with a method per tool function;
   `x.send(a, b)` calls `tools["source"].send(a, b)`.
 - **`retries`**: extra attempts after an invalid model answer (default 2).
+- **`trace_dir`**: where each run's audit trace is written; else `WARD_TRACE_DIR`,
+  else nowhere. `runtime.last_run()` has the last run's `id`, `path` and `records`
+  either way.
 
 ### `ai fn` calls
 

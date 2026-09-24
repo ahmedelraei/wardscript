@@ -2,3 +2,4 @@
 *.snap.new
 *.pending-snap
 .DS_Store
+.ward/

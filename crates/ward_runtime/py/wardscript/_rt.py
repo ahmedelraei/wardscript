@@ -1,5 +1,6 @@
 """Everything generated modules use, under one name: `from wardscript import _rt`."""
 
+from .audit import call
 from .budget import budget
 from .errors import Thrown
 from .runtime import ai, approve, call_tool, declassify, validate
@@ -42,6 +43,7 @@ __all__ = [
     "Unit",
     "ai",
     "budget",
+    "call",
     "approve",
     "call_tool",
     "declassify",

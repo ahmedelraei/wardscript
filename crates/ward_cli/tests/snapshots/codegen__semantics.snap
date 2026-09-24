@@ -100,205 +100,235 @@ Failure.Bad = Failure_Bad
 
 
 def int_div(a: int, b: int) -> int:
-    return _rt.idiv(a, b)
+    with _rt.call("int_div", [("a", a), ("b", b)]):
+        return _rt.idiv(a, b)
 
 
 def int_rem(a: int, b: int) -> int:
-    return _rt.irem(a, b)
+    with _rt.call("int_rem", [("a", a), ("b", b)]):
+        return _rt.irem(a, b)
 
 
 def float_rem(a: float, b: float) -> float:
-    return _rt.frem(a, b)
+    with _rt.call("float_rem", [("a", a), ("b", b)]):
+        return _rt.frem(a, b)
 
 
 def rounded(x: float) -> int:
-    return _rt.round_half_away(x)
+    with _rt.call("rounded", [("x", x)]):
+        return _rt.round_half_away(x)
 
 
 def shadowing() -> int:
-    x = 1
-    x_2 = 10
-    y = x_2 + 1
-    x_3 = x + y
-    return x_3
+    with _rt.call("shadowing", []):
+        x = 1
+        x_2 = 10
+        y = x_2 + 1
+        x_3 = x + y
+        return x_3
 
 
 def keywords(class_: int) -> int:
-    lambda_ = class_ + 1
-    p = Point(x=lambda_, from_=class_)
-    return p.from_ + p.x
+    with _rt.call("keywords", [("class", class_)]):
+        lambda_ = class_ + 1
+        p = Point(x=lambda_, from_=class_)
+        return p.from_ + p.x
 
 
 def bools(a: bool, b: bool) -> str:
-    return f"{_rt.to_str(a)} {_rt.to_str(b)} {_rt.to_str(a == b)}"
+    with _rt.call("bools", [("a", a), ("b", b)]):
+        return f"{_rt.to_str(a)} {_rt.to_str(b)} {_rt.to_str(a == b)}"
 
 
 def compare(a: int, b: int, c: bool) -> bool:
-    return (a == b) == c
+    with _rt.call("compare", [("a", a), ("b", b), ("c", c)]):
+        return (a == b) == c
 
 
 def moved(p: Point) -> Point:
-    q = p
-    q = _dc.replace(q, x=100)
-    return q
+    with _rt.call("moved", [("p", p)]):
+        q = p
+        q = _dc.replace(q, x=100)
+        return q
 
 
 def set_nested(boxes: list[Box[Point]], i: int, v: int) -> list[Box[Point]]:
-    out = boxes
-    out = _rt.list_set(out, i, _dc.replace(_rt.index(out, i), item=_dc.replace(_rt.index(out, i).item, x=v)))
-    return out
+    with _rt.call("set_nested", [("boxes", boxes), ("i", i), ("v", v)]):
+        out = boxes
+        out = _rt.list_set(out, i, _dc.replace(_rt.index(out, i), item=_dc.replace(_rt.index(out, i).item, x=v)))
+        return out
 
 
 def set_key(m: dict[str, int], k: str, v: int) -> dict[str, int]:
-    out = m
-    out = {**out, k: v}
-    return out
+    with _rt.call("set_key", [("m", m), ("k", k), ("v", v)]):
+        out = m
+        out = {**out, k: v}
+        return out
 
 
 def sum_keys(m: dict[str, int]) -> str:
-    keys = ""
-    for k in m:
-        keys = keys + k
-    return keys
+    with _rt.call("sum_keys", [("m", m)]):
+        keys = ""
+        for k in m:
+            keys = keys + k
+        return keys
 
 
 def wrap(x: _T) -> _T | None:
-    return _rt.some(x)
+    with _rt.call("wrap", [("x", x)]):
+        return _rt.some(x)
 
 
 def nested(x: int | None) -> int | None | None:
-    return wrap(x)
+    with _rt.call("nested", [("x", x)]):
+        return wrap(x)
 
 
 def depth(x: int | None | None) -> str:
-    if x is None:
-        return "none"
-    elif x is not None and _rt.unwrap(x) is None:
-        return "some(none)"
-    else:
-        n = _rt.unwrap(x)
-        return f"some(some({n}))"
+    with _rt.call("depth", [("x", x)]):
+        if x is None:
+            return "none"
+        elif x is not None and _rt.unwrap(x) is None:
+            return "some(none)"
+        else:
+            n = _rt.unwrap(x)
+            return f"some(some({n}))"
 
 
 def get_or(xs: list[int], i: int, d: int) -> int:
-    return _rt.unwrap_or(_rt.list_get(xs, i), d)
+    with _rt.call("get_or", [("xs", xs), ("i", i), ("d", d)]):
+        return _rt.unwrap_or(_rt.list_get(xs, i), d)
 
 
 def at(xs: list[int], i: int) -> int:
-    return _rt.index(xs, i)
+    with _rt.call("at", [("xs", xs), ("i", i)]):
+        return _rt.index(xs, i)
 
 
 def area(s: Shape) -> float:
-    if isinstance(s, Shape.Dot):
-        return 0.0
-    elif isinstance(s, Shape.Circle):
-        r = s._0
-        return 3.0 * r * r
-    else:
-        w = s._0
-        h = s._1
-        return w * h
+    with _rt.call("area", [("s", s)]):
+        if isinstance(s, Shape.Dot):
+            return 0.0
+        elif isinstance(s, Shape.Circle):
+            r = s._0
+            return 3.0 * r * r
+        else:
+            w = s._0
+            h = s._1
+            return w * h
 
 
 def classify(n: int, s: str, b: bool) -> str:
-    if n == 0:
-        a = "zero"
-    elif n == 1:
-        a = "one"
-    else:
-        a = "many"
-    if s == "":
-        c = "empty"
-    else:
-        other = s
-        c = other
-    if b:
-        d = "yes"
-    else:
-        d = "no"
-    return f"{a}/{c}/{d}"
+    with _rt.call("classify", [("n", n), ("s", s), ("b", b)]):
+        if n == 0:
+            a = "zero"
+        elif n == 1:
+            a = "one"
+        else:
+            a = "many"
+        if s == "":
+            c = "empty"
+        else:
+            other = s
+            c = other
+        if b:
+            d = "yes"
+        else:
+            d = "no"
+        return f"{a}/{c}/{d}"
 
 
 def check(s: str) -> int:
-    if len(s) == 0:
-        raise _rt.Thrown(Failure.Empty())
-    if not s.startswith("ok"):
-        raise _rt.Thrown(Failure.Bad(s))
-    return len(s)
+    with _rt.call("check", [("s", s)]):
+        if len(s) == 0:
+            raise _rt.Thrown(Failure.Empty())
+        if not s.startswith("ok"):
+            raise _rt.Thrown(Failure.Bad(s))
+        return len(s)
 
 
 def caught(s: str) -> str:
-    try:
-        n = check(s)
-        return f"ok {n}"
-    except _rt.Thrown as _t1:
-        err = _t1.value
-        if isinstance(err, Failure.Empty):
-            return "empty"
-        else:
-            why = err._0
-            return f"bad: {why}"
+    with _rt.call("caught", [("s", s)]):
+        try:
+            n = check(s)
+            return f"ok {n}"
+        except _rt.Thrown as _t1:
+            err = _t1.value
+            if isinstance(err, Failure.Empty):
+                return "empty"
+            else:
+                why = err._0
+                return f"bad: {why}"
 
 
 def thrown(s: str) -> int:
-    return check(s)
+    with _rt.call("thrown", [("s", s)]):
+        return check(s)
 
 
 def short(s: str) -> bool:
-    return len(s) < 5
+    with _rt.call("short", [("s", s)]):
+        return len(s) < 5
 
 
 def validated(s: str) -> str:
-    try:
-        return _rt.validate(s, short, "short")
-    except _rt.Thrown as _t1:
-        err = _t1.value
-        return err
+    with _rt.call("validated", [("s", s)]):
+        try:
+            return _rt.validate(s, short, "short", "semantics.wardscript:175:9")
+        except _rt.Thrown as _t1:
+            err = _t1.value
+            return err
 
 
 def countdown(n: int) -> list[int]:
-    out = []
-    i = n
-    while i > 0:
-        out = [*out, i]
-        i = i - 1
-    return out
+    with _rt.call("countdown", [("n", n)]):
+        out = []
+        i = n
+        while i > 0:
+            out = [*out, i]
+            i = i - 1
+        return out
 
 
 def early(xs: list[int]) -> int:
-    for x in xs:
-        if x < 0:
-            return x
-    return 0
+    with _rt.call("early", [("xs", xs)]):
+        for x in xs:
+            if x < 0:
+                return x
+        return 0
 
 
 def order(c: bool) -> str:
-    _t1 = _rt.call_tool("log", "say", "a")
-    if c:
-        _t2 = _rt.call_tool("log", "say", "b")
-    else:
-        t = _rt.call_tool("log", "say", "c")
-        _t2 = t
-    a = join(_t1, _t2)
-    _t3 = c
-    if not _t3:
-        _rt.call_tool("log", "say", "d")
-        _t3 = True
-    b = _t3
-    return f"{a} {_rt.to_str(b)}"
+    with _rt.call("order", [("c", c)]):
+        _t1 = _rt.call_tool("log", "say", "semantics.wardscript:205:18", "a")
+        if c:
+            _t2 = _rt.call_tool("log", "say", "semantics.wardscript:206:9", "b")
+        else:
+            t = _rt.call_tool("log", "say", "semantics.wardscript:208:17", "c")
+            _t2 = t
+        a = join(_t1, _t2)
+        _t3 = c
+        if not _t3:
+            _rt.call_tool("log", "say", "semantics.wardscript:212:9", "d")
+            _t3 = True
+        b = _t3
+        return f"{a} {_rt.to_str(b)}"
 
 
 def join(a: str, b: str) -> str:
-    return a + b
+    with _rt.call("join", [("a", a), ("b", b)]):
+        return a + b
 
 
 def noop(x: int) -> None:
-    if x > 0:
-        return
+    with _rt.call("noop", [("x", x)]):
+        if x > 0:
+            return
 
 
 def float_div(a: float, b: float) -> float:
-    return _rt.fdiv(a, b)
+    with _rt.call("float_div", [("a", a), ("b", b)]):
+        return _rt.fdiv(a, b)
 
 
 _rt.record(Point, "Point", lambda: [

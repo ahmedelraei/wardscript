@@ -614,13 +614,22 @@ impl<'a, 'p> FnGen<'a, 'p> {
                     .join(", ");
                 Py::atom(format!("{name}({args})"))
             }
-            ExprKind::ToolCall { tool, name, args } => {
+            ExprKind::ToolCall {
+                tool,
+                name,
+                args,
+                site,
+            } => {
                 let source = self
                     .scope
                     .program
                     .tool(*tool)
                     .map_or("?", |t| t.source.as_str());
-                let mut parts = vec![names::string(source), names::string(name)];
+                let mut parts = vec![
+                    names::string(source),
+                    names::string(name),
+                    names::string(&site.to_string()),
+                ];
                 let args = self.args(args);
                 if !args.is_empty() {
                     parts.push(args);
@@ -742,7 +751,7 @@ impl<'a, 'p> FnGen<'a, 'p> {
             | ExprKind::Match { .. }
             | ExprKind::TryCatch { .. }
             | ExprKind::Block(_) => self.hoist(e),
-            ExprKind::Validate { value, rule, .. } => {
+            ExprKind::Validate { value, rule, site } => {
                 let v = self.expr(*value);
                 let mut rule_fn = self.scope.func(*rule);
                 let rule_def = self.scope.program.func(*rule);
@@ -751,9 +760,10 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 }
                 let rule_name = rule_def.map_or("?", |f| f.name.as_str());
                 Py::atom(format!(
-                    "_rt.validate({}, {rule_fn}, {})",
+                    "_rt.validate({}, {rule_fn}, {}, {})",
                     v.at(TERNARY),
-                    names::string(rule_name)
+                    names::string(rule_name),
+                    names::string(&site.to_string())
                 ))
             }
             ExprKind::Approve { value, site } => {
@@ -764,9 +774,16 @@ impl<'a, 'p> FnGen<'a, 'p> {
                     names::string(&site.to_string())
                 ))
             }
-            ExprKind::Declassify { value, reason, .. } => {
+            ExprKind::Declassify {
+                value,
+                reason,
+                site,
+            } => {
                 let args = self.args(&[*value, *reason]);
-                Py::atom(format!("_rt.declassify({args})"))
+                Py::atom(format!(
+                    "_rt.declassify({args}, {})",
+                    names::string(&site.to_string())
+                ))
             }
         }
     }
