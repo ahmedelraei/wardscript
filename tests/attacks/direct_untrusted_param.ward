@@ -1,0 +1,8 @@
+// A parameter declared `Untrusted` goes straight to a sink.
+import mcp "shell" as sh
+
+pub fn run(command: Untrusted<String>)
+    uses {sh.run}
+{
+    sh.run(command)
+}

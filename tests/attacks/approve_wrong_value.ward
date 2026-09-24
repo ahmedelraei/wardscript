@@ -1,0 +1,14 @@
+// Approving one value doesn't make another trusted.
+import mcp "gmail" as mail
+
+ai fn draft(topic: String) -> String {
+    "Write an email about {topic}"
+}
+
+pub fn send(topic: String)
+    uses {llm, mail.send}
+{
+    let text = draft(topic)
+    let approved = approve(text)
+    mail.send("team@example.com", approved, text)
+}

@@ -1,0 +1,8 @@
+// A `Trusted` parameter only accepts trusted data.
+fn deploy(target: Trusted<String>) -> String {
+    "deploying {target}"
+}
+
+pub fn run(target: Untrusted<String>) -> String {
+    deploy(target)
+}

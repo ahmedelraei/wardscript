@@ -3,17 +3,17 @@
 This is the normative description of Wardscript. It is kept in sync with the
 implementation: every language feature lands together with its section here.
 
-Status: **M3 (Python backend and runtime)**.
+Status: **M4 (trust labels)**.
 
 ## Contents
 
 | Section | Status |
 |---|---|
 | [Lexical structure and syntax](syntax.md) | implemented (M1) |
-| [Diagnostics](diagnostics.md) | syntax (M1), names and types (M2) |
+| [Diagnostics](diagnostics.md) | syntax (M1), names and types (M2), trust (M4) |
 | [Names, modules and imports](names.md) | implemented (M2) |
 | [Types](types.md) | implemented (M2) |
-| Trust labels (`Trusted` / `Untrusted`, sources, sinks, `validate` / `approve` / `declassify`) | planned (M4) |
+| [Trust labels](trust.md) (`Trusted` / `Untrusted`, sources, sinks, `validate` / `approve` / `declassify`) | implemented (M4) |
 | Effects, budgets, Rule of Two | planned (M5) |
 | [Python backend and runtime](runtime.md) | implemented (M3); audit trace planned (M6) |
 | MCP imports | planned (M7) |
@@ -26,7 +26,7 @@ it is assigned; retired codes are not reused.
 | Range | Area |
 |---|---|
 | W00xx | syntax ([list](diagnostics.md)) |
-| W010x | names and modules (W0107 reserved: untrusted data reaches a sensitive action) |
+| W010x | names and modules, and W0107: untrusted data reaches a sensitive action |
 | W011x-W012x | types |
 | W02xx | effects, budgets, Rule of Two |
 

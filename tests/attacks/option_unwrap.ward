@@ -1,0 +1,9 @@
+// `Some` and `unwrap_or` keep the label.
+import mcp "shell" as sh
+
+pub fn run(command: Untrusted<String>)
+    uses {sh.run}
+{
+    let maybe = Some(command)
+    sh.run(maybe.unwrap_or("true"))
+}

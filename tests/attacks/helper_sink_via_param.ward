@@ -1,0 +1,20 @@
+// Plain parameters pass on the requirement: `outer`'s caller must pass trusted data.
+import mcp "shell" as sh
+
+fn inner(command: String)
+    uses {sh.run}
+{
+    sh.run(command)
+}
+
+fn outer(command: String)
+    uses {sh.run}
+{
+    inner("nice " + command)
+}
+
+pub fn run(command: Untrusted<String>)
+    uses {sh.run}
+{
+    outer(command)
+}

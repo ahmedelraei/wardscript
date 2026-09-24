@@ -1,0 +1,8 @@
+// A Bool computed from untrusted data is untrusted.
+import mcp "admin" as admin
+
+pub fn maybe_promote(request: Untrusted<String>)
+    uses {admin.set_admin}
+{
+    admin.set_admin(request == "please")
+}

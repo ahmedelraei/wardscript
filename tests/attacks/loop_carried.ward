@@ -1,0 +1,14 @@
+// A value that becomes untrusted in one iteration stays untrusted in the next.
+import mcp "shell" as sh
+
+pub fn run(commands: Untrusted<List<String>>)
+    uses {sh.run}
+{
+    let previous = "true"
+    let i = 0
+    while i < 3 {
+        sh.run(previous)
+        previous = commands.get(i).unwrap_or("true")
+        i = i + 1
+    }
+}

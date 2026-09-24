@@ -1,0 +1,89 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/trust_across_modules/main.ward
+---
+exit: Some(1)
+--- human ---
+[W0107] Error: untrusted data reaches the tool call `sh.run`
+   ╭─[ tests/ui/trust_across_modules/main.ward:8:19 ]
+   │
+ 8 │     runner.run_it("sudo " + command)
+   │                   ────────┬────────  
+   │                           ╰────────── 2. passed to `run_it` as `command`
+   │
+   ├─[ tests/ui/trust_across_modules/main.ward:8:19 ]
+   │
+ 5 │ pub fn run(command: Untrusted<String>)
+   │            ─────────────┬────────────  
+   │                         ╰────────────── 1. `command` is declared `Untrusted`
+   │ 
+   │ Help: check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, "why")`
+   │ 
+   │ Note 1: 3. parameter `command` (tests/ui/trust_across_modules/lib/runner.ward:3:15)
+   │ 
+   │ Note 2: 4. passed to `sh.run` here (tests/ui/trust_across_modules/lib/runner.ward:6:12)
+───╯
+error: could not check `tests/ui/trust_across_modules/main.ward` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0107",
+      "file": "tests/ui/trust_across_modules/main.ward",
+      "help": "check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, \"why\")`",
+      "labels": [
+        {
+          "message": "2. passed to `run_it` as `command`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 36,
+              "line": 8,
+              "offset": 195
+            },
+            "start": {
+              "column": 19,
+              "line": 8,
+              "offset": 178
+            }
+          }
+        },
+        {
+          "message": "1. `command` is declared `Untrusted`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 38,
+              "line": 5,
+              "offset": 138
+            },
+            "start": {
+              "column": 12,
+              "line": 5,
+              "offset": 112
+            }
+          }
+        }
+      ],
+      "message": "untrusted data reaches the tool call `sh.run`",
+      "notes": [
+        "3. parameter `command` (tests/ui/trust_across_modules/lib/runner.ward:3:15)",
+        "4. passed to `sh.run` here (tests/ui/trust_across_modules/lib/runner.ward:6:12)"
+      ],
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 36,
+          "line": 8,
+          "offset": 195
+        },
+        "start": {
+          "column": 19,
+          "line": 8,
+          "offset": 178
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/trust_across_modules/main.ward"
+}

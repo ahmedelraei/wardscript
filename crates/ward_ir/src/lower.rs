@@ -158,6 +158,11 @@ fn lower_module(
                     name: f.name.name.clone(),
                     is_pub: f.is_pub,
                     generics: names(&f.generics),
+                    trusted: checked
+                        .trusted_params
+                        .get(&def)
+                        .cloned()
+                        .unwrap_or_else(|| vec![false; f.params.len()]),
                     params,
                     ret: sig.ret.clone(),
                     throws: sig.throws.clone(),

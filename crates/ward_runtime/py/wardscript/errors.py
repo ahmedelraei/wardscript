@@ -56,3 +56,7 @@ class DecodeError(WardError):
 
 class PanicError(WardError):
     """An operation with no defined result: an index out of bounds, division by zero."""
+
+
+class TrustError(WardError):
+    """A host passed a value to a parameter that must be trusted without vouching for it."""

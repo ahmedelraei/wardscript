@@ -115,6 +115,8 @@ pub struct Fn {
     pub is_pub: bool,
     pub generics: Vec<String>,
     pub params: Vec<LocalId>,
+    /// Parameters that reach a sink. Callers outside Wardscript must vouch for them.
+    pub trusted: Vec<bool>,
     pub ret: Ty,
     pub throws: Option<Ty>,
     pub locals: Arena<Local>,

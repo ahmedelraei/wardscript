@@ -35,14 +35,15 @@ pub fn answer(email: Untrusted<String>, to: String) -> String throws String
 ```
 
 Remove either `validate` and the program is rejected at compile time: the
-model's text would reach `mail.send` unchecked. (That trust check is milestone M4;
-today `ward check` verifies syntax, names and types.)
+model's text would reach `mail.send` unchecked, and `ward check` reports W0107 with
+the path it took. The host calling `answer` has to vouch for `to`
+(`answer(email, Trusted(to))`), since it also reaches `mail.send`.
 
 ## Status
 
 Early development. Done: the parser, name resolution and type checker
-(`ward check`), and the Python backend with its runtime (`ward build`, `ward run`).
-Next: trust labels (M4). See [PLAN.md](PLAN.md) for the milestones and
+(`ward check`), the Python backend with its runtime (`ward build`, `ward run`), and
+trust labels. Next: effects, budgets and the Rule of Two (M5). See [PLAN.md](PLAN.md) for the milestones and
 [docs/spec](docs/spec/README.md) for the language specification.
 
 ```bash

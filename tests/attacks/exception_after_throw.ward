@@ -1,0 +1,17 @@
+// Code after a call that may throw only runs when it didn't.
+import mcp "shell" as sh
+
+fn short(s: String) -> Bool {
+    s.len() < 3
+}
+
+pub fn run(reply: Untrusted<String>)
+    uses {sh.run}
+{
+    let command = "ls"
+    try {
+        validate(reply, short)?
+        command = "rm -rf /"
+    } catch _ {}
+    sh.run(command)
+}

@@ -1,0 +1,8 @@
+// An `if` whose condition is untrusted produces an untrusted value.
+import mcp "shell" as sh
+
+pub fn cleanup(reply: Untrusted<String>)
+    uses {sh.run}
+{
+    sh.run(if reply == "yes" { "rm -rf /" } else { "ls" })
+}

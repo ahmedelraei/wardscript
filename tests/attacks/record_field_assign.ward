@@ -1,0 +1,15 @@
+// Assigning an untrusted value to a field taints the record.
+import mcp "shell" as sh
+
+type Job {
+    name: String,
+    command: String,
+}
+
+pub fn schedule(command: Untrusted<String>)
+    uses {sh.run}
+{
+    let job = Job { name: "nightly", command: "true" }
+    job.command = command
+    sh.run(job.name)
+}

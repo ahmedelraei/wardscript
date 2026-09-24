@@ -1,0 +1,143 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/trust_helper_chain.ward
+---
+exit: Some(1)
+--- human ---
+[W0107] Error: untrusted data reaches the tool call `mail.send`
+    ╭─[ tests/ui/trust_helper_chain.ward:23:12 ]
+    │
+ 23 │     notify(summarize(text))
+    │            ───────┬───────  
+    │                   ╰───────── 1. passed to `notify` as `body`
+    │
+    ├─[ tests/ui/trust_helper_chain.ward:23:12 ]
+    │
+ 10 │ fn notify(body: String)
+    │           ──┬─  
+    │             ╰─── 2. parameter `body`
+    │ 
+ 13 │     send("team@example.com", "Note: {body}")
+    │                              ───────┬──────  
+    │                                     ╰──────── 3. passed to `send` as `body`
+    │
+    ├─[ tests/ui/trust_helper_chain.ward:23:12 ]
+    │
+  4 │ fn send(to: String, body: String)
+    │                     ──┬─  
+    │                       ╰─── 4. parameter `body`
+    │ 
+  7 │     mail.send(to, "hello", body)
+    │                            ──┬─  
+    │                              ╰─── 5. passed to `mail.send` here
+    │ 
+    │ Help: check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, "why")`
+────╯
+error: could not check `tests/ui/trust_helper_chain.ward` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0107",
+      "file": "tests/ui/trust_helper_chain.ward",
+      "help": "check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, \"why\")`",
+      "labels": [
+        {
+          "message": "1. passed to `notify` as `body`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 27,
+              "line": 23,
+              "offset": 416
+            },
+            "start": {
+              "column": 12,
+              "line": 23,
+              "offset": 401
+            }
+          }
+        },
+        {
+          "message": "2. parameter `body`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 15,
+              "line": 10,
+              "offset": 184
+            },
+            "start": {
+              "column": 11,
+              "line": 10,
+              "offset": 180
+            }
+          }
+        },
+        {
+          "message": "3. passed to `send` as `body`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 44,
+              "line": 13,
+              "offset": 260
+            },
+            "start": {
+              "column": 30,
+              "line": 13,
+              "offset": 246
+            }
+          }
+        },
+        {
+          "message": "4. parameter `body`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 25,
+              "line": 4,
+              "offset": 101
+            },
+            "start": {
+              "column": 21,
+              "line": 4,
+              "offset": 97
+            }
+          }
+        },
+        {
+          "message": "5. passed to `mail.send` here",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 32,
+              "line": 7,
+              "offset": 165
+            },
+            "start": {
+              "column": 28,
+              "line": 7,
+              "offset": 161
+            }
+          }
+        }
+      ],
+      "message": "untrusted data reaches the tool call `mail.send`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 27,
+          "line": 23,
+          "offset": 416
+        },
+        "start": {
+          "column": 12,
+          "line": 23,
+          "offset": 401
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/trust_helper_chain.ward"
+}

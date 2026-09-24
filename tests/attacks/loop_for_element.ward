@@ -1,0 +1,14 @@
+// Each element of an untrusted list is untrusted.
+import mcp "shell" as sh
+
+ai fn plan(goal: String) -> List<String> {
+    "List shell commands that achieve: {goal}"
+}
+
+pub fn execute(goal: String)
+    uses {llm, sh.run}
+{
+    for command in plan(goal) {
+        sh.run(command)
+    }
+}

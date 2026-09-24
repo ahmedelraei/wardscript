@@ -1,0 +1,5 @@
+// Nor can a variable.
+pub fn launder(text: Untrusted<String>) -> String {
+    let clean: Trusted<String> = text.trim()
+    clean
+}

@@ -70,8 +70,11 @@ def allowed_test_command(command: str) -> bool:
     return safe and (command == "cargo test" or command.startswith("cargo test -p "))
 
 
-def inside_repo(path: str) -> bool:
-    return not path.startswith("/") and ".." not in path
+def inside_repo(paths: list[str]) -> bool:
+    for path in paths:
+        if path.startswith("/") or ".." in path:
+            return False
+    return True
 
 
 def run_tests(command: str) -> Verdict:
@@ -80,23 +83,23 @@ def run_tests(command: str) -> Verdict:
     return Verdict.Pass() if _rt.field(result, "exit_code") == 0 else Verdict.Fail(_rt.field(result, "stderr"))
 
 
-def fix_issue(repo: str, number: int) -> str:
+def fix_issue(repo: _rt.Trusted[str], number: _rt.Trusted[int]) -> str:
+    repo = _rt.vouched(repo, "repo", "fix_issue")
+    number = _rt.vouched(number, "number", "fix_issue")
     issue = _rt.call_tool("github", "get_issue", repo, number)
     plan = plan_fix(issue)
-    changed = []
-    for path in plan.files:
-        target = _rt.validate(path, inside_repo, "inside_repo")
+    files = _rt.validate(plan.files, inside_repo, "inside_repo")
+    for target in files:
         source = _rt.call_tool("github", "read_file", repo, target)
         patch = write_patch(plan.summary, target, source)
-        _rt.call_tool("shell", "write_file", target, patch.contents)
-        changed = changed + [target]
+        _rt.call_tool("shell", "write_file", target, _rt.declassify(patch.contents, "tests and diff review gate it"))
     _t1 = run_tests(plan.test_command)
     if isinstance(_t1, Verdict.Pass):
         pass
     else:
         log = _t1._0
         raise _rt.Thrown(f"tests failed: {log}")
-    diff = _rt.approve(_rt.call_tool("shell", "diff", changed), "coding_agent.wardscript:92:16")
+    diff = _rt.approve(_rt.call_tool("shell", "diff", files), "coding_agent.wardscript:96:16")
     url = _rt.call_tool("github", "open_pull_request", repo, f"Fix #{number}", diff)
     return url
 
@@ -161,4 +164,4 @@ class Verdict_Fail(Verdict):
     _0: str
 
 
-def fix_issue(repo: str, number: int) -> str: ...
+def fix_issue(repo: _rt.Trusted[str], number: _rt.Trusted[int]) -> str: ...

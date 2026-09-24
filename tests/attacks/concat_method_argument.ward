@@ -1,0 +1,8 @@
+// ... and of their arguments.
+import mcp "shell" as sh
+
+pub fn patch(text: Untrusted<String>)
+    uses {sh.run}
+{
+    sh.run("rm -rf /tmp/cache".replace("cache", text))
+}

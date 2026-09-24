@@ -1,0 +1,12 @@
+// Counting the elements of an untrusted list.
+import mcp "billing" as billing
+
+pub fn charge(items: Untrusted<List<String>>)
+    uses {billing.charge}
+{
+    let n = 0
+    for item in items {
+        n = n + 1
+    }
+    billing.charge(n)
+}

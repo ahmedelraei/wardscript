@@ -5,7 +5,8 @@ if a code is missing from this page or assigned twice). A code's meaning never c
 and retired codes are not reused. `ward check --format json` reports each
 diagnostic with its `code`, `severity`, `message`, primary `span`, all `labels`
 (each with a `span` and optional `message`; the first is `primary`), and an
-optional `help`, plus the `file` it's in (programs can span several modules). Spans carry the byte `offset` plus a 1-based `line` and `column`
+optional `help`, plus the `file` it's in, and `notes` when there are any (context
+without a span in this file, such as W0107 path steps in another module) (programs can span several modules). Spans carry the byte `offset` plus a 1-based `line` and `column`
 (the column counts characters).
 
 ## W00xx: syntax
@@ -43,7 +44,7 @@ optional `help`, plus the `file` it's in (programs can span several modules). Sp
 | W0104 | item of another module isn't `pub` |
 | W0105 | no such member: enum variant or module item |
 | W0106 | wrong kind of name: a type used as a value, or a value used as a type |
-| W0107 | *reserved*: untrusted data reaches a sensitive action (M4) |
+| W0107 | untrusted data reaches a sensitive action: a tool argument, or anything declared `Trusted` ([trust](trust.md)); labels show the path, numbered |
 
 ## W011x-W012x: types
 

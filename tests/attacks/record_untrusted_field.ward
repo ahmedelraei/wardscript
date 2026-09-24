@@ -1,0 +1,13 @@
+// A field declared `Untrusted` is untrusted however the record was obtained.
+import mcp "gmail" as mail
+
+type Email {
+    from: String,
+    body: Untrusted<String>,
+}
+
+pub fn echo(email: Email)
+    uses {mail.send}
+{
+    mail.send(email.from, "re: your email", email.body)
+}

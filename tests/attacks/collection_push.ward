@@ -1,0 +1,10 @@
+// Pushing onto a trusted list makes the list untrusted.
+import mcp "shell" as sh
+
+pub fn run(arg: Untrusted<String>)
+    uses {sh.exec}
+{
+    let args = ["ls"]
+    args = args.push(arg)
+    sh.exec(args)
+}

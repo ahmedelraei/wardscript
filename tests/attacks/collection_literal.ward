@@ -1,0 +1,8 @@
+// Wrapping the value in a list doesn't hide it.
+import mcp "shell" as sh
+
+pub fn run(arg: Untrusted<String>)
+    uses {sh.exec}
+{
+    sh.exec(["rm", "-rf", arg])
+}

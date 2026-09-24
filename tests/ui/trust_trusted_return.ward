@@ -1,0 +1,4 @@
+// A function can't claim to return trusted data it didn't check.
+pub fn launder(text: Untrusted<String>) -> Trusted<String> {
+    text
+}

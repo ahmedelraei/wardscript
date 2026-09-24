@@ -1,0 +1,12 @@
+// A helper that returns its argument returns its label too.
+import mcp "shell" as sh
+
+fn same(s: String) -> String {
+    s
+}
+
+pub fn run(command: Untrusted<String>)
+    uses {sh.run}
+{
+    sh.run(same(command))
+}

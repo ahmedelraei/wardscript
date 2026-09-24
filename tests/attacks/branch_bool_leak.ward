@@ -1,0 +1,12 @@
+// Copying a secret bit by bit through branches.
+import mcp "admin" as admin
+
+pub fn copy(flag: Untrusted<Bool>)
+    uses {admin.set_admin}
+{
+    let copied = false
+    if flag {
+        copied = true
+    }
+    admin.set_admin(copied)
+}

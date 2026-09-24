@@ -1,0 +1,8 @@
+// Anything computed from untrusted data is untrusted, even a number.
+import mcp "billing" as billing
+
+pub fn charge(note: Untrusted<String>)
+    uses {billing.charge}
+{
+    billing.charge(note.len())
+}

@@ -1,0 +1,12 @@
+// Implicit flow: which command runs depends on untrusted data.
+import mcp "shell" as sh
+
+pub fn cleanup(reply: Untrusted<String>)
+    uses {sh.run}
+{
+    let command = "ls"
+    if reply.contains("delete") {
+        command = "rm -rf /"
+    }
+    sh.run(command)
+}

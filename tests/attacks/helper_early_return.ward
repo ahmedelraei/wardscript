@@ -1,0 +1,15 @@
+// A helper whose result depends on untrusted data through control flow.
+import mcp "shell" as sh
+
+fn pick(reply: String) -> String {
+    if reply == "yes" {
+        return "rm -rf /"
+    }
+    "ls"
+}
+
+pub fn cleanup(reply: Untrusted<String>)
+    uses {sh.run}
+{
+    sh.run(pick(reply))
+}

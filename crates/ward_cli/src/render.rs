@@ -35,6 +35,9 @@ pub fn human(
         if let Some(help) = &d.help {
             report = report.with_help(help);
         }
+        for note in &d.notes {
+            report = report.with_note(note);
+        }
         report
             .finish()
             .write((path, Source::from(src)), &mut *out)?;
@@ -63,7 +66,7 @@ pub fn json(program: &Program, diags: &[ProgramDiagnostic]) -> Value {
                 .enumerate()
                 .map(|(i, l)| json!({ "primary": i == 0, "span": span(l.span), "message": l.message }))
                 .collect();
-            json!({
+            let mut out = json!({
                 "file": module.path,
                 "code": d.code.0,
                 "severity": d.severity.as_str(),
@@ -71,7 +74,11 @@ pub fn json(program: &Program, diags: &[ProgramDiagnostic]) -> Value {
                 "span": span(d.span()),
                 "labels": labels,
                 "help": d.help,
-            })
+            });
+            if !d.notes.is_empty() {
+                out["notes"] = json!(d.notes);
+            }
+            out
         })
         .collect();
     let entry = program.modules.first().map_or("", |m| m.path.as_str());

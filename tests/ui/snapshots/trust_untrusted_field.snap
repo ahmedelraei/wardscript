@@ -1,0 +1,77 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/trust_untrusted_field.ward
+---
+exit: Some(1)
+--- human ---
+[W0107] Error: untrusted data reaches the tool call `mail.send`
+    ╭─[ tests/ui/trust_untrusted_field.ward:12:45 ]
+    │
+ 12 │     mail.send(email.from, "re: your email", email.body)
+    │                                             ─────┬──┬─  
+    │                                                  ╰────── 2. passed to `mail.send` here
+    │                                                     │   
+    │                                                     ╰─── 1. field `body` is declared `Untrusted`
+    │ 
+    │ Help: check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, "why")`
+────╯
+error: could not check `tests/ui/trust_untrusted_field.ward` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0107",
+      "file": "tests/ui/trust_untrusted_field.ward",
+      "help": "check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, \"why\")`",
+      "labels": [
+        {
+          "message": "2. passed to `mail.send` here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 55,
+              "line": 12,
+              "offset": 272
+            },
+            "start": {
+              "column": 45,
+              "line": 12,
+              "offset": 262
+            }
+          }
+        },
+        {
+          "message": "1. field `body` is declared `Untrusted`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 55,
+              "line": 12,
+              "offset": 272
+            },
+            "start": {
+              "column": 51,
+              "line": 12,
+              "offset": 268
+            }
+          }
+        }
+      ],
+      "message": "untrusted data reaches the tool call `mail.send`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 55,
+          "line": 12,
+          "offset": 272
+        },
+        "start": {
+          "column": 45,
+          "line": 12,
+          "offset": 262
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/trust_untrusted_field.ward"
+}

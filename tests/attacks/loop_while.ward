@@ -1,0 +1,14 @@
+// A loop condition on untrusted data taints what the loop writes.
+import mcp "billing" as billing
+
+pub fn charge(reply: Untrusted<String>)
+    uses {billing.charge}
+{
+    let amount = 0
+    let rest = reply
+    while !rest.is_empty() {
+        amount = amount + 100
+        rest = ""
+    }
+    billing.charge(amount)
+}

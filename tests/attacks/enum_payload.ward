@@ -1,0 +1,20 @@
+// Pattern bindings take the label of what was matched.
+import mcp "shell" as sh
+
+enum Action {
+    Nothing,
+    Run(String),
+}
+
+ai fn decide(request: String) -> Action {
+    "Decide what to do about: {request}"
+}
+
+pub fn act(request: String)
+    uses {llm, sh.run}
+{
+    match decide(request) {
+        Action.Nothing => {}
+        Action.Run(command) => sh.run(command),
+    }
+}

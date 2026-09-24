@@ -3,6 +3,7 @@
 from .errors import Thrown
 from .runtime import ai, approve, call_tool, declassify, validate
 from .schema import Adt, Any, Bool, Float, Int, List, Map, Option, Param, String, Unit, enum, record
+from .trust import Trusted, vouched
 from .values import (
     fdiv,
     field,
@@ -36,6 +37,7 @@ __all__ = [
     "Param",
     "String",
     "Thrown",
+    "Trusted",
     "Unit",
     "ai",
     "approve",
@@ -61,5 +63,6 @@ __all__ = [
     "unwrap",
     "unwrap_or",
     "validate",
+    "vouched",
     "with_field",
 ]

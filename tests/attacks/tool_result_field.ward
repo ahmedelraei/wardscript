@@ -1,0 +1,10 @@
+// Fields of a tool result are untrusted.
+import mcp "github" as gh
+import mcp "shell" as sh
+
+pub fn run_ci(repo: Trusted<String>)
+    uses {gh.read_config, sh.run}
+{
+    let config = gh.read_config(repo)
+    sh.run(config.command)
+}

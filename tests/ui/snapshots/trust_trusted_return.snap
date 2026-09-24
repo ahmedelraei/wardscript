@@ -1,0 +1,81 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/trust_trusted_return.ward
+---
+exit: Some(1)
+--- human ---
+[W0107] Error: untrusted data reaches the `Trusted` return value of `launder`
+   ╭─[ tests/ui/trust_trusted_return.ward:3:5 ]
+   │
+ 3 │     text
+   │     ──┬─  
+   │       ╰─── 2. returned here
+   │
+   ├─[ tests/ui/trust_trusted_return.ward:3:5 ]
+   │
+ 2 │ pub fn launder(text: Untrusted<String>) -> Trusted<String> {
+   │                ───────────┬───────────  
+   │                           ╰───────────── 1. `text` is declared `Untrusted`
+   │ 
+   │ Help: check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, "why")`
+───╯
+error: could not check `tests/ui/trust_trusted_return.ward` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0107",
+      "file": "tests/ui/trust_trusted_return.ward",
+      "help": "check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, \"why\")`",
+      "labels": [
+        {
+          "message": "2. returned here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 9,
+              "line": 3,
+              "offset": 135
+            },
+            "start": {
+              "column": 5,
+              "line": 3,
+              "offset": 131
+            }
+          }
+        },
+        {
+          "message": "1. `text` is declared `Untrusted`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 39,
+              "line": 2,
+              "offset": 104
+            },
+            "start": {
+              "column": 16,
+              "line": 2,
+              "offset": 81
+            }
+          }
+        }
+      ],
+      "message": "untrusted data reaches the `Trusted` return value of `launder`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 9,
+          "line": 3,
+          "offset": 135
+        },
+        "start": {
+          "column": 5,
+          "line": 3,
+          "offset": 131
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/trust_trusted_return.ward"
+}

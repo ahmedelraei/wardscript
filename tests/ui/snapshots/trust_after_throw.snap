@@ -1,0 +1,120 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/trust_after_throw.ward
+---
+exit: Some(1)
+--- human ---
+[W0107] Error: untrusted data reaches the tool call `sh.run`
+    ╭─[ tests/ui/trust_after_throw.ward:16:12 ]
+    │
+ 16 │     sh.run(command)
+    │            ───┬───  
+    │               ╰───── 4. passed to `sh.run` here
+    │
+    ├─[ tests/ui/trust_after_throw.ward:16:12 ]
+    │
+  8 │ pub fn run(reply: Untrusted<String>)
+    │            ────────────┬───────────  
+    │                        ╰───────────── 1. `reply` is declared `Untrusted`
+    │ 
+ 13 │         validate(reply, short)?
+    │         ───────────┬──────────  
+    │                    ╰──────────── 2. `validate` throws depending on this value
+ 14 │         command = "rm -rf /"
+    │         ───┬───  
+    │            ╰───── 3. assigned here, where whether this runs depends on it
+    │ 
+    │ Help: check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, "why")`
+────╯
+error: could not check `tests/ui/trust_after_throw.ward` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0107",
+      "file": "tests/ui/trust_after_throw.ward",
+      "help": "check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, \"why\")`",
+      "labels": [
+        {
+          "message": "4. passed to `sh.run` here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 16,
+              "offset": 323
+            },
+            "start": {
+              "column": 12,
+              "line": 16,
+              "offset": 316
+            }
+          }
+        },
+        {
+          "message": "1. `reply` is declared `Untrusted`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 36,
+              "line": 8,
+              "offset": 172
+            },
+            "start": {
+              "column": 12,
+              "line": 8,
+              "offset": 148
+            }
+          }
+        },
+        {
+          "message": "2. `validate` throws depending on this value",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 31,
+              "line": 13,
+              "offset": 257
+            },
+            "start": {
+              "column": 9,
+              "line": 13,
+              "offset": 235
+            }
+          }
+        },
+        {
+          "message": "3. assigned here, where whether this runs depends on it",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 16,
+              "line": 14,
+              "offset": 274
+            },
+            "start": {
+              "column": 9,
+              "line": 14,
+              "offset": 267
+            }
+          }
+        }
+      ],
+      "message": "untrusted data reaches the tool call `sh.run`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 19,
+          "line": 16,
+          "offset": 323
+        },
+        "start": {
+          "column": 12,
+          "line": 16,
+          "offset": 316
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/trust_after_throw.ward"
+}
