@@ -1,0 +1,14 @@
+// Records, enums and functions used across modules.
+import shop.orders as orders
+
+pub fn total(items: List<orders.Item>) -> Int {
+    let sum = 0
+    for item in items {
+        sum = sum + orders.price(item)
+    }
+    sum
+}
+
+pub fn restock(item: orders.Item) -> orders.Item {
+    orders.Item { name: item.name, size: orders.Size.Large, count: item.count + 1 }
+}

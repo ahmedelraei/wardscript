@@ -1,0 +1,7 @@
+// `.ward` files import each other, and `.wardscript` ones too.
+import billing.invoices as invoices
+import legacy
+
+fn total(lines: List<invoices.Line>) -> Int {
+    invoices.sum(lines) + legacy.fee()
+}

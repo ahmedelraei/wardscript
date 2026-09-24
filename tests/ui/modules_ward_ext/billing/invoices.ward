@@ -1,0 +1,11 @@
+pub type Line {
+    amount: Int,
+}
+
+pub fn sum(lines: List<Line>) -> Int {
+    let total = 0
+    for line in lines {
+        total = total + line.amount
+    }
+    total
+}

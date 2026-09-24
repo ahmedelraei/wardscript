@@ -11,7 +11,7 @@ exit: Some(1)
    │        ───────┬───────  
    │               ╰───────── no such module
    │ 
-   │ Help: looked for `tests/ui/support/tickets.wardscript`
+   │ Help: looked for `tests/ui/support/tickets.ward` and `tests/ui/support/tickets.wardscript`
 ───╯
 error: could not check `tests/ui/modules_missing.wardscript` due to 1 error
 --- json ---
@@ -20,7 +20,7 @@ error: could not check `tests/ui/modules_missing.wardscript` due to 1 error
     {
       "code": "W0102",
       "file": "tests/ui/modules_missing.wardscript",
-      "help": "looked for `tests/ui/support/tickets.wardscript`",
+      "help": "looked for `tests/ui/support/tickets.ward` and `tests/ui/support/tickets.wardscript`",
       "labels": [
         {
           "message": "no such module",

@@ -20,7 +20,7 @@ exit: Some(1)
    │            ───────┬───────  
    │                   ╰───────── no such module
    │ 
-   │ Help: looked for `tests/ui/support/tickets.wardscript`
+   │ Help: looked for `tests/ui/support/tickets.ward` and `tests/ui/support/tickets.wardscript`
 ───╯
 error: could not check `tests/ui/syntax_pub_import.wardscript` due to 2 errors
 --- json ---
@@ -66,7 +66,7 @@ error: could not check `tests/ui/syntax_pub_import.wardscript` due to 2 errors
     {
       "code": "W0102",
       "file": "tests/ui/syntax_pub_import.wardscript",
-      "help": "looked for `tests/ui/support/tickets.wardscript`",
+      "help": "looked for `tests/ui/support/tickets.ward` and `tests/ui/support/tickets.wardscript`",
       "labels": [
         {
           "message": "no such module",

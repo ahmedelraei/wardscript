@@ -41,12 +41,14 @@ today `ward check` verifies syntax, names and types.)
 ## Status
 
 Early development. Done: the parser, name resolution and type checker
-(`ward check`). Next: the Python backend and runtime (M3), then trust labels (M4).
-See [PLAN.md](PLAN.md) for the milestones and [docs/spec](docs/spec/README.md)
-for the language specification.
+(`ward check`), and the Python backend with its runtime (`ward build`, `ward run`).
+Next: trust labels (M4). See [PLAN.md](PLAN.md) for the milestones and
+[docs/spec](docs/spec/README.md) for the language specification.
 
 ```bash
 cargo run -p ward_cli -- check examples/support.wardscript
+cargo run -p ward_cli -- build examples/triage.wardscript -o build
+cargo run -p ward_cli -- run examples/triage.wardscript route '"My order never came"' --mock answers.json
 ```
 
 ## License

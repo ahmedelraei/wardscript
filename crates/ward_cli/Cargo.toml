@@ -18,6 +18,7 @@ ward_resolve.workspace = true
 ward_check.workspace = true
 ward_ir.workspace = true
 ward_codegen_py.workspace = true
+ward_runtime.workspace = true
 ariadne.workspace = true
 serde_json.workspace = true
 
