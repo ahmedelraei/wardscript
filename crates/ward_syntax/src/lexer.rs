@@ -49,6 +49,14 @@ pub enum TokenKind {
     Budget,
     #[token("ai")]
     Ai,
+    #[token("throws")]
+    Throws,
+    #[token("throw")]
+    Throw,
+    #[token("try")]
+    Try,
+    #[token("catch")]
+    Catch,
     #[token("true")]
     True,
     #[token("false")]
@@ -166,6 +174,10 @@ impl TokenKind {
             Uses => "`uses`",
             Budget => "`budget`",
             Ai => "`ai`",
+            Throws => "`throws`",
+            Throw => "`throw`",
+            Try => "`try`",
+            Catch => "`catch`",
             True => "`true`",
             False => "`false`",
             Ident => "identifier",
@@ -225,6 +237,10 @@ impl TokenKind {
                 | Uses
                 | Budget
                 | Ai
+                | Throws
+                | Throw
+                | Try
+                | Catch
                 | True
                 | False
         )

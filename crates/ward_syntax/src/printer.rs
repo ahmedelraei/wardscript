@@ -187,6 +187,10 @@ impl<'m> Printer<'m> {
             self.w(" -> ");
             self.ty(ret);
         }
+        if let Some(throws) = f.throws {
+            self.w(" throws ");
+            self.ty(throws);
+        }
         // With clauses, each goes on its own line and the body's `{` starts a new line.
         let multiline = f.uses.is_some() || f.budget.is_some();
         self.indent += 1;
@@ -285,6 +289,10 @@ impl<'m> Printer<'m> {
                     self.expr(*v, false);
                 }
             }
+            StmtKind::Throw(value) => {
+                self.w("throw ");
+                self.expr(*value, false);
+            }
             StmtKind::For { var, iter, body } => {
                 self.w("for ");
                 self.w(&var.name);
@@ -317,12 +325,17 @@ impl<'m> Printer<'m> {
 
     fn starts_block_like(&self, id: ExprId) -> bool {
         match &self.m.exprs[id].kind {
-            ExprKind::If { .. } | ExprKind::Match { .. } | ExprKind::Block(_) => true,
+            ExprKind::If { .. }
+            | ExprKind::Match { .. }
+            | ExprKind::TryCatch { .. }
+            | ExprKind::Block(_) => true,
             ExprKind::Binary { lhs: e, .. }
             | ExprKind::Field { base: e, .. }
             | ExprKind::Index { base: e, .. }
             | ExprKind::Call { callee: e, .. }
-            | ExprKind::Try(e) => self.prec(*e) >= self.prec(id) && self.starts_block_like(*e),
+            | ExprKind::Propagate(e) => {
+                self.prec(*e) >= self.prec(id) && self.starts_block_like(*e)
+            }
             _ => false,
         }
     }
@@ -383,7 +396,7 @@ impl<'m> Printer<'m> {
                 self.expr(*index, false);
                 self.w("]");
             }
-            ExprKind::Try(e) => {
+            ExprKind::Propagate(e) => {
                 self.postfix_base(*e, no_struct);
                 self.w("?");
             }
@@ -473,6 +486,14 @@ impl<'m> Printer<'m> {
                 self.indent -= 1;
                 self.newline();
                 self.w("}");
+            }
+            ExprKind::TryCatch { body, err, handler } => {
+                self.w("try ");
+                self.block(body);
+                self.w(" catch ");
+                self.w(err.as_ref().map_or("_", |e| e.name.as_str()));
+                self.w(" ");
+                self.block(handler);
             }
             ExprKind::Block(b) => self.block(b),
             ExprKind::Error => self.w("<error>"),

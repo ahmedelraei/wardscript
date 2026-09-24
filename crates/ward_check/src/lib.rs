@@ -14,7 +14,7 @@ use la_arena::ArenaMap;
 use ward_resolve::{
     DefId, FileSystem, LoadError, LocalId, ModuleId, Program, ProgramDiagnostic, Resolution,
 };
-use ward_syntax::ast::{ExprId, Item, StmtId};
+use ward_syntax::ast::{ExprId, Item};
 
 pub use ty::Ty;
 
@@ -22,6 +22,8 @@ pub struct FnSig {
     pub generics: usize,
     pub params: Vec<Ty>,
     pub ret: Ty,
+    /// The declared `throws` type.
+    pub throws: Option<Ty>,
 }
 
 /// Types of one module's expressions and variables, fully resolved.
@@ -29,8 +31,8 @@ pub struct FnSig {
 pub struct ModuleTypes {
     pub exprs: ArenaMap<ExprId, Ty>,
     pub locals: ArenaMap<LocalId, Ty>,
-    /// `return x` statements in `Result` functions where `x` gets wrapped in `Ok`.
-    pub auto_ok: Vec<StmtId>,
+    /// The error type thrown by each call marked with `?`.
+    pub throws: ArenaMap<ExprId, Ty>,
 }
 
 pub struct Checked {

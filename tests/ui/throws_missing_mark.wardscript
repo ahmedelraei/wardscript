@@ -1,0 +1,10 @@
+fn parse(s: String) -> Int throws String {
+    if s == "" {
+        throw "empty"
+    }
+    1
+}
+
+fn f(s: String) -> Int throws String {
+    parse(s)
+}

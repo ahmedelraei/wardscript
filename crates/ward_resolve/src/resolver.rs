@@ -31,11 +31,9 @@ struct ModuleScope {
     items: HashMap<String, ItemEntry>,
 }
 
-const BUILTINS: [(&str, Builtin); 7] = [
+const BUILTINS: [(&str, Builtin); 5] = [
     ("Some", Builtin::Some),
     ("None", Builtin::None),
-    ("Ok", Builtin::Ok),
-    ("Err", Builtin::Err),
     ("validate", Builtin::Validate),
     ("approve", Builtin::Approve),
     ("declassify", Builtin::Declassify),
@@ -220,6 +218,9 @@ impl BodyResolver<'_> {
         self.res.params.insert(item, params);
         if let Some(ret) = f.ret {
             self.ty(ret);
+        }
+        if let Some(throws) = f.throws {
+            self.ty(throws);
         }
         for entry in f.budget.iter().flatten() {
             self.expr(entry.value);
@@ -438,6 +439,7 @@ impl BodyResolver<'_> {
                     self.expr(*v);
                 }
             }
+            StmtKind::Throw(value) => self.expr(*value),
             StmtKind::For { var, iter, body } => {
                 self.expr(*iter);
                 self.locals.push(HashMap::new());
@@ -487,7 +489,7 @@ impl BodyResolver<'_> {
                 self.expr(*base);
                 self.expr(*index);
             }
-            ExprKind::Try(e) => self.expr(*e),
+            ExprKind::Propagate(e) => self.expr(*e),
             ExprKind::Unary { operand, .. } => self.expr(*operand),
             ExprKind::Binary { lhs, rhs, .. } => {
                 self.expr(*lhs);
@@ -526,6 +528,16 @@ impl BodyResolver<'_> {
                     self.expr(arm.body);
                     self.locals.pop();
                 }
+            }
+            ExprKind::TryCatch { body, err, handler } => {
+                self.block(body);
+                self.locals.push(HashMap::new());
+                if let Some(err) = err {
+                    let local = self.bind(err);
+                    self.res.catch_locals.insert(id, local);
+                }
+                self.block(handler);
+                self.locals.pop();
             }
             ExprKind::Block(b) => self.block(b),
         }
@@ -595,10 +607,7 @@ impl BodyResolver<'_> {
                 if let Some(v) = self.pat_path(path) {
                     let is_variant = matches!(
                         v,
-                        ValueRes::Variant(..)
-                            | ValueRes::Builtin(
-                                Builtin::Some | Builtin::None | Builtin::Ok | Builtin::Err
-                            )
+                        ValueRes::Variant(..) | ValueRes::Builtin(Builtin::Some | Builtin::None)
                     );
                     if is_variant {
                         self.res.pat_variants.insert(id, v);
@@ -610,7 +619,7 @@ impl BodyResolver<'_> {
                                 path.span,
                             )
                             .with_label("not a variant")
-                            .with_help("variants are written `Enum.Variant`, or `Some`, `None`, `Ok`, `Err`"),
+                            .with_help("variants are written `Enum.Variant`, or `Some`, `None`"),
                         );
                     }
                 }

@@ -1,0 +1,59 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/throws_mark_on_non_throwing.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0118] Error: `?` on something that can't throw
+   ╭─[ tests/ui/throws_mark_on_non_throwing.wardscript:6:5 ]
+   │
+ 6 │     double(2)?
+   │     ─────┬────  
+   │          ╰────── this can't throw
+   │ 
+   │ Help: `?` marks calls to functions that declare `throws`; remove it here
+───╯
+error: could not check `tests/ui/throws_mark_on_non_throwing.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0118",
+      "file": "tests/ui/throws_mark_on_non_throwing.wardscript",
+      "help": "`?` marks calls to functions that declare `throws`; remove it here",
+      "labels": [
+        {
+          "message": "this can't throw",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 15,
+              "line": 6,
+              "offset": 70
+            },
+            "start": {
+              "column": 5,
+              "line": 6,
+              "offset": 60
+            }
+          }
+        }
+      ],
+      "message": "`?` on something that can't throw",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 15,
+          "line": 6,
+          "offset": 70
+        },
+        "start": {
+          "column": 5,
+          "line": 6,
+          "offset": 60
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/throws_mark_on_non_throwing.wardscript"
+}

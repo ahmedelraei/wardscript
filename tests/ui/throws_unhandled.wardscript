@@ -1,0 +1,11 @@
+fn parse(s: String) -> Int throws String {
+    throw "not a number: {s}"
+}
+
+fn f(s: String) -> Int {
+    parse(s)?
+}
+
+fn g() -> Int {
+    throw "boom"
+}

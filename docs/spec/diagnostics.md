@@ -57,7 +57,7 @@ optional `help`, plus the `file` it's in (programs can span several modules). Sp
 | W0115 | wrong number of arguments (calls, variant constructors and variant patterns) |
 | W0116 | calling something that isn't a function |
 | W0117 | non-exhaustive `match` (names a value that isn't covered) |
-| W0118 | invalid `?`: not a `Result`/`Option`, incompatible error type, or the function doesn't return one |
+| W0118 | `?` on something that can't throw |
 | W0119 | operator or `for`/index applied to a type that doesn't support it |
 | W0120 | `ai fn` return type has no JSON schema |
 | W0121 | type can't be inferred; annotation needed |
@@ -67,6 +67,10 @@ optional `help`, plus the `file` it's in (programs can span several modules). Sp
 | W0125 | type alias refers to itself |
 | W0126 | assignment to something that isn't a variable, field or list element |
 | W0127 | *warning*: unreachable `match` arm |
+| W0128 | call to a function that `throws`, without `?` |
+| W0129 | thrown error is neither caught by a `try` nor declared with `throws` |
+| W0130 | `ai fn` declares `throws` |
+| W0131 | *warning*: nothing in a `try` block can throw |
 
 ## Error recovery
 

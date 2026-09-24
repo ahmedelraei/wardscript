@@ -1,0 +1,57 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/throws_catch_branches.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0110] Error: mismatched types: expected `Int`, found `String`
+   ╭─[ tests/ui/throws_catch_branches.wardscript:9:9 ]
+   │
+ 9 │         err
+   │         ─┬─  
+   │          ╰─── expected `Int`, found `String`
+───╯
+error: could not check `tests/ui/throws_catch_branches.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0110",
+      "file": "tests/ui/throws_catch_branches.wardscript",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Int`, found `String`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 12,
+              "line": 9,
+              "offset": 144
+            },
+            "start": {
+              "column": 9,
+              "line": 9,
+              "offset": 141
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Int`, found `String`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 12,
+          "line": 9,
+          "offset": 144
+        },
+        "start": {
+          "column": 9,
+          "line": 9,
+          "offset": 141
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/throws_catch_branches.wardscript"
+}

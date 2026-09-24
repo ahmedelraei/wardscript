@@ -1,0 +1,63 @@
+// Exceptions: `throws` declares, `throw` raises, `?` marks calls that may throw,
+// `try { } catch err { }` handles.
+pub enum ParseError {
+    Empty,
+    NotANumber(String),
+}
+
+fn parse_level(s: String) -> Int throws ParseError {
+    if s.is_empty() {
+        throw ParseError.Empty
+    }
+    match s {
+        "low" => 1,
+        "high" => 2,
+        _ => {
+            throw ParseError.NotANumber(s)
+        }
+    }
+}
+
+// Errors pass through a function that throws the same type.
+fn levels(inputs: List<String>) -> List<Int> throws ParseError {
+    let out = []
+    for s in inputs {
+        out = out.push(parse_level(s)?)
+    }
+    out
+}
+
+fn describe(e: ParseError) -> String {
+    match e {
+        ParseError.Empty => "empty input",
+        ParseError.NotANumber(s) => "not a level: {s}",
+    }
+}
+
+// `try` is an expression: its value, or the handler's.
+fn level_or_zero(s: String) -> Int {
+    try {
+        parse_level(s)?
+    } catch _ {
+        0
+    }
+}
+
+fn report(inputs: List<String>) -> String {
+    try {
+        let ls = levels(inputs)?
+        "{ls.len()} levels"
+    } catch err {
+        describe(err)
+    }
+}
+
+fn no_links(text: String) -> Bool {
+    !text.contains("http")
+}
+
+// `validate` throws a `String` naming the rule that failed.
+fn clean(text: String) -> String throws String {
+    let checked = validate(text, no_links)?
+    checked.trim()
+}

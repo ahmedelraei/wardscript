@@ -51,20 +51,20 @@ fn inside_repo(path: String) -> Bool {
     !path.starts_with("/") && !path.contains("..")
 }
 
-fn run_tests(command: String) -> Result<Verdict, String>
+fn run_tests(command: String) -> Verdict throws String
     uses {sh.run}
 {
     // The model proposed this command, so it must match the allowlist before it runs.
     let checked = validate(command, allowed_test_command)?
     let result = sh.run(checked)
     if result.exit_code == 0 {
-        Ok(Verdict.Pass)
+        Verdict.Pass
     } else {
-        Ok(Verdict.Fail(result.stderr))
+        Verdict.Fail(result.stderr)
     }
 }
 
-pub fn fix_issue(repo: String, number: Int) -> Result<String, String>
+pub fn fix_issue(repo: String, number: Int) -> String throws String
     uses {llm, gh.read, gh.write, sh.run}
     budget {tokens: 60000, cost: 2.00, time: 900}
 {
@@ -84,7 +84,7 @@ pub fn fix_issue(repo: String, number: Int) -> Result<String, String>
     match run_tests(plan.test_command)? {
         Verdict.Pass => {}
         Verdict.Fail(log) => {
-            return Err("tests failed: {log}")
+            throw "tests failed: {log}"
         }
     }
 
@@ -92,5 +92,5 @@ pub fn fix_issue(repo: String, number: Int) -> Result<String, String>
     let diff = approve(sh.diff(changed))
     // Only trusted values in the title: `issue.title` here would be rejected (W0107).
     let url = gh.open_pull_request(repo, "Fix #{number}", diff)
-    Ok(url)
+    url
 }

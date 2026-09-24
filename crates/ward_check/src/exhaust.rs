@@ -9,8 +9,6 @@ pub enum Ctor {
     False,
     Some,
     None,
-    Ok,
-    Err,
     Variant(usize),
 }
 

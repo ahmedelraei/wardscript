@@ -60,6 +60,8 @@ pub struct FnDecl {
     pub generics: Vec<Ident>,
     pub params: Vec<Param>,
     pub ret: Option<TypeId>,
+    /// `throws E`: the type of error the function may throw.
+    pub throws: Option<TypeId>,
     pub uses: Option<Vec<Path>>,
     pub budget: Option<Vec<BudgetEntry>>,
     pub body: FnBody,
@@ -196,6 +198,8 @@ pub enum StmtKind {
         semi: bool,
     },
     Return(Option<ExprId>),
+    /// `throw e`
+    Throw(ExprId),
     For {
         var: Ident,
         iter: ExprId,
@@ -231,8 +235,8 @@ pub enum ExprKind {
         base: ExprId,
         index: ExprId,
     },
-    /// `expr?`
-    Try(ExprId),
+    /// `call()?`: marks a call that may throw; the error propagates.
+    Propagate(ExprId),
     Unary {
         op: UnOp,
         operand: ExprId,
@@ -258,6 +262,12 @@ pub enum ExprKind {
         scrutinee: ExprId,
         arms: Vec<Arm>,
     },
+    /// `try { ... } catch err { ... }`. `err` is `None` for `catch _`.
+    TryCatch {
+        body: Block,
+        err: Option<Ident>,
+        handler: Block,
+    },
     Block(Block),
     Error,
 }
@@ -267,7 +277,10 @@ impl ExprKind {
     pub fn is_block_like(&self) -> bool {
         matches!(
             self,
-            ExprKind::If { .. } | ExprKind::Match { .. } | ExprKind::Block(_)
+            ExprKind::If { .. }
+                | ExprKind::Match { .. }
+                | ExprKind::TryCatch { .. }
+                | ExprKind::Block(_)
         )
     }
 }
