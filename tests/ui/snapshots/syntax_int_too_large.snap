@@ -1,0 +1,58 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_int_too_large.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0005] Error: integer literal is too large
+   ╭─[ tests/ui/syntax_int_too_large.wardscript:2:5 ]
+   │
+ 2 │     99999999999999999999
+   │     ──────────┬─────────  
+   │               ╰─────────── doesn't fit in a 64-bit signed integer
+   │ 
+   │ Help: the largest integer is 9223372036854775807
+───╯
+error: could not check `tests/ui/syntax_int_too_large.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0005",
+      "help": "the largest integer is 9223372036854775807",
+      "labels": [
+        {
+          "message": "doesn't fit in a 64-bit signed integer",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 25,
+              "line": 2,
+              "offset": 40
+            },
+            "start": {
+              "column": 5,
+              "line": 2,
+              "offset": 20
+            }
+          }
+        }
+      ],
+      "message": "integer literal is too large",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 25,
+          "line": 2,
+          "offset": 40
+        },
+        "start": {
+          "column": 5,
+          "line": 2,
+          "offset": 20
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_int_too_large.wardscript"
+}

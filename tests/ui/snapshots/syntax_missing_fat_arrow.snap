@@ -1,0 +1,56 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_missing_fat_arrow.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0010] Error: expected `=>`, found `->`
+   ╭─[ tests/ui/syntax_missing_fat_arrow.wardscript:3:11 ]
+   │
+ 3 │         0 -> 1,
+   │           ─┬  
+   │            ╰── expected `=>`
+───╯
+error: could not check `tests/ui/syntax_missing_fat_arrow.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0010",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `=>`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 13,
+              "line": 3,
+              "offset": 48
+            },
+            "start": {
+              "column": 11,
+              "line": 3,
+              "offset": 46
+            }
+          }
+        }
+      ],
+      "message": "expected `=>`, found `->`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 13,
+          "line": 3,
+          "offset": 48
+        },
+        "start": {
+          "column": 11,
+          "line": 3,
+          "offset": 46
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_missing_fat_arrow.wardscript"
+}

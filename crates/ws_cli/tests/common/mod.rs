@@ -39,3 +39,23 @@ pub fn render(output: &Output) -> String {
         String::from_utf8_lossy(&output.stderr),
     )
 }
+
+/// `tests/ui/*.wardscript` files, plus `tests/ui/<case>/main.wardscript` multi-module cases.
+pub fn ui_cases() -> Vec<(String, PathBuf)> {
+    let dir = repo_root().join("tests/ui");
+    let mut cases: Vec<(String, PathBuf)> = std::fs::read_dir(&dir)
+        .expect("read tests/ui")
+        .map(|e| e.expect("dir entry").path())
+        .filter(|p| p.join("main.wardscript").is_file())
+        .map(|p| {
+            let name = p.file_name().and_then(|n| n.to_str()).expect("utf-8 name");
+            (name.to_owned(), p.join("main.wardscript"))
+        })
+        .collect();
+    for f in wardscript_files("tests/ui") {
+        let name = f.file_stem().and_then(|s| s.to_str()).expect("utf-8 name");
+        cases.push((name.to_owned(), f));
+    }
+    cases.sort();
+    cases
+}

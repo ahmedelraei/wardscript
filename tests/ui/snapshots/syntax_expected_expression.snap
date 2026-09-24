@@ -1,0 +1,56 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_expected_expression.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0012] Error: expected an expression, found `;`
+   ╭─[ tests/ui/syntax_expected_expression.wardscript:2:13 ]
+   │
+ 2 │     let x = ;
+   │             ┬  
+   │             ╰── expected an expression
+───╯
+error: could not check `tests/ui/syntax_expected_expression.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0012",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected an expression",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 14,
+              "line": 2,
+              "offset": 29
+            },
+            "start": {
+              "column": 13,
+              "line": 2,
+              "offset": 28
+            }
+          }
+        }
+      ],
+      "message": "expected an expression, found `;`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 14,
+          "line": 2,
+          "offset": 29
+        },
+        "start": {
+          "column": 13,
+          "line": 2,
+          "offset": 28
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_expected_expression.wardscript"
+}

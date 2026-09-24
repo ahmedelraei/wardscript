@@ -1,0 +1,58 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_interpolation_extra_tokens.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0004] Error: unexpected `b` in interpolation
+   ╭─[ tests/ui/syntax_interpolation_extra_tokens.wardscript:2:15 ]
+   │
+ 2 │     "pair: {a b}"
+   │               ┬  
+   │               ╰── expected `}`
+   │ 
+   │ Help: an interpolation holds a single expression
+───╯
+error: could not check `tests/ui/syntax_interpolation_extra_tokens.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0004",
+      "help": "an interpolation holds a single expression",
+      "labels": [
+        {
+          "message": "expected `}`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 16,
+              "line": 2,
+              "offset": 48
+            },
+            "start": {
+              "column": 15,
+              "line": 2,
+              "offset": 47
+            }
+          }
+        }
+      ],
+      "message": "unexpected `b` in interpolation",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 16,
+          "line": 2,
+          "offset": 48
+        },
+        "start": {
+          "column": 15,
+          "line": 2,
+          "offset": 47
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_interpolation_extra_tokens.wardscript"
+}

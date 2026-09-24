@@ -1,0 +1,56 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_unexpected_char.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0001] Error: unexpected character `@`
+   ╭─[ tests/ui/syntax_unexpected_char.wardscript:2:15 ]
+   │
+ 2 │     let x = 1 @ 2;
+   │               ┬  
+   │               ╰── not valid in Wardscript source
+───╯
+error: could not check `tests/ui/syntax_unexpected_char.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0001",
+      "help": null,
+      "labels": [
+        {
+          "message": "not valid in Wardscript source",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 16,
+              "line": 2,
+              "offset": 31
+            },
+            "start": {
+              "column": 15,
+              "line": 2,
+              "offset": 30
+            }
+          }
+        }
+      ],
+      "message": "unexpected character `@`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 16,
+          "line": 2,
+          "offset": 31
+        },
+        "start": {
+          "column": 15,
+          "line": 2,
+          "offset": 30
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_unexpected_char.wardscript"
+}

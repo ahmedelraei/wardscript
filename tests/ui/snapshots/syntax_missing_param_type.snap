@@ -1,0 +1,58 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_missing_param_type.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0010] Error: expected `:`, found `)`
+   ╭─[ tests/ui/syntax_missing_param_type.wardscript:1:7 ]
+   │
+ 1 │ fn f(x) -> Int {
+   │       ┬  
+   │       ╰── expected `:`
+   │ 
+   │ Help: parameters need a type: `name: Type`
+───╯
+error: could not check `tests/ui/syntax_missing_param_type.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0010",
+      "help": "parameters need a type: `name: Type`",
+      "labels": [
+        {
+          "message": "expected `:`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "column": 7,
+              "line": 1,
+              "offset": 6
+            }
+          }
+        }
+      ],
+      "message": "expected `:`, found `)`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 8,
+          "line": 1,
+          "offset": 7
+        },
+        "start": {
+          "column": 7,
+          "line": 1,
+          "offset": 6
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_missing_param_type.wardscript"
+}

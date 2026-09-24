@@ -1,0 +1,58 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_statement_at_top_level.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0011] Error: expected an item, found `let`
+   ╭─[ tests/ui/syntax_statement_at_top_level.wardscript:1:1 ]
+   │
+ 1 │ let limit = 10;
+   │ ─┬─  
+   │  ╰─── expected `fn`, `type`, `enum` or `import`
+   │ 
+   │ Help: statements must be inside a function body
+───╯
+error: could not check `tests/ui/syntax_statement_at_top_level.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0011",
+      "help": "statements must be inside a function body",
+      "labels": [
+        {
+          "message": "expected `fn`, `type`, `enum` or `import`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "start": {
+              "column": 1,
+              "line": 1,
+              "offset": 0
+            }
+          }
+        }
+      ],
+      "message": "expected an item, found `let`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 4,
+          "line": 1,
+          "offset": 3
+        },
+        "start": {
+          "column": 1,
+          "line": 1,
+          "offset": 0
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_statement_at_top_level.wardscript"
+}

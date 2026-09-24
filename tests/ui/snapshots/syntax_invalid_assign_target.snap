@@ -1,0 +1,58 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_invalid_assign_target.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0020] Error: invalid assignment target
+   ╭─[ tests/ui/syntax_invalid_assign_target.wardscript:2:5 ]
+   │
+ 2 │     g() = 1;
+   │     ─┬─  
+   │      ╰─── can't assign to this
+   │ 
+   │ Help: only variables, fields and list elements can be assigned to
+───╯
+error: could not check `tests/ui/syntax_invalid_assign_target.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0020",
+      "help": "only variables, fields and list elements can be assigned to",
+      "labels": [
+        {
+          "message": "can't assign to this",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 8,
+              "line": 2,
+              "offset": 23
+            },
+            "start": {
+              "column": 5,
+              "line": 2,
+              "offset": 20
+            }
+          }
+        }
+      ],
+      "message": "invalid assignment target",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 8,
+          "line": 2,
+          "offset": 23
+        },
+        "start": {
+          "column": 5,
+          "line": 2,
+          "offset": 20
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_invalid_assign_target.wardscript"
+}

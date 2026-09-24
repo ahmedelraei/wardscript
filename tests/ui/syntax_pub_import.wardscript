@@ -1,0 +1,5 @@
+pub import support.tickets
+
+fn f() -> Int {
+    1
+}

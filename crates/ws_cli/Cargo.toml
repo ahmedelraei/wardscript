@@ -18,6 +18,8 @@ ws_resolve.workspace = true
 ws_check.workspace = true
 ws_ir.workspace = true
 ws_codegen_py.workspace = true
+ariadne.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 insta.workspace = true

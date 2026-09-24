@@ -1,0 +1,58 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_unclosed_interpolation.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0004] Error: unclosed `{` in string
+   ╭─[ tests/ui/syntax_unclosed_interpolation.wardscript:2:13 ]
+   │
+ 2 │     "Hello, {name"
+   │             ┬  
+   │             ╰── this `{` starts an interpolation
+   │ 
+   │ Help: close it with `}`, or write `{{` for a literal brace
+───╯
+error: could not check `tests/ui/syntax_unclosed_interpolation.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0004",
+      "help": "close it with `}`, or write `{{` for a literal brace",
+      "labels": [
+        {
+          "message": "this `{` starts an interpolation",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 14,
+              "line": 2,
+              "offset": 44
+            },
+            "start": {
+              "column": 13,
+              "line": 2,
+              "offset": 43
+            }
+          }
+        }
+      ],
+      "message": "unclosed `{` in string",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 14,
+          "line": 2,
+          "offset": 44
+        },
+        "start": {
+          "column": 13,
+          "line": 2,
+          "offset": 43
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_unclosed_interpolation.wardscript"
+}
