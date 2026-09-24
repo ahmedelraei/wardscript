@@ -90,7 +90,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 - `uses {...}` effect sets; callers must declare everything their callees use (W0200-series).
 - Effects inferred inside bodies, compared against the declared set; unused declared effects produce warnings.
 - `budget {tokens, cost, time, calls}`: checked statically where possible, and enforced by the runtime counters otherwise.
-- Rule of Two check, plus the `#[allow(...)]` override with a required reason.
+- Rule of Two check, plus the `@allow(...)` override with a required reason.
 
 **Done when:** ui tests for missing effects, budget violations and Rule of Two pass; the runtime stops a run that goes over budget (e2e).
 
@@ -102,8 +102,10 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 - Approval hooks (sync and async), budget counters, typed errors.
 - Audit trace per run: calls, labels, validations, approvals, declassifications → JSON Lines + OpenTelemetry export.
 - `ward trace show <run_id>`.
+- Real model providers: `wardscript.providers.anthropic` (then OpenAI), reporting real token usage and cost to budgets and using native structured output where the provider has it. `ward run --model anthropic` alongside `--mock`.
+- Live tests against real models, opt-in with `WARD_LIVE=1` and skipped in CI.
 
-**Done when:** `pip install` of a locally built wheel works; the trace for the support example shows the full provenance path.
+**Done when:** `pip install` of a locally built wheel works; the trace for the support example shows the full provenance path; with `WARD_LIVE=1`, the triage and support examples run end to end against a real model and their budgets count its reported usage.
 
 ---
 
