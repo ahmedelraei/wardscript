@@ -153,7 +153,24 @@ fn lower_module(
                         prompt: cx.expr(*prompt)?,
                     },
                 };
+                let budget = f
+                    .budget
+                    .iter()
+                    .flatten()
+                    .map(|e| {
+                        let value = match &data.ast.exprs[e.value].kind {
+                            ast::ExprKind::Lit(ast::Lit::Int(n)) => Ok(BudgetValue::Int(*n)),
+                            ast::ExprKind::Lit(ast::Lit::Float(s)) => s
+                                .parse()
+                                .map(BudgetValue::Float)
+                                .map_err(|_| internal(format!("budget `{s}` isn't a number"))),
+                            _ => Err(internal("budget isn't a literal".to_owned())),
+                        }?;
+                        Ok((e.name.name.clone(), value))
+                    })
+                    .collect::<Result<_, LowerError>>()?;
                 module.fns.push(Fn {
+                    budget,
                     def,
                     name: f.name.name.clone(),
                     is_pub: f.is_pub,

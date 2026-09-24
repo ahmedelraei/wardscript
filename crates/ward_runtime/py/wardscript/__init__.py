@@ -10,6 +10,7 @@ from . import runtime
 from .errors import (
     AiOutputError,
     ApprovalDenied,
+    BudgetExceeded,
     DecodeError,
     NoModelError,
     PanicError,
@@ -18,7 +19,7 @@ from .errors import (
     TrustError,
     WardError,
 )
-from .model import AiRequest, Model
+from .model import AiRequest, Completion, Model
 from .runtime import ApprovalRequest, configure
 from .schema import decode, encode, json_schema
 from .trust import Trusted
@@ -29,6 +30,8 @@ __all__ = [
     "AiRequest",
     "ApprovalDenied",
     "ApprovalRequest",
+    "BudgetExceeded",
+    "Completion",
     "DecodeError",
     "Model",
     "NoModelError",

@@ -121,6 +121,9 @@ fn all_examples_and_valid_ui_programs_round_trip() {
 fn canonical_source_prints_unchanged() {
     let src = r#"import support.tickets as t
 import mcp "gmail" as mail
+#[private(read_inbox)]
+#[readonly(search)]
+import mcp "drive" as drive
 
 pub type Page<T> {
     items: List<T>,
@@ -156,6 +159,8 @@ fn area(s: Shape) -> Float {
     }
 }
 
+#[allow(rule_of_two, reason = "a human reviews every \"send\"")]
+#[inline]
 fn loops(xs: List<Int>) -> Int
     uses {net.read}
 {
@@ -353,4 +358,30 @@ fn match_arms_may_be_separated_by_line_breaks() {
 #[test]
 fn two_statements_on_one_line_need_a_semicolon() {
     assert_eq!(codes("fn f() {\n    let x = 1 let y = 2\n}"), ["W0015"]);
+}
+
+#[test]
+fn attributes() {
+    let parse = parse_ok("#[allow(rule_of_two, reason = \"why\")]\npub fn f() {}\n");
+    let Some(Item::Fn(f)) = parse.module.items.first() else {
+        panic!("expected a function");
+    };
+    assert!(f.is_pub);
+    let [a] = f.attrs.as_slice() else {
+        panic!("expected one attribute");
+    };
+    assert_eq!(a.name.name, "allow");
+    assert_eq!(a.args.len(), 2);
+    assert_eq!(a.args[0].name.name, "rule_of_two");
+    assert!(a.args[0].value.is_none());
+    assert_eq!(
+        a.args[1].value.as_ref().map(|(v, _)| v.as_str()),
+        Some("why")
+    );
+
+    assert_eq!(codes("#[x]\ntype T = Int\n"), ["W0024"]);
+    assert_eq!(codes("#[x]\nenum E { A }\n"), ["W0024"]);
+    assert_eq!(codes("#[allow(a = b)]\nfn f() {}\n"), ["W0010"]);
+    assert_eq!(codes("#[allow(a = \"{x}\")]\nfn f() {}\n"), ["W0022"]);
+    assert_eq!(codes("#[allow\nfn f() {}\n"), ["W0010"]);
 }

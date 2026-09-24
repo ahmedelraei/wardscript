@@ -30,6 +30,7 @@ pub mod codes {
     pub const UNCLOSED_DELIMITER: Code = Code("W0021");
     pub const INTERPOLATION_NOT_ALLOWED: Code = Code("W0022");
     pub const PUB_IMPORT: Code = Code("W0023");
+    pub const MISPLACED_ATTRIBUTE: Code = Code("W0024");
 
     // W010x: names and modules, plus W0107 (trust).
     pub const UNRESOLVED_VALUE: Code = Code("W0100");
@@ -65,6 +66,17 @@ pub mod codes {
     pub const AI_FN_THROWS: Code = Code("W0130");
     pub const TRY_CANNOT_THROW: Code = Code("W0131");
 
+    // W02xx: effects, budgets, Rule of Two
+    pub const MISSING_EFFECT: Code = Code("W0200");
+    pub const UNUSED_EFFECT: Code = Code("W0201");
+    pub const UNKNOWN_EFFECT: Code = Code("W0202");
+    pub const INVALID_BUDGET: Code = Code("W0210");
+    pub const BUDGET_EXCEEDED: Code = Code("W0211");
+    pub const CALLEE_BUDGET: Code = Code("W0212");
+    pub const RULE_OF_TWO: Code = Code("W0220");
+    pub const INVALID_ATTRIBUTE: Code = Code("W0221");
+    pub const UNNECESSARY_ALLOW: Code = Code("W0222");
+
     pub const ALL: &[Code] = &[
         UNEXPECTED_CHAR,
         UNTERMINATED_STRING,
@@ -85,6 +97,7 @@ pub mod codes {
         UNCLOSED_DELIMITER,
         INTERPOLATION_NOT_ALLOWED,
         PUB_IMPORT,
+        MISPLACED_ATTRIBUTE,
         UNRESOLVED_VALUE,
         UNRESOLVED_TYPE,
         UNRESOLVED_MODULE,
@@ -115,6 +128,15 @@ pub mod codes {
         UNHANDLED_THROW,
         AI_FN_THROWS,
         TRY_CANNOT_THROW,
+        MISSING_EFFECT,
+        UNUSED_EFFECT,
+        UNKNOWN_EFFECT,
+        INVALID_BUDGET,
+        BUDGET_EXCEEDED,
+        CALLEE_BUDGET,
+        RULE_OF_TWO,
+        INVALID_ATTRIBUTE,
+        UNNECESSARY_ALLOW,
     ];
 }
 

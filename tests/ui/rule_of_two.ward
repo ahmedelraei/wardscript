@@ -1,0 +1,43 @@
+// A function may not process untrusted input, read private data and change external
+// state all at once. It's reported where the three first meet, not in its callers.
+import mcp "gmail" as mail
+#[private(read_file)]
+import mcp "drive" as drive
+
+ai fn summarize(text: String) -> String {
+    "Summarize: {text}"
+}
+
+fn leak(request: Untrusted<String>)
+    uses {drive, mail}
+{
+    let secret = drive.read_file("salaries.csv")
+    mail.send("someone@example.com", "report", approve(secret))
+}
+
+pub fn handle(request: Untrusted<String>)
+    uses {drive, mail}
+{
+    leak(request)
+}
+
+// Through helpers: the model's output, a private read and an email.
+fn read_secret() -> String
+    uses {drive.read_file}
+{
+    drive.read_file("salaries.csv")
+}
+
+fn send(text: String)
+    uses {mail.send}
+{
+    mail.send("team@example.com", "report", text)
+}
+
+pub fn digest(text: String)
+    uses {llm, drive.read_file, mail.send}
+{
+    let summary = summarize(text)
+    let secret = read_secret()
+    send(approve(summary + secret))
+}

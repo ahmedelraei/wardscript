@@ -1,0 +1,535 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/attributes_invalid.ward
+---
+exit: Some(1)
+--- human ---
+[W0221] Error: `#[private]` takes tool function names
+   ╭─[ tests/ui/attributes_invalid.ward:6:11 ]
+   │
+ 6 │ #[private(x = "y")]
+   │           ───┬───  
+   │              ╰───── expected a name, like `read_file`
+───╯
+[W0221] Error: unknown attribute `cached` on an import
+   ╭─[ tests/ui/attributes_invalid.ward:7:3 ]
+   │
+ 7 │ #[cached]
+   │   ───┬──  
+   │      ╰──── not recognized here
+   │ 
+   │ Help: tool imports take `#[private(f, ...)]` and `#[readonly(f, ...)]`
+───╯
+[W0221] Error: `#[allow(rule_of_two)]` needs a reason
+    ╭─[ tests/ui/attributes_invalid.ward:10:1 ]
+    │
+ 10 │ #[allow(rule_of_two)]
+    │ ──────────┬──────────  
+    │           ╰──────────── no reason given
+    │ 
+    │ Help: say why this is safe: `#[allow(rule_of_two, reason = "...")]`
+────╯
+[W0220] Error: `a` breaks the Rule of Two: it processes untrusted input, reads private data and changes external state
+    ╭─[ tests/ui/attributes_invalid.ward:11:8 ]
+    │
+ 11 │ pub fn a(r: Untrusted<String>)
+    │        ┬ ──────────┬─────────  
+    │        ╰─────────────────────── has all three
+    │                    │           
+    │                    ╰─────────── `r` is declared `Untrusted`
+    │ 
+ 14 │     mail.send(approve(r), "x", approve(drive.read_file("f")))
+    │     ────────────────────────────┬────────────────┬───────────  
+    │                                 ╰────────────────────────────── `mail.send` may change external state
+    │                                                  │             
+    │                                                  ╰───────────── `drive.read_file` reads private data
+    │ 
+    │ Help: split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = "...")]`
+────╯
+[W0221] Error: the reason for an `#[allow]` can't be empty
+    ╭─[ tests/ui/attributes_invalid.ward:17:31 ]
+    │
+ 17 │ #[allow(rule_of_two, reason = "  ")]
+    │                               ──┬─  
+    │                                 ╰─── say why this is safe
+────╯
+[W0220] Error: `b` breaks the Rule of Two: it processes untrusted input, reads private data and changes external state
+    ╭─[ tests/ui/attributes_invalid.ward:18:8 ]
+    │
+ 18 │ pub fn b(r: Untrusted<String>)
+    │        ┬ ──────────┬─────────  
+    │        ╰─────────────────────── has all three
+    │                    │           
+    │                    ╰─────────── `r` is declared `Untrusted`
+    │ 
+ 21 │     mail.send(approve(r), "x", approve(drive.read_file("f")))
+    │     ────────────────────────────┬────────────────┬───────────  
+    │                                 ╰────────────────────────────── `mail.send` may change external state
+    │                                                  │             
+    │                                                  ╰───────────── `drive.read_file` reads private data
+    │ 
+    │ Help: split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = "...")]`
+────╯
+[W0221] Error: `#[allow]` doesn't take `unused`
+    ╭─[ tests/ui/attributes_invalid.ward:24:9 ]
+    │
+ 24 │ #[allow(unused, reason = "why")]
+    │         ───┬──  
+    │            ╰──── not recognized
+    │ 
+    │ Help: write `#[allow(rule_of_two, reason = "...")]`
+────╯
+[W0221] Error: unknown attribute `inline`
+    ╭─[ tests/ui/attributes_invalid.ward:25:3 ]
+    │
+ 25 │ #[inline]
+    │   ───┬──  
+    │      ╰──── not recognized
+    │ 
+    │ Help: functions take `#[allow(rule_of_two, reason = "...")]`
+────╯
+[W0222] Warning: `d` doesn't break the Rule of Two
+    ╭─[ tests/ui/attributes_invalid.ward:29:1 ]
+    │
+ 29 │ #[allow(rule_of_two, reason = "reviewed")]
+    │ ─────────────────────┬────────────────────  
+    │                      ╰────────────────────── nothing to allow
+    │ 
+    │ Help: remove the attribute
+────╯
+error: could not check `tests/ui/attributes_invalid.ward` due to 8 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0221",
+      "file": "tests/ui/attributes_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected a name, like `read_file`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 18,
+              "line": 6,
+              "offset": 201
+            },
+            "start": {
+              "column": 11,
+              "line": 6,
+              "offset": 194
+            }
+          }
+        }
+      ],
+      "message": "`#[private]` takes tool function names",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 18,
+          "line": 6,
+          "offset": 201
+        },
+        "start": {
+          "column": 11,
+          "line": 6,
+          "offset": 194
+        }
+      }
+    },
+    {
+      "code": "W0221",
+      "file": "tests/ui/attributes_invalid.ward",
+      "help": "tool imports take `#[private(f, ...)]` and `#[readonly(f, ...)]`",
+      "labels": [
+        {
+          "message": "not recognized here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 9,
+              "line": 7,
+              "offset": 212
+            },
+            "start": {
+              "column": 3,
+              "line": 7,
+              "offset": 206
+            }
+          }
+        }
+      ],
+      "message": "unknown attribute `cached` on an import",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 9,
+          "line": 7,
+          "offset": 212
+        },
+        "start": {
+          "column": 3,
+          "line": 7,
+          "offset": 206
+        }
+      }
+    },
+    {
+      "code": "W0221",
+      "file": "tests/ui/attributes_invalid.ward",
+      "help": "say why this is safe: `#[allow(rule_of_two, reason = \"...\")]`",
+      "labels": [
+        {
+          "message": "no reason given",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 22,
+              "line": 10,
+              "offset": 270
+            },
+            "start": {
+              "column": 1,
+              "line": 10,
+              "offset": 249
+            }
+          }
+        }
+      ],
+      "message": "`#[allow(rule_of_two)]` needs a reason",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 22,
+          "line": 10,
+          "offset": 270
+        },
+        "start": {
+          "column": 1,
+          "line": 10,
+          "offset": 249
+        }
+      }
+    },
+    {
+      "code": "W0220",
+      "file": "tests/ui/attributes_invalid.ward",
+      "help": "split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = \"...\")]`",
+      "labels": [
+        {
+          "message": "has all three",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 9,
+              "line": 11,
+              "offset": 279
+            },
+            "start": {
+              "column": 8,
+              "line": 11,
+              "offset": 278
+            }
+          }
+        },
+        {
+          "message": "`r` is declared `Untrusted`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 30,
+              "line": 11,
+              "offset": 300
+            },
+            "start": {
+              "column": 10,
+              "line": 11,
+              "offset": 280
+            }
+          }
+        },
+        {
+          "message": "`drive.read_file` reads private data",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 14,
+              "offset": 386
+            },
+            "start": {
+              "column": 40,
+              "line": 14,
+              "offset": 366
+            }
+          }
+        },
+        {
+          "message": "`mail.send` may change external state",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 62,
+              "line": 14,
+              "offset": 388
+            },
+            "start": {
+              "column": 5,
+              "line": 14,
+              "offset": 331
+            }
+          }
+        }
+      ],
+      "message": "`a` breaks the Rule of Two: it processes untrusted input, reads private data and changes external state",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 9,
+          "line": 11,
+          "offset": 279
+        },
+        "start": {
+          "column": 8,
+          "line": 11,
+          "offset": 278
+        }
+      }
+    },
+    {
+      "code": "W0221",
+      "file": "tests/ui/attributes_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "say why this is safe",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 35,
+              "line": 17,
+              "offset": 426
+            },
+            "start": {
+              "column": 31,
+              "line": 17,
+              "offset": 422
+            }
+          }
+        }
+      ],
+      "message": "the reason for an `#[allow]` can't be empty",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 35,
+          "line": 17,
+          "offset": 426
+        },
+        "start": {
+          "column": 31,
+          "line": 17,
+          "offset": 422
+        }
+      }
+    },
+    {
+      "code": "W0220",
+      "file": "tests/ui/attributes_invalid.ward",
+      "help": "split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = \"...\")]`",
+      "labels": [
+        {
+          "message": "has all three",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 9,
+              "line": 18,
+              "offset": 437
+            },
+            "start": {
+              "column": 8,
+              "line": 18,
+              "offset": 436
+            }
+          }
+        },
+        {
+          "message": "`r` is declared `Untrusted`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 30,
+              "line": 18,
+              "offset": 458
+            },
+            "start": {
+              "column": 10,
+              "line": 18,
+              "offset": 438
+            }
+          }
+        },
+        {
+          "message": "`drive.read_file` reads private data",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 21,
+              "offset": 544
+            },
+            "start": {
+              "column": 40,
+              "line": 21,
+              "offset": 524
+            }
+          }
+        },
+        {
+          "message": "`mail.send` may change external state",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 62,
+              "line": 21,
+              "offset": 546
+            },
+            "start": {
+              "column": 5,
+              "line": 21,
+              "offset": 489
+            }
+          }
+        }
+      ],
+      "message": "`b` breaks the Rule of Two: it processes untrusted input, reads private data and changes external state",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 9,
+          "line": 18,
+          "offset": 437
+        },
+        "start": {
+          "column": 8,
+          "line": 18,
+          "offset": 436
+        }
+      }
+    },
+    {
+      "code": "W0221",
+      "file": "tests/ui/attributes_invalid.ward",
+      "help": "write `#[allow(rule_of_two, reason = \"...\")]`",
+      "labels": [
+        {
+          "message": "not recognized",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 15,
+              "line": 24,
+              "offset": 564
+            },
+            "start": {
+              "column": 9,
+              "line": 24,
+              "offset": 558
+            }
+          }
+        }
+      ],
+      "message": "`#[allow]` doesn't take `unused`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 15,
+          "line": 24,
+          "offset": 564
+        },
+        "start": {
+          "column": 9,
+          "line": 24,
+          "offset": 558
+        }
+      }
+    },
+    {
+      "code": "W0221",
+      "file": "tests/ui/attributes_invalid.ward",
+      "help": "functions take `#[allow(rule_of_two, reason = \"...\")]`",
+      "labels": [
+        {
+          "message": "not recognized",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 9,
+              "line": 25,
+              "offset": 591
+            },
+            "start": {
+              "column": 3,
+              "line": 25,
+              "offset": 585
+            }
+          }
+        }
+      ],
+      "message": "unknown attribute `inline`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 9,
+          "line": 25,
+          "offset": 591
+        },
+        "start": {
+          "column": 3,
+          "line": 25,
+          "offset": 585
+        }
+      }
+    },
+    {
+      "code": "W0222",
+      "file": "tests/ui/attributes_invalid.ward",
+      "help": "remove the attribute",
+      "labels": [
+        {
+          "message": "nothing to allow",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 43,
+              "line": 29,
+              "offset": 676
+            },
+            "start": {
+              "column": 1,
+              "line": 29,
+              "offset": 634
+            }
+          }
+        }
+      ],
+      "message": "`d` doesn't break the Rule of Two",
+      "severity": "warning",
+      "span": {
+        "end": {
+          "column": 43,
+          "line": 29,
+          "offset": 676
+        },
+        "start": {
+          "column": 1,
+          "line": 29,
+          "offset": 634
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/attributes_invalid.ward"
+}

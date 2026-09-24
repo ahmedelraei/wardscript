@@ -7,8 +7,9 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
 
+from . import budget
 from .errors import AiOutputError, ApprovalDenied, DecodeError, NoModelError, Thrown, ToolError
-from .model import AiRequest, Model
+from .model import AiRequest, Completion, Model, estimate_tokens
 from .schema import Type, decode, json_schema
 
 
@@ -80,7 +81,17 @@ def ai(function: str, prompt: str, returns: Type) -> Any:
     errors: list[str] = []
     for attempt in range(_config.retries + 1):
         request = AiRequest(function, prompt, schema, attempt, tuple(errors))
-        text = model.complete(request)
+        budget.before_model_call()
+        answer = model.complete(request)
+        if isinstance(answer, Completion):
+            text = answer.text
+            tokens = answer.tokens
+            cost = answer.cost
+        else:
+            text, tokens, cost = answer, None, 0.0
+        if tokens is None:
+            tokens = estimate_tokens(request.prompt) + estimate_tokens(str(text))
+        budget.after_model_call(tokens, cost)
         try:
             value = json.loads(text)
         except (json.JSONDecodeError, TypeError) as e:
@@ -116,6 +127,7 @@ def declassify(value: Any, reason: str) -> Any:
 
 
 def call_tool(source: str, name: str, *args: Any) -> Any:
+    budget.check_time()
     impl = _config.tools.get(source)
     if impl is None:
         raise ToolError(
@@ -125,4 +137,6 @@ def call_tool(source: str, name: str, *args: Any) -> Any:
     fn = impl.get(name) if isinstance(impl, Mapping) else getattr(impl, name, None)
     if fn is None:
         raise ToolError(f"tool `{source}` has no function `{name}`")
-    return fn(*args)
+    result = fn(*args)
+    budget.check_time()
+    return result

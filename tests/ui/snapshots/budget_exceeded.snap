@@ -1,0 +1,105 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/budget_exceeded.ward
+---
+exit: Some(1)
+--- human ---
+[W0211] Error: `never` always makes at least 1 model call, but its budget allows 0
+   ╭─[ tests/ui/budget_exceeded.ward:7:20 ]
+   │
+ 7 │     budget {calls: 0}
+   │                    ┬  
+   │                    ╰── this budget is always exceeded
+   │ 
+   │ Help: raise the budget, or make fewer model calls
+───╯
+[W0211] Error: `twice` always makes at least 2 model calls, but its budget allows 1
+    ╭─[ tests/ui/budget_exceeded.ward:14:20 ]
+    │
+ 14 │     budget {calls: 1}
+    │                    ┬  
+    │                    ╰── this budget is always exceeded
+    │ 
+    │ Help: raise the budget, or make fewer model calls
+────╯
+error: could not check `tests/ui/budget_exceeded.ward` due to 2 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0211",
+      "file": "tests/ui/budget_exceeded.ward",
+      "help": "raise the budget, or make fewer model calls",
+      "labels": [
+        {
+          "message": "this budget is always exceeded",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 21,
+              "line": 7,
+              "offset": 187
+            },
+            "start": {
+              "column": 20,
+              "line": 7,
+              "offset": 186
+            }
+          }
+        }
+      ],
+      "message": "`never` always makes at least 1 model call, but its budget allows 0",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 21,
+          "line": 7,
+          "offset": 187
+        },
+        "start": {
+          "column": 20,
+          "line": 7,
+          "offset": 186
+        }
+      }
+    },
+    {
+      "code": "W0211",
+      "file": "tests/ui/budget_exceeded.ward",
+      "help": "raise the budget, or make fewer model calls",
+      "labels": [
+        {
+          "message": "this budget is always exceeded",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 21,
+              "line": 14,
+              "offset": 273
+            },
+            "start": {
+              "column": 20,
+              "line": 14,
+              "offset": 272
+            }
+          }
+        }
+      ],
+      "message": "`twice` always makes at least 2 model calls, but its budget allows 1",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 21,
+          "line": 14,
+          "offset": 273
+        },
+        "start": {
+          "column": 20,
+          "line": 14,
+          "offset": 272
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/budget_exceeded.ward"
+}

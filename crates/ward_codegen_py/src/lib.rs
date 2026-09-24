@@ -105,8 +105,27 @@ fn python(program: &Program, id: ModuleId, module: &Module) -> String {
             names::ident(&f.name),
             params.join(", ")
         );
+        let indent = if f.budget.is_empty() {
+            ""
+        } else {
+            let limits: Vec<String> = f
+                .budget
+                .iter()
+                .map(|(k, v)| match v {
+                    ward_ir::BudgetValue::Int(n) => format!("{k}={n}"),
+                    ward_ir::BudgetValue::Float(x) => format!("{k}={x:?}"),
+                })
+                .collect();
+            let _ = writeln!(
+                body,
+                "    with _rt.budget({}, {}):",
+                names::string(&f.name),
+                limits.join(", ")
+            );
+            "    "
+        };
         for line in g.lines {
-            let _ = writeln!(body, "{line}");
+            let _ = writeln!(body, "{indent}{line}");
         }
     }
 

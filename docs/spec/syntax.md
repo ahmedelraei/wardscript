@@ -18,13 +18,15 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
   `"Hello {user.name}"`. A literal brace is written doubled, `{{` or `}}`, as in Python f-strings. The expression
   can't contain a `"` (so no nested string literals).
 - **Operators and punctuation**:
-  `( ) { } [ ] , ; : . -> => + - * / % == != < <= > >= && || ! = ?`
+  `( ) { } [ ] , ; : . -> => + - * / % == != < <= > >= && || ! = ? #`
 
 ## Grammar
 
 ```ebnf
 module      = item* ;
-item        = import | ["pub"] (fn | ai_fn | type | enum) ;
+item        = attribute* (import | ["pub"] (fn | ai_fn)) | ["pub"] (type | enum) ;
+attribute   = "#" "[" IDENT ["(" [attr_arg ("," attr_arg)* [","]] ")"] "]" ;
+attr_arg    = IDENT ["=" STRING] ;                        (* rule_of_two, reason = "..." *)
 
 import      = "import" path ["as" IDENT]                 (* module import *)
             | "import" IDENT STRING "as" IDENT ;         (* tool import: import mcp "gmail" as mail *)
@@ -35,7 +37,7 @@ signature   = [generics] "(" [param ("," param)* [","]] ")" ["->" type] ["throws
 param       = IDENT ":" type ;
 clause      = "uses" "{" [effect ("," effect)* [","]] "}"
             | "budget" "{" [IDENT ":" expr ("," IDENT ":" expr)* [","]] "}" ;
-effect      = IDENT ("." IDENT)* ;                       (* llm, net.read, mail.send *)
+effect      = IDENT ("." IDENT)* ;                       (* llm, mail, mail.send *)
 
 type_decl   = "type" IDENT [generics] "{" [field ("," field)* [","]] "}"   (* record *)
             | "type" IDENT [generics] "=" type ;                           (* alias *)
@@ -135,6 +137,17 @@ ai fn triage(email: Untrusted<String>) -> Ticket
 {
     "Fill in a ticket for this email:\n{email}"
 }
+```
+
+### Attributes
+
+Attributes go on their own lines before a function or an import; on a type or enum
+they're an error (W0024). Their strings can't interpolate (W0022). Which attributes
+exist is part of [effects](effects.md).
+
+```ward
+#[allow(rule_of_two, reason = "a human approves every message")]
+pub fn reply(email: Untrusted<String>) { ... }
 ```
 
 ## Canonical formatting

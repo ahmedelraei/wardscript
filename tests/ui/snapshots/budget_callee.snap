@@ -1,0 +1,81 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/budget_callee.ward
+---
+exit: Some(0)
+--- human ---
+[W0212] Warning: `long_answer`'s `tokens` budget (8000) is more than `answer`'s (2000)
+    ╭─[ tests/ui/budget_callee.ward:12:5 ]
+    │
+ 12 │     long_answer(q)
+    │     ───────┬──────  
+    │            ╰──────── `long_answer` can't use its whole budget here
+    │
+    ├─[ tests/ui/budget_callee.ward:12:5 ]
+    │
+ 10 │     budget {tokens: 2000}
+    │                     ──┬─  
+    │                       ╰─── `answer`'s budget
+    │ 
+    │ Help: lower `long_answer`'s budget, or raise `answer`'s
+────╯
+ok: tests/ui/budget_callee.ward (1 warning)
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0212",
+      "file": "tests/ui/budget_callee.ward",
+      "help": "lower `long_answer`'s budget, or raise `answer`'s",
+      "labels": [
+        {
+          "message": "`long_answer` can't use its whole budget here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 12,
+              "offset": 254
+            },
+            "start": {
+              "column": 5,
+              "line": 12,
+              "offset": 240
+            }
+          }
+        },
+        {
+          "message": "`answer`'s budget",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 25,
+              "line": 10,
+              "offset": 232
+            },
+            "start": {
+              "column": 21,
+              "line": 10,
+              "offset": 228
+            }
+          }
+        }
+      ],
+      "message": "`long_answer`'s `tokens` budget (8000) is more than `answer`'s (2000)",
+      "severity": "warning",
+      "span": {
+        "end": {
+          "column": 19,
+          "line": 12,
+          "offset": 254
+        },
+        "start": {
+          "column": 5,
+          "line": 12,
+          "offset": 240
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/budget_callee.ward"
+}

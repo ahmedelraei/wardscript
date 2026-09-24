@@ -43,7 +43,8 @@ the path it took. The host calling `answer` has to vouch for `to`
 
 Early development. Done: the parser, name resolution and type checker
 (`ward check`), the Python backend with its runtime (`ward build`, `ward run`), and
-trust labels. Next: effects, budgets and the Rule of Two (M5). See [PLAN.md](PLAN.md) for the milestones and
+trust labels, and effects, budgets and the Rule of Two. Next: the Rust runtime
+core and the audit trace (M6). See [PLAN.md](PLAN.md) for the milestones and
 [docs/spec](docs/spec/README.md) for the language specification.
 
 ```bash

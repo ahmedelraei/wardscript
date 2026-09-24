@@ -1,0 +1,9 @@
+// A callee's tool effect is named through the caller's own import of the tool, so a
+// caller that doesn't import it can't declare it.
+import lib.notify as notify
+
+pub fn run()
+    uses {notify}
+{
+    notify.send("done")
+}

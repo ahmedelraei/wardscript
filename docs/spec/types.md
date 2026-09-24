@@ -1,6 +1,6 @@
 # Types
 
-Status: implemented in M2 (`ward_check`). Trust labels ([trust](trust.md), M4) and effects (M5) are
+Status: implemented in M2 (`ward_check`). Trust labels ([trust](trust.md), M4) and effects ([effects](effects.md), M5) are
 tracked separately from these types.
 
 ## The types

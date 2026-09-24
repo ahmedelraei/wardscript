@@ -1,0 +1,24 @@
+// Every effect a function has, directly or through its callees, must be declared.
+import mcp "gmail" as mail
+
+ai fn summarize(text: String) -> String {
+    "Summarize: {text}"
+}
+
+fn notify(text: String)
+    uses {mail.send}
+{
+    mail.send("team@example.com", "note", text)
+}
+
+// Missing `mail.send`, used directly.
+pub fn direct() {
+    mail.send("team@example.com", "hi", "hello")
+}
+
+// Missing `llm` (through the `ai fn`) and `mail.send` (through `notify`).
+pub fn indirect(text: String) -> String {
+    let s = summarize(text)
+    notify("done")
+    s
+}

@@ -72,7 +72,32 @@ impl<'m> Printer<'m> {
         }
     }
 
+    fn attrs(&mut self, attrs: &[Attribute]) {
+        for a in attrs {
+            self.w("#[");
+            self.w(&a.name.name);
+            if !a.args.is_empty() {
+                self.w("(");
+                self.sep(&a.args, ", ", |p, arg| {
+                    p.w(&arg.name.name);
+                    if let Some((v, _)) = &arg.value {
+                        p.w(" = ");
+                        p.string(v);
+                    }
+                });
+                self.w(")");
+            }
+            self.w("]");
+            self.newline();
+        }
+    }
+
     fn item(&mut self, item: &Item) {
+        match item {
+            Item::Fn(f) => self.attrs(&f.attrs),
+            Item::Import(i) => self.attrs(&i.attrs),
+            _ => {}
+        }
         match item {
             Item::Import(i) => self.import(i),
             Item::Record(r) => {

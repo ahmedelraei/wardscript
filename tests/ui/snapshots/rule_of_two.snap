@@ -1,0 +1,220 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/rule_of_two.ward
+---
+exit: Some(1)
+--- human ---
+[W0220] Error: `leak` breaks the Rule of Two: it processes untrusted input, reads private data and changes external state
+    ╭─[ tests/ui/rule_of_two.ward:11:4 ]
+    │
+ 11 │ fn leak(request: Untrusted<String>)
+    │    ──┬─ ─────────────┬────────────  
+    │      ╰────────────────────────────── has all three
+    │                      │              
+    │                      ╰────────────── `request` is declared `Untrusted`
+    │ 
+ 14 │     let secret = drive.read_file("salaries.csv")
+    │                  ───────────────┬───────────────  
+    │                                 ╰───────────────── `drive.read_file` reads private data
+ 15 │     mail.send("someone@example.com", "report", approve(secret))
+    │     ─────────────────────────────┬─────────────────────────────  
+    │                                  ╰─────────────────────────────── `mail.send` may change external state
+    │ 
+    │ Help: split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = "...")]`
+────╯
+[W0220] Error: `digest` breaks the Rule of Two: it processes untrusted input, reads private data and changes external state
+    ╭─[ tests/ui/rule_of_two.ward:37:8 ]
+    │
+ 37 │ pub fn digest(text: String)
+    │        ───┬──  
+    │           ╰──── has all three
+    │ 
+ 40 │     let summary = summarize(text)
+    │                   ───────┬───────  
+    │                          ╰───────── the output of `ai fn summarize` is untrusted
+ 41 │     let secret = read_secret()
+    │                  ──────┬──────  
+    │                        ╰──────── calls `read_secret`, which reads private data
+ 42 │     send(approve(summary + secret))
+    │     ───────────────┬───────────────  
+    │                    ╰───────────────── calls `send`, which changes external state or communicates
+    │ 
+    │ Help: split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = "...")]`
+────╯
+error: could not check `tests/ui/rule_of_two.ward` due to 2 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0220",
+      "file": "tests/ui/rule_of_two.ward",
+      "help": "split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = \"...\")]`",
+      "labels": [
+        {
+          "message": "has all three",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 8,
+              "line": 11,
+              "offset": 323
+            },
+            "start": {
+              "column": 4,
+              "line": 11,
+              "offset": 319
+            }
+          }
+        },
+        {
+          "message": "`request` is declared `Untrusted`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 35,
+              "line": 11,
+              "offset": 350
+            },
+            "start": {
+              "column": 9,
+              "line": 11,
+              "offset": 324
+            }
+          }
+        },
+        {
+          "message": "`drive.read_file` reads private data",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 49,
+              "line": 14,
+              "offset": 425
+            },
+            "start": {
+              "column": 18,
+              "line": 14,
+              "offset": 394
+            }
+          }
+        },
+        {
+          "message": "`mail.send` may change external state",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 64,
+              "line": 15,
+              "offset": 489
+            },
+            "start": {
+              "column": 5,
+              "line": 15,
+              "offset": 430
+            }
+          }
+        }
+      ],
+      "message": "`leak` breaks the Rule of Two: it processes untrusted input, reads private data and changes external state",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 8,
+          "line": 11,
+          "offset": 323
+        },
+        "start": {
+          "column": 4,
+          "line": 11,
+          "offset": 319
+        }
+      }
+    },
+    {
+      "code": "W0220",
+      "file": "tests/ui/rule_of_two.ward",
+      "help": "split it so no function has all three, or, if a human reviews what it does, `#[allow(rule_of_two, reason = \"...\")]`",
+      "labels": [
+        {
+          "message": "has all three",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 14,
+              "line": 37,
+              "offset": 856
+            },
+            "start": {
+              "column": 8,
+              "line": 37,
+              "offset": 850
+            }
+          }
+        },
+        {
+          "message": "the output of `ai fn summarize` is untrusted",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 34,
+              "line": 40,
+              "offset": 949
+            },
+            "start": {
+              "column": 19,
+              "line": 40,
+              "offset": 934
+            }
+          }
+        },
+        {
+          "message": "calls `read_secret`, which reads private data",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 31,
+              "line": 41,
+              "offset": 980
+            },
+            "start": {
+              "column": 18,
+              "line": 41,
+              "offset": 967
+            }
+          }
+        },
+        {
+          "message": "calls `send`, which changes external state or communicates",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 36,
+              "line": 42,
+              "offset": 1016
+            },
+            "start": {
+              "column": 5,
+              "line": 42,
+              "offset": 985
+            }
+          }
+        }
+      ],
+      "message": "`digest` breaks the Rule of Two: it processes untrusted input, reads private data and changes external state",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 14,
+          "line": 37,
+          "offset": 856
+        },
+        "start": {
+          "column": 8,
+          "line": 37,
+          "offset": 850
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/rule_of_two.ward"
+}

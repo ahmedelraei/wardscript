@@ -53,6 +53,7 @@ impl Item {
 
 #[derive(Debug, PartialEq)]
 pub struct FnDecl {
+    pub attrs: Vec<Attribute>,
     pub is_pub: bool,
     /// `ai fn`: the body is a prompt and the model produces the result.
     pub is_ai: bool,
@@ -133,8 +134,26 @@ pub struct Variant {
 
 #[derive(Debug, PartialEq)]
 pub struct Import {
+    pub attrs: Vec<Attribute>,
     pub kind: ImportKind,
     pub alias: Option<Ident>,
+    pub span: Span,
+}
+
+/// `#[allow(rule_of_two, reason = "...")]`. Only functions and imports take attributes;
+/// the checker decides which names and arguments mean something.
+#[derive(Debug, PartialEq)]
+pub struct Attribute {
+    pub name: Ident,
+    pub args: Vec<AttrArg>,
+    pub span: Span,
+}
+
+/// `name` or `name = "value"`.
+#[derive(Debug, PartialEq)]
+pub struct AttrArg {
+    pub name: Ident,
+    pub value: Option<(String, Span)>,
     pub span: Span,
 }
 

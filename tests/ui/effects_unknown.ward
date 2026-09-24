@@ -1,0 +1,8 @@
+// Effects are `llm`, an imported tool, or one of its functions.
+import mcp "gmail" as mail
+
+pub fn send(text: String)
+    uses {mail.send, net.read, gmail}
+{
+    mail.send("team@example.com", "note", text)
+}

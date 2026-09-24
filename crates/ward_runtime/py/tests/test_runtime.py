@@ -6,6 +6,7 @@ import unittest
 from wardscript import (
     AiOutputError,
     ApprovalDenied,
+    BudgetExceeded,
     DecodeError,
     PanicError,
     Some,
@@ -19,7 +20,7 @@ from wardscript import (
     json_schema,
     runtime,
 )
-from wardscript.mock import MockError, MockModel, Raw, Seq
+from wardscript.mock import MockError, MockModel, Raw, Seq, Usage
 
 
 class Color(enum.Enum):
@@ -222,6 +223,21 @@ class Runtime(unittest.TestCase):
         with self.assertRaises(Thrown) as cm:
             _rt.validate("a", lambda s: False, "rule")
         self.assertEqual(cm.exception.value, "validation failed: `rule` rejected the value")
+
+    def test_nested_budgets_are_all_charged(self):
+        runtime.configure(model=MockModel({"f": Usage(1, tokens=10, cost=0.5)}))
+        with _rt.budget("outer", tokens=100) as outer:
+            with _rt.budget("inner", cost=1.0) as inner:
+                _rt.ai("f", "p", _rt.Int)
+            self.assertEqual(inner.used, {"tokens": 10, "calls": 1, "cost": 0.5})
+            _rt.ai("f", "p", _rt.Int)
+        self.assertEqual(outer.used["calls"], 2)
+        self.assertEqual(outer.used["tokens"], 20)
+        with self.assertRaises(BudgetExceeded):
+            with _rt.budget("outer", cost=10):
+                with _rt.budget("inner", cost=0.9):
+                    _rt.ai("f", "p", _rt.Int)
+                    _rt.ai("f", "p", _rt.Int)
 
     def test_vouched(self):
         self.assertEqual(_rt.vouched(Trusted("ada"), "to", "send"), "ada")

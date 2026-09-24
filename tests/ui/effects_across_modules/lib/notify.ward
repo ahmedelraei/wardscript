@@ -1,0 +1,7 @@
+import mcp "gmail" as mail
+
+pub fn send(text: String)
+    uses {mail.send}
+{
+    mail.send("team@example.com", "note", text)
+}

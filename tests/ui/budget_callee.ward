@@ -1,0 +1,13 @@
+// A callee whose budget is larger than its caller's can never use all of it.
+ai fn long_answer(q: String) -> String
+    budget {tokens: 8000}
+{
+    "{q}"
+}
+
+pub fn answer(q: String) -> String
+    uses {llm}
+    budget {tokens: 2000}
+{
+    long_answer(q)
+}

@@ -91,6 +91,8 @@ pub enum TokenKind {
     Comma,
     #[token(";")]
     Semi,
+    #[token("#")]
+    Hash,
     #[token(":")]
     Colon,
     #[token(".")]
@@ -193,6 +195,7 @@ impl TokenKind {
             RBracket => "`]`",
             Comma => "`,`",
             Semi => "`;`",
+            Hash => "`#`",
             Colon => "`:`",
             Dot => "`.`",
             Arrow => "`->`",

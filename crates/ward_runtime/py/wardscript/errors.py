@@ -37,6 +37,21 @@ class AiOutputError(WardError):
         self.errors = errors
 
 
+class BudgetExceeded(WardError):
+    """A function used more of a resource than its `budget` allows; the run stops."""
+
+    def __init__(self, function: str, resource: str, limit: float, used: float) -> None:
+        unit = {"cost": "$", "time": "s"}.get(resource, "")
+        shown = (lambda v: f"${v:g}") if unit == "$" else (lambda v: f"{v:g}{unit}")
+        super().__init__(
+            f"`{function}` went over its {resource} budget: used {shown(used)} of {shown(limit)}"
+        )
+        self.function = function
+        self.resource = resource
+        self.limit = limit
+        self.used = used
+
+
 class ApprovalDenied(WardError):
     pass
 
