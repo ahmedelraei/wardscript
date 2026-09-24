@@ -20,9 +20,9 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 
 ## M1: Lexer and parser (2–4 days)
 **Tasks**
-- `logos` lexer: identifiers, literals (int, float, string, string templates `"{x}"`), keywords (`fn pub let type enum match if else for while return import uses budget by llm`), operators, comments.
+- `logos` lexer: identifiers, literals (int, float, string, string templates `"{x}"`), keywords (`ai fn pub let type enum match if else for while return import uses budget`), operators, comments.
 - Recursive-descent parser with Pratt-style expression parsing:
-  - Items: `fn` (block body **or** `by llm "prompt"`), `type` records, `enum`, `import`.
+  - Items: `fn`, `ai fn` (body is the prompt string), `type` records, `enum`, `import`.
   - Function headers: parameters, return type, `uses {...}`, `budget {...}`.
   - Statements and expressions: `let`, assignment, `if/else`, `match`, `for`, `while`, `return`, calls, field access, binary and unary operators, list and record literals, `?`.
   - Types: names, generics `List<T>`, `Option<T>`, `Result<T,E>`, `Untrusted<T>`, `Trusted<T>`.
@@ -40,7 +40,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 **Tasks**
 - `ws_resolve`: scopes, modules (one file = one module), `pub`, imports. Unknown-name errors with "did you mean" suggestions.
 - `ws_check` (types only for now): bidirectional checking; primitives, records, enums, generics (List, Map, Option, Result), exhaustive `match`, `?`.
-- Check that `by llm` functions have a return type that can be turned into a JSON schema.
+- Check that `ai fn` functions have a return type that can be turned into a JSON schema.
 - `ward check` with human output and `--format json` output.
 
 **Done when:** type-error ui tests pass (mismatch, non-exhaustive match, unknown field…); JSON diagnostics have stable codes.
@@ -56,7 +56,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 - `ws_codegen_py`: WIR → readable Python module + `.pyi` stubs. Records become dataclasses; enums become `Enum`.
 - Runtime (Python side first, a thin package `wardscript`):
   - `runtime.configure(model=..., approver=...)`
-  - LLM call for `by llm`: build the prompt, derive a JSON schema from the return type, validate the output, retry N times, then raise a typed error.
+  - LLM call for `ai fn`: build the prompt, derive a JSON schema from the return type, validate the output, retry N times, then raise a typed error.
   - A mock model provider for tests.
 - `ward build --target python`, `ward run file.ward fn args`.
 
@@ -72,7 +72,7 @@ Work through one milestone at a time. Each milestone lists its tasks, the checks
 - Label lattice `Trusted < Untrusted` in `ws_check`, with automatic label inference inside function bodies (developers annotate signatures only).
 - Explicit flows: operators, calls, fields, collections combine labels.
 - Implicit flows: branches or loops depending on untrusted data raise the label of everything written inside them (pc-label).
-- Sources: `by llm` outputs, imported tools, and host-language inputs are `Untrusted` by default.
+- Sources: `ai fn` outputs, imported tools, and host-language inputs are `Untrusted` by default.
 - Sinks: tool parameters marked `sink` require `Trusted`.
 - `validate(x, rule)`, `approve(x)`, `declassify(x, reason)` as built-ins; provenance is written into WIR.
 - Diagnostic W0107 "untrusted data reaches sensitive action", showing the whole path the data took.

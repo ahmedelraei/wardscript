@@ -1,0 +1,3 @@
+pub ai summarize(text: String) -> String {
+    "Summarize: {text}"
+}

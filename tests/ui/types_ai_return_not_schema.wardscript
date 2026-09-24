@@ -1,0 +1,3 @@
+ai fn classify(text: String) -> Result<String, String> {
+    "Classify: {text}"
+}

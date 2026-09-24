@@ -13,9 +13,9 @@ type Reply {
 }
 
 // The model's output is untrusted: it was shaped by the email.
-fn draft_reply(email: Untrusted<String>) -> Reply
-    uses {llm}
-    by llm "Write a short, polite reply to this email:\n{email}"
+ai fn draft_reply(email: Untrusted<String>) -> Reply {
+    "Write a short, polite reply to this email:\n{email}"
+}
 
 fn no_links(text: String) -> Bool {
     !text.contains("http://") && !text.contains("https://")

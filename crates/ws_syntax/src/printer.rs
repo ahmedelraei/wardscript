@@ -170,6 +170,9 @@ impl<'m> Printer<'m> {
 
     fn fn_decl(&mut self, f: &FnDecl) {
         self.vis(f.is_pub);
+        if f.is_ai {
+            self.w("ai ");
+        }
         self.w("fn ");
         self.w(&f.name.name);
         self.generics(&f.generics);
@@ -184,9 +187,8 @@ impl<'m> Printer<'m> {
             self.w(" -> ");
             self.ty(ret);
         }
-        // Headers with clauses or an llm body put each part on its own line.
-        let multiline =
-            f.uses.is_some() || f.budget.is_some() || matches!(f.body, FnBody::Llm { .. });
+        // With clauses, each goes on its own line and the body's `{` starts a new line.
+        let multiline = f.uses.is_some() || f.budget.is_some();
         self.indent += 1;
         if let Some(uses) = &f.uses {
             self.newline();
@@ -204,21 +206,22 @@ impl<'m> Printer<'m> {
             });
             self.w("}");
         }
+        self.indent -= 1;
+        if multiline {
+            self.newline();
+        } else {
+            self.w(" ");
+        }
         match &f.body {
-            FnBody::Llm { prompt } => {
+            FnBody::Block(b) => self.block(b),
+            FnBody::Ai { prompt } => {
+                self.w("{");
+                self.indent += 1;
                 self.newline();
-                self.w("by llm ");
                 self.expr(*prompt, false);
                 self.indent -= 1;
-            }
-            FnBody::Block(b) => {
-                self.indent -= 1;
-                if multiline {
-                    self.newline();
-                } else {
-                    self.w(" ");
-                }
-                self.block(b);
+                self.newline();
+                self.w("}");
             }
         }
     }

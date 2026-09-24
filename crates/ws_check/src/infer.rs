@@ -51,7 +51,7 @@ pub(crate) fn check_fn(c: &mut Checker, def: DefId, f: &FnDecl, out: &mut Module
         FnBody::Block(b) => {
             cx.block(b, Some(&ret));
         }
-        FnBody::Llm { prompt } => {
+        FnBody::Ai { prompt } => {
             cx.check(*prompt, &Ty::String);
         }
     }

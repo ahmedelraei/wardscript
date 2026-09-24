@@ -41,7 +41,7 @@ impl Checker<'_> {
                     Item::Fn(f) => {
                         let params = f.params.iter().map(|p| self.lower(m, p.ty)).collect();
                         let ret = f.ret.map_or(Ty::Unit, |t| self.lower(m, t));
-                        if let (FnBody::Llm { .. }, Some(ret_ty)) = (&f.body, f.ret) {
+                        if let (FnBody::Ai { .. }, Some(ret_ty)) = (&f.body, f.ret) {
                             llm_returns.push((m, f.name.name.as_str(), ret.clone(), ret_ty));
                         }
                         let sig = FnSig {
@@ -166,7 +166,7 @@ impl Checker<'_> {
             m,
             Diagnostic::error(
                 codes::LLM_RETURN_NOT_SCHEMA,
-                format!("the return type of `by llm` function `{fn_name}` has no JSON schema"),
+                format!("the return type of `ai fn {fn_name}` has no JSON schema"),
                 span,
             )
             .with_label(problem)

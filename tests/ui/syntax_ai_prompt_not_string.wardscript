@@ -1,0 +1,3 @@
+ai fn summarize(text: String) -> String {
+    text
+}

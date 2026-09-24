@@ -54,6 +54,8 @@ impl Item {
 #[derive(Debug, PartialEq)]
 pub struct FnDecl {
     pub is_pub: bool,
+    /// `ai fn`: the body is a prompt and the model produces the result.
+    pub is_ai: bool,
     pub name: Ident,
     pub generics: Vec<Ident>,
     pub params: Vec<Param>,
@@ -67,8 +69,8 @@ pub struct FnDecl {
 #[derive(Debug, PartialEq)]
 pub enum FnBody {
     Block(Block),
-    /// `by llm "prompt"`; the prompt is a string or template literal.
-    Llm {
+    /// The body of an `ai fn`: `{ "prompt with {params}" }`, a string or template literal.
+    Ai {
         prompt: ExprId,
     },
 }

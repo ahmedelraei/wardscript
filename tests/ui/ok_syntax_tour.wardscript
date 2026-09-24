@@ -14,10 +14,11 @@ pub enum Shape {
     Rect(Float, Float),
 }
 
-pub fn classify(text: Untrusted<String>) -> Shape
-    uses {llm}
+pub ai fn classify(text: Untrusted<String>) -> Shape
     budget {tokens: 500, cost: 0.01, time: 30, calls: 2}
-    by llm "Which shape does this describe? {text}\n\nAnswer with JSON like {{\"kind\": ...}}."
+{
+    "Which shape does this describe? {text}\n\nAnswer with JSON like {{\"kind\": ...}}."
+}
 
 fn area(s: Shape) -> Float {
     match s {

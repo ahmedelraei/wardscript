@@ -123,7 +123,10 @@ impl Parser<'_> {
     }
 
     fn at_item_start(&self) -> bool {
-        matches!(self.peek(), T::Fn | T::Pub | T::Type | T::Enum | T::Import)
+        matches!(
+            self.peek(),
+            T::Fn | T::Ai | T::Pub | T::Type | T::Enum | T::Import
+        )
     }
 
     fn found(&self, t: Token) -> String {
@@ -418,7 +421,14 @@ impl Parser<'_> {
         let pub_tok = self.eat(T::Pub);
         let is_pub = pub_tok.is_some();
         match self.peek() {
-            T::Fn => self.fn_decl(is_pub, start).map(Item::Fn),
+            T::Fn => self.fn_decl(is_pub, false, start).map(Item::Fn),
+            T::Ai => {
+                self.bump();
+                if !self.at(T::Fn) {
+                    return Err(self.expected("`fn` after `ai`"));
+                }
+                self.fn_decl(is_pub, true, start).map(Item::Fn)
+            }
             T::Type => self.type_decl(is_pub, start),
             T::Enum => self.enum_decl(is_pub, start).map(Item::Enum),
             T::Import => {
@@ -454,7 +464,7 @@ impl Parser<'_> {
         Ok(self.comma_list(T::Lt, T::Gt, |p| p.ident())?.0)
     }
 
-    fn fn_decl(&mut self, is_pub: bool, start: Span) -> PResult<FnDecl> {
+    fn fn_decl(&mut self, is_pub: bool, is_ai: bool, start: Span) -> PResult<FnDecl> {
         self.bump();
         let name = self.ident()?;
         let generics = self.generic_params()?;
@@ -489,36 +499,33 @@ impl Parser<'_> {
             }
         }
 
-        let body = match self.peek() {
-            T::LBrace => FnBody::Block(self.block()?),
-            T::By => {
-                self.bump();
-                self.expect_with_help(
-                    T::Llm,
-                    "model-backed functions are written `by llm \"prompt\"`",
-                )?;
-                let prompt = self.llm_prompt()?;
-                if ret.is_none() {
-                    self.push(
-                        Diagnostic::error(
-                            codes::LLM_FN_WITHOUT_RETURN_TYPE,
-                            format!("`by llm` function `{}` has no return type", name.name),
-                            name.span,
-                        )
-                        .with_label("add a return type here")
-                        .with_help(
-                            "the model's answer is parsed and validated against the return type, \
-                             e.g. `-> Ticket`",
-                        ),
-                    );
-                }
-                FnBody::Llm { prompt }
+        let body = if is_ai {
+            if ret.is_none() {
+                self.push(
+                    Diagnostic::error(
+                        codes::LLM_FN_WITHOUT_RETURN_TYPE,
+                        format!("`ai fn {}` has no return type", name.name),
+                        name.span,
+                    )
+                    .with_label("add a return type here")
+                    .with_help(
+                        "the model's answer is parsed and validated against the return type, \
+                         e.g. `-> Ticket`",
+                    ),
+                );
             }
-            _ => return Err(self.expected("a function body (`{` or `by llm`)")),
+            FnBody::Ai {
+                prompt: self.ai_body()?,
+            }
+        } else if self.at(T::LBrace) {
+            FnBody::Block(self.block()?)
+        } else {
+            return Err(self.expected("a function body `{`"));
         };
 
         Ok(FnDecl {
             is_pub,
+            is_ai,
             name,
             generics,
             params,
@@ -551,28 +558,9 @@ impl Parser<'_> {
         Ok(Param { name, ty, span })
     }
 
-    /// An effect name such as `llm` or `mail.send`. `llm` is a keyword, so it's allowed explicitly.
+    /// An effect name such as `llm` or `mail.send`.
     fn effect(&mut self) -> PResult<Path> {
-        let mut segments = Vec::new();
-        loop {
-            let seg = if let Some(t) = self.eat(T::Llm) {
-                Ident {
-                    name: "llm".into(),
-                    span: t.span,
-                }
-            } else {
-                self.ident()?
-            };
-            segments.push(seg);
-            if self.eat(T::Dot).is_none() {
-                break;
-            }
-        }
-        let span = match (segments.first(), segments.last()) {
-            (Some(a), Some(b)) => a.span.to(b.span),
-            _ => self.prev_span(),
-        };
-        Ok(Path { segments, span })
+        self.path()
     }
 
     fn budget_entry(&mut self) -> PResult<BudgetEntry> {
@@ -585,22 +573,50 @@ impl Parser<'_> {
         Ok(BudgetEntry { name, value })
     }
 
-    fn llm_prompt(&mut self) -> PResult<ExprId> {
+    /// `{ "prompt" }`: exactly one string literal. A malformed body still yields a function,
+    /// with an error prompt, so the rest of the file checks normally.
+    fn ai_body(&mut self) -> PResult<ExprId> {
+        let open = self.expect(T::LBrace)?;
         if matches!(self.peek(), T::Str | T::UnterminatedStr) {
-            return Ok(self.string_expr());
+            let prompt = self.string_expr();
+            if self.eat(T::RBrace).is_some() {
+                return Ok(prompt);
+            }
+            if self.at(T::Eof) || self.at_item_start() {
+                self.unclosed(open, T::RBrace);
+                return Ok(prompt);
+            }
+            self.not_a_prompt("the prompt must be the only thing in an `ai fn` body");
+            self.skip_to_close(T::RBrace);
+            return Ok(prompt);
         }
+        self.not_a_prompt("the body of an `ai fn` is a prompt string");
+        self.skip_to_close(T::RBrace);
+        let span = open.span.to(self.prev_span());
+        Ok(self.alloc_expr(ExprKind::Error, span))
+    }
+
+    fn not_a_prompt(&mut self, label: &str) {
         let t = self.tok();
         let found = self.found(t);
         self.report(
             Diagnostic::error(
                 codes::LLM_PROMPT_NOT_STRING,
-                format!("expected a prompt string after `by llm`, found {found}"),
+                format!("expected a prompt string in `ai fn`, found {found}"),
                 t.span,
             )
-            .with_label("expected a string literal")
-            .with_help("write the prompt inline; use `{...}` to insert values: `by llm \"Summarize: {text}\"`"),
+            .with_label(label.to_owned())
+            .with_help(
+                "write the prompt as a string literal, using `{...}` to insert parameters: \
+                 `{ \"Summarize: {text}\" }`",
+            ),
         );
-        Err(Bail)
+    }
+
+    /// Skips to and consumes the `close` matching an already-consumed opener.
+    fn skip_to_close(&mut self, close: T) {
+        self.skip_until(|k| k == close);
+        self.eat(close);
     }
 
     fn type_decl(&mut self, is_pub: bool, start: Span) -> PResult<Item> {

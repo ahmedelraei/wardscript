@@ -20,19 +20,19 @@ exit: Some(1)
    │         ┬  
    │         ╰── expected a type such as `String` or `List<Int>`
 ───╯
-[W0016] Error: expected a prompt string after `by llm`, found `prompt`
-    ╭─[ tests/ui/syntax_many_errors.wardscript:13:12 ]
+[W0016] Error: expected a prompt string in `ai fn`, found `prompt`
+    ╭─[ tests/ui/syntax_many_errors.wardscript:13:5 ]
     │
- 13 │     by llm prompt
-    │            ───┬──  
-    │               ╰──── expected a string literal
+ 13 │     prompt
+    │     ───┬──  
+    │        ╰──── the body of an `ai fn` is a prompt string
     │ 
-    │ Help: write the prompt inline; use `{...}` to insert values: `by llm "Summarize: {text}"`
+    │ Help: write the prompt as a string literal, using `{...}` to insert parameters: `{ "Summarize: {text}" }`
 ────╯
 [W0019] Error: comparison operators can't be chained
-    ╭─[ tests/ui/syntax_many_errors.wardscript:16:11 ]
+    ╭─[ tests/ui/syntax_many_errors.wardscript:17:11 ]
     │
- 16 │     1 < 2 < 3
+ 17 │     1 < 2 < 3
     │       ┬   ┬  
     │       ╰────── first comparison
     │           │  
@@ -41,9 +41,9 @@ exit: Some(1)
     │ Help: split it with `&&`, e.g. `a < b && b < c`
 ────╯
 [W0012] Error: expected an expression, found `;`
-    ╭─[ tests/ui/syntax_many_errors.wardscript:20:18 ]
+    ╭─[ tests/ui/syntax_many_errors.wardscript:21:18 ]
     │
- 20 │     let z = (1 + ;
+ 21 │     let z = (1 + ;
     │                  ┬  
     │                  ╰── expected an expression
 ────╯
@@ -128,37 +128,37 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
     {
       "code": "W0016",
       "file": "tests/ui/syntax_many_errors.wardscript",
-      "help": "write the prompt inline; use `{...}` to insert values: `by llm \"Summarize: {text}\"`",
+      "help": "write the prompt as a string literal, using `{...}` to insert parameters: `{ \"Summarize: {text}\" }`",
       "labels": [
         {
-          "message": "expected a string literal",
+          "message": "the body of an `ai fn` is a prompt string",
           "primary": true,
           "span": {
             "end": {
-              "column": 18,
+              "column": 11,
               "line": 13,
-              "offset": 179
+              "offset": 177
             },
             "start": {
-              "column": 12,
+              "column": 5,
               "line": 13,
-              "offset": 173
+              "offset": 171
             }
           }
         }
       ],
-      "message": "expected a prompt string after `by llm`, found `prompt`",
+      "message": "expected a prompt string in `ai fn`, found `prompt`",
       "severity": "error",
       "span": {
         "end": {
-          "column": 18,
+          "column": 11,
           "line": 13,
-          "offset": 179
+          "offset": 177
         },
         "start": {
-          "column": 12,
+          "column": 5,
           "line": 13,
-          "offset": 173
+          "offset": 171
         }
       }
     },
@@ -173,12 +173,12 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
           "span": {
             "end": {
               "column": 12,
-              "line": 16,
+              "line": 17,
               "offset": 209
             },
             "start": {
               "column": 11,
-              "line": 16,
+              "line": 17,
               "offset": 208
             }
           }
@@ -189,12 +189,12 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
           "span": {
             "end": {
               "column": 8,
-              "line": 16,
+              "line": 17,
               "offset": 205
             },
             "start": {
               "column": 7,
-              "line": 16,
+              "line": 17,
               "offset": 204
             }
           }
@@ -205,12 +205,12 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
       "span": {
         "end": {
           "column": 12,
-          "line": 16,
+          "line": 17,
           "offset": 209
         },
         "start": {
           "column": 11,
-          "line": 16,
+          "line": 17,
           "offset": 208
         }
       }
@@ -226,12 +226,12 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
           "span": {
             "end": {
               "column": 19,
-              "line": 20,
+              "line": 21,
               "offset": 249
             },
             "start": {
               "column": 18,
-              "line": 20,
+              "line": 21,
               "offset": 248
             }
           }
@@ -242,12 +242,12 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
       "span": {
         "end": {
           "column": 19,
-          "line": 20,
+          "line": 21,
           "offset": 249
         },
         "start": {
           "column": 18,
-          "line": 20,
+          "line": 21,
           "offset": 248
         }
       }

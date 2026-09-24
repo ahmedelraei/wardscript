@@ -42,9 +42,9 @@ later use; if it never does, that's W0121).
   `for x in xs` loops over a `List`'s elements or a `Map`'s keys.
 - Generic functions are instantiated at each call: `fn first<T>(xs: List<T>) -> Option<T>`.
 
-## Model-backed functions
+## AI functions
 
-A `by llm` function's return type must have a JSON schema (W0120), because the
+An `ai fn`'s return type must have a JSON schema (W0120), because the
 model's answer is validated against it: `Int`, `Float`, `String`, `Bool`, `List`,
 `Option`, `Map<String, _>`, and records and enums made of those.
 
