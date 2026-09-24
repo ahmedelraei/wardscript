@@ -31,7 +31,7 @@ pub mod codes {
     pub const INTERPOLATION_NOT_ALLOWED: Code = Code("W0022");
     pub const PUB_IMPORT: Code = Code("W0023");
 
-    // W010x: names and modules. W0107 is reserved for "untrusted data reaches sink" (M4).
+    // W010x: names and modules, plus W0107 (trust).
     pub const UNRESOLVED_VALUE: Code = Code("W0100");
     pub const UNRESOLVED_TYPE: Code = Code("W0101");
     pub const UNRESOLVED_MODULE: Code = Code("W0102");
@@ -39,6 +39,7 @@ pub mod codes {
     pub const PRIVATE_ITEM: Code = Code("W0104");
     pub const NO_SUCH_MEMBER: Code = Code("W0105");
     pub const WRONG_KIND_OF_NAME: Code = Code("W0106");
+    pub const UNTRUSTED_TO_SINK: Code = Code("W0107");
 
     // W011x-W012x: types
     pub const TYPE_MISMATCH: Code = Code("W0110");
@@ -91,6 +92,7 @@ pub mod codes {
         PRIVATE_ITEM,
         NO_SUCH_MEMBER,
         WRONG_KIND_OF_NAME,
+        UNTRUSTED_TO_SINK,
         TYPE_MISMATCH,
         NO_SUCH_FIELD,
         WRONG_TYPE_ARG_COUNT,
@@ -145,6 +147,8 @@ pub struct Diagnostic {
     /// The first label is the primary one.
     pub labels: Vec<Label>,
     pub help: Option<String>,
+    /// Extra context that has no span in this file, e.g. steps in another module.
+    pub notes: Vec<String>,
 }
 
 impl Diagnostic {
@@ -158,6 +162,7 @@ impl Diagnostic {
                 message: None,
             }],
             help: None,
+            notes: Vec::new(),
         }
     }
 
@@ -185,6 +190,11 @@ impl Diagnostic {
             severity: Severity::Warning,
             ..Diagnostic::error(code, message, span)
         }
+    }
+
+    pub fn with_note(mut self, note: impl Into<String>) -> Self {
+        self.notes.push(note.into());
+        self
     }
 
     pub fn with_help(mut self, help: impl Into<String>) -> Self {

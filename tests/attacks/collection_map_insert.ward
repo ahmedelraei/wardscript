@@ -1,0 +1,9 @@
+// A map with an untrusted value is untrusted.
+import mcp "http" as http
+
+pub fn post(headers: Map<String, String>, token: Untrusted<String>)
+    uses {http.post}
+{
+    let with_auth = headers.insert("Authorization", token)
+    http.post("https://example.com", with_auth)
+}

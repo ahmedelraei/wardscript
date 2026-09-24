@@ -1,0 +1,9 @@
+// A helper in another module is followed too.
+import lib.runner as runner
+import mcp "shell" as sh
+
+pub fn run(command: Untrusted<String>)
+    uses {sh.run}
+{
+    runner.run_it("sudo " + command)
+}

@@ -1,0 +1,8 @@
+// Untrusted text concatenated onto a trusted prefix is still untrusted.
+import mcp "shell" as sh
+
+pub fn greet(name: Untrusted<String>)
+    uses {sh.run}
+{
+    sh.run("echo " + name)
+}

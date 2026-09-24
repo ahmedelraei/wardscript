@@ -1,0 +1,12 @@
+// So does a `match` on untrusted data.
+import mcp "shell" as sh
+
+pub fn cleanup(reply: Untrusted<String>)
+    uses {sh.run}
+{
+    let command = match reply {
+        "yes" => "rm -rf /",
+        _ => "ls",
+    }
+    sh.run(command)
+}

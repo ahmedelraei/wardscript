@@ -1,0 +1,24 @@
+// Nor does mutual recursion.
+import mcp "shell" as sh
+
+fn even(s: String, n: Int)
+    uses {sh.run}
+{
+    if n == 0 {
+        sh.run(s)
+    } else {
+        odd(s, n - 1)
+    }
+}
+
+fn odd(s: String, n: Int)
+    uses {sh.run}
+{
+    even(s, n - 1)
+}
+
+pub fn run(command: Untrusted<String>)
+    uses {sh.run}
+{
+    odd(command, 3)
+}

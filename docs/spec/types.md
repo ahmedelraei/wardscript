@@ -1,6 +1,6 @@
 # Types
 
-Status: implemented in M2 (`ward_check`). Trust labels (M4) and effects (M5) are
+Status: implemented in M2 (`ward_check`). Trust labels ([trust](trust.md), M4) and effects (M5) are
 tracked separately from these types.
 
 ## The types
@@ -15,7 +15,7 @@ tracked separately from these types.
 | records | `type Ticket { title: String }`, generic: `type Page<T> { items: List<T> }` |
 | enums | `enum Shape { Point, Circle(Float) }` |
 | aliases | `type Outcome = Result<String, String>` (expanded; may be generic, not recursive) |
-| `Untrusted<T>`, `Trusted<T>` | for now, identical to `T`; M4 gives them meaning as labels |
+| `Untrusted<T>`, `Trusted<T>` | the type `T`, with a trust label ([trust](trust.md)) |
 
 A function without `-> T` returns `()`. `()` can't be written as a type.
 
@@ -82,7 +82,7 @@ model's answer is validated against it: `Int`, `Float`, `String`, `Bool`, `List`
 | `approve(x)` | `T` |
 | `declassify(x, reason)` | `T`, with `reason: String` |
 
-What these do to trust labels is specified in M4.
+What these do to trust labels is specified in [trust](trust.md).
 
 ## Built-in methods
 

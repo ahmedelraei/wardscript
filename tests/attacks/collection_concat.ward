@@ -1,0 +1,8 @@
+// Concatenating lists combines their labels.
+import mcp "shell" as sh
+
+pub fn run(extra: Untrusted<List<String>>)
+    uses {sh.exec}
+{
+    sh.exec(["ls"] + extra)
+}

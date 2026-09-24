@@ -1,0 +1,13 @@
+// Adding untrusted text to an approved value makes it untrusted again.
+import mcp "gmail" as mail
+
+ai fn draft(topic: String) -> String {
+    "Write an email about {topic}"
+}
+
+pub fn send(topic: String, footer: Untrusted<String>)
+    uses {llm, mail.send}
+{
+    let body = approve(draft(topic)) + footer
+    mail.send("team@example.com", "update", body)
+}

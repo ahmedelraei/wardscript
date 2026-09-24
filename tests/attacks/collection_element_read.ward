@@ -1,0 +1,9 @@
+// Reading any element of a list that holds untrusted data is untrusted.
+import mcp "shell" as sh
+
+pub fn run(arg: Untrusted<String>)
+    uses {sh.run}
+{
+    let args = ["ls", arg]
+    sh.run(args[0])
+}

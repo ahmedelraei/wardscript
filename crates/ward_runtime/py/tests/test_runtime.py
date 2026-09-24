@@ -11,6 +11,8 @@ from wardscript import (
     Some,
     Thrown,
     ToolError,
+    Trusted,
+    TrustError,
     _rt,
     decode,
     encode,
@@ -220,6 +222,12 @@ class Runtime(unittest.TestCase):
         with self.assertRaises(Thrown) as cm:
             _rt.validate("a", lambda s: False, "rule")
         self.assertEqual(cm.exception.value, "validation failed: `rule` rejected the value")
+
+    def test_vouched(self):
+        self.assertEqual(_rt.vouched(Trusted("ada"), "to", "send"), "ada")
+        with self.assertRaises(TrustError) as cm:
+            _rt.vouched("ada", "to", "send")
+        self.assertIn("`to`", str(cm.exception))
 
     def test_tools(self):
         with self.assertRaises(ToolError):

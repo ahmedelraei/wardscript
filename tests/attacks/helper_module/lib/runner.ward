@@ -1,0 +1,7 @@
+import mcp "shell" as sh
+
+pub fn run_it(command: String)
+    uses {sh.run}
+{
+    sh.run(command)
+}

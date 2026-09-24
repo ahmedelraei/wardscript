@@ -15,11 +15,13 @@ from .errors import (
     PanicError,
     Thrown,
     ToolError,
+    TrustError,
     WardError,
 )
 from .model import AiRequest, Model
 from .runtime import ApprovalRequest, configure
 from .schema import decode, encode, json_schema
+from .trust import Trusted
 from .values import Some
 
 __all__ = [
@@ -34,6 +36,8 @@ __all__ = [
     "Some",
     "Thrown",
     "ToolError",
+    "Trusted",
+    "TrustError",
     "WardError",
     "configure",
     "decode",

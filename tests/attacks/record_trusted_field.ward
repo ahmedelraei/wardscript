@@ -1,0 +1,8 @@
+// A field declared `Trusted` only accepts trusted data.
+type Command {
+    text: Trusted<String>,
+}
+
+pub fn make(text: Untrusted<String>) -> Command {
+    Command { text }
+}

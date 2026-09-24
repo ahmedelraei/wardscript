@@ -129,6 +129,14 @@ impl<'a, 'p> FnGen<'a, 'p> {
 
     pub fn body(&mut self) {
         let f = self.f;
+        for (&p, _) in f.params.iter().zip(&f.trusted).filter(|(_, t)| **t) {
+            let name = self.local(p).to_owned();
+            self.line(format!(
+                "{name} = _rt.vouched({name}, {}, {})",
+                names::string(&f.locals[p].name),
+                names::string(&f.name)
+            ));
+        }
         match &f.body {
             Body::Block(b) => {
                 let dest = if f.ret == Ty::Unit {
@@ -584,7 +592,26 @@ impl<'a, 'p> FnGen<'a, 'p> {
             ExprKind::Template(parts) => self.template(parts),
             ExprKind::Call { func, args } => {
                 let name = self.scope.func(*func);
-                let args = self.args(args);
+                // The checker proved these arguments trusted, so this call vouches for them.
+                let trusted = self
+                    .scope
+                    .program
+                    .func(*func)
+                    .map(|f| f.trusted.clone())
+                    .unwrap_or_default();
+                let args = self
+                    .operands(args)
+                    .iter()
+                    .enumerate()
+                    .map(|(i, p)| {
+                        if trusted.get(i).copied().unwrap_or(false) {
+                            format!("_rt.Trusted({})", p.at(TERNARY))
+                        } else {
+                            p.at(TERNARY)
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 Py::atom(format!("{name}({args})"))
             }
             ExprKind::ToolCall { tool, name, args } => {
@@ -717,12 +744,12 @@ impl<'a, 'p> FnGen<'a, 'p> {
             | ExprKind::Block(_) => self.hoist(e),
             ExprKind::Validate { value, rule, .. } => {
                 let v = self.expr(*value);
-                let rule_fn = self.scope.func(*rule);
-                let rule_name = self
-                    .scope
-                    .program
-                    .func(*rule)
-                    .map_or("?", |f| f.name.as_str());
+                let mut rule_fn = self.scope.func(*rule);
+                let rule_def = self.scope.program.func(*rule);
+                if rule_def.is_some_and(|f| f.trusted.first() == Some(&true)) {
+                    rule_fn = format!("lambda _v: {rule_fn}(_rt.Trusted(_v))");
+                }
+                let rule_name = rule_def.map_or("?", |f| f.name.as_str());
                 Py::atom(format!(
                     "_rt.validate({}, {rule_fn}, {})",
                     v.at(TERNARY),

@@ -1,0 +1,14 @@
+// A helper that sends its argument to a sink is itself a sink.
+import mcp "shell" as sh
+
+fn run_it(command: String)
+    uses {sh.run}
+{
+    sh.run(command)
+}
+
+pub fn run(command: Untrusted<String>)
+    uses {sh.run}
+{
+    run_it(command)
+}

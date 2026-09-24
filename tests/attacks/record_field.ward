@@ -1,0 +1,14 @@
+// A record built from untrusted data carries its label.
+import mcp "shell" as sh
+
+type Job {
+    name: String,
+    command: String,
+}
+
+pub fn schedule(command: Untrusted<String>)
+    uses {sh.run}
+{
+    let job = Job { name: "nightly", command }
+    sh.run(job.command)
+}

@@ -1,0 +1,12 @@
+// The model's answer runs as a shell command.
+import mcp "shell" as sh
+
+ai fn suggest(issue: String) -> String {
+    "Suggest a shell command that fixes: {issue}"
+}
+
+pub fn fix(issue: String)
+    uses {llm, sh.run}
+{
+    sh.run(suggest(issue))
+}

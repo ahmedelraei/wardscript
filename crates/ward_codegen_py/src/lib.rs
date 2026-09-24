@@ -86,9 +86,14 @@ fn python(program: &Program, id: ModuleId, module: &Module) -> String {
         let params: Vec<String> = params
             .into_iter()
             .zip(&f.params)
-            .map(|(name, &p)| {
+            .zip(&f.trusted)
+            .map(|((name, &p), &trusted)| {
                 let ann = scope.annotation(&f.locals[p].ty, &f.generics);
-                format!("{name}: {ann}")
+                if trusted {
+                    format!("{name}: _rt.Trusted[{ann}]")
+                } else {
+                    format!("{name}: {ann}")
+                }
             })
             .collect();
         let ret = scope.annotation(&f.ret, &f.generics);
@@ -316,7 +321,15 @@ fn stub(program: &Program, id: ModuleId, module: &Module) -> String {
         let params: Vec<String> = names
             .into_iter()
             .zip(&f.params)
-            .map(|(n, &p)| format!("{n}: {}", scope.annotation(&f.locals[p].ty, &f.generics)))
+            .zip(&f.trusted)
+            .map(|((n, &p), &trusted)| {
+                let ann = scope.annotation(&f.locals[p].ty, &f.generics);
+                if trusted {
+                    format!("{n}: _rt.Trusted[{ann}]")
+                } else {
+                    format!("{n}: {ann}")
+                }
+            })
             .collect();
         let ret = scope.annotation(&f.ret, &f.generics);
         let _ = write!(
@@ -395,15 +408,21 @@ pub fn runner(program: &Program, function: &str) -> Option<Runner> {
         .map(|&p| scope.descriptor(&f.locals[p].ty))
         .collect();
     let target = scope.func(f.def);
+    let trusted: Vec<&str> = f
+        .trusted
+        .iter()
+        .map(|&t| if t { "True" } else { "False" })
+        .collect();
     let mut script = String::from(RUNNER_PRELUDE);
     for line in scope.import_lines() {
         let _ = writeln!(script, "{line}");
     }
     let _ = write!(
         script,
-        "\nsys.exit(main({}, {target}, [{}]))\n",
+        "\nsys.exit(main({}, {target}, [{}], [{}]))\n",
         names::string(function),
-        params.join(", ")
+        params.join(", "),
+        trusted.join(", ")
     );
     Some(Runner {
         script,
@@ -419,7 +438,8 @@ from wardscript import DecodeError, Thrown, WardError, _rt, decode, encode, runt
 from wardscript.mock import MockModel
 
 
-def main(name, fn, params):
+# Arguments on the command line come from whoever runs it, so they're vouched for.
+def main(name, fn, params, trusted):
     mock = os.environ.get("WARD_MOCK")
     if mock:
         with open(mock, encoding="utf-8") as f:
@@ -427,7 +447,8 @@ def main(name, fn, params):
     args = []
     for i, (param, text) in enumerate(zip(params, sys.argv[1:])):
         try:
-            args.append(decode(param, json.loads(text), f"argument {i + 1}"))
+            arg = decode(param, json.loads(text), f"argument {i + 1}")
+            args.append(_rt.Trusted(arg) if trusted[i] else arg)
         except json.JSONDecodeError as e:
             print(f"error: argument {i + 1} is not valid JSON: {e}", file=sys.stderr)
             return 2

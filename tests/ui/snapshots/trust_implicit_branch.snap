@@ -1,0 +1,120 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/trust_implicit_branch.ward
+---
+exit: Some(1)
+--- human ---
+[W0107] Error: untrusted data reaches the tool call `sh.run`
+    ╭─[ tests/ui/trust_implicit_branch.ward:11:12 ]
+    │
+ 11 │     sh.run(command)
+    │            ───┬───  
+    │               ╰───── 4. passed to `sh.run` here
+    │
+    ├─[ tests/ui/trust_implicit_branch.ward:11:12 ]
+    │
+  4 │ pub fn cleanup(reply: Untrusted<String>)
+    │                ────────────┬───────────  
+    │                            ╰───────────── 1. `reply` is declared `Untrusted`
+    │ 
+  8 │     if reply.contains("delete") {
+    │        ────────────┬───────────  
+    │                    ╰───────────── 2. the branch taken depends on this
+  9 │         command = "rm -rf /"
+    │         ───┬───  
+    │            ╰───── 3. assigned here, where whether this runs depends on it
+    │ 
+    │ Help: check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, "why")`
+────╯
+error: could not check `tests/ui/trust_implicit_branch.ward` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0107",
+      "file": "tests/ui/trust_implicit_branch.ward",
+      "help": "check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it is safe, `declassify(x, \"why\")`",
+      "labels": [
+        {
+          "message": "4. passed to `sh.run` here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 11,
+              "offset": 261
+            },
+            "start": {
+              "column": 12,
+              "line": 11,
+              "offset": 254
+            }
+          }
+        },
+        {
+          "message": "1. `reply` is declared `Untrusted`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 40,
+              "line": 4,
+              "offset": 129
+            },
+            "start": {
+              "column": 16,
+              "line": 4,
+              "offset": 105
+            }
+          }
+        },
+        {
+          "message": "2. the branch taken depends on this",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 32,
+              "line": 8,
+              "offset": 205
+            },
+            "start": {
+              "column": 8,
+              "line": 8,
+              "offset": 181
+            }
+          }
+        },
+        {
+          "message": "3. assigned here, where whether this runs depends on it",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 16,
+              "line": 9,
+              "offset": 223
+            },
+            "start": {
+              "column": 9,
+              "line": 9,
+              "offset": 216
+            }
+          }
+        }
+      ],
+      "message": "untrusted data reaches the tool call `sh.run`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 19,
+          "line": 11,
+          "offset": 261
+        },
+        "start": {
+          "column": 12,
+          "line": 11,
+          "offset": 254
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/trust_implicit_branch.ward"
+}

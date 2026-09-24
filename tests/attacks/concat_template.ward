@@ -1,0 +1,8 @@
+// Interpolating into a template doesn't launder the value.
+import mcp "shell" as sh
+
+pub fn greet(name: Untrusted<String>)
+    uses {sh.run}
+{
+    sh.run("echo hello {name}")
+}

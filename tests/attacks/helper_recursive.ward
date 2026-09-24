@@ -1,0 +1,16 @@
+// Recursion doesn't lose the label.
+import mcp "shell" as sh
+
+fn repeat(s: String, n: Int) -> String {
+    if n <= 0 {
+        ""
+    } else {
+        s + repeat(s, n - 1)
+    }
+}
+
+pub fn run(command: Untrusted<String>)
+    uses {sh.run}
+{
+    sh.run(repeat(command, 2))
+}

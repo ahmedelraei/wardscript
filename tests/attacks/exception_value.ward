@@ -1,0 +1,16 @@
+// A thrown untrusted value is untrusted when caught.
+import mcp "shell" as sh
+
+fn fail(reason: String) -> Int throws String {
+    throw reason
+}
+
+pub fn run(reason: Untrusted<String>)
+    uses {sh.run}
+{
+    try {
+        fail(reason)?
+    } catch err {
+        sh.run(err)
+    }
+}

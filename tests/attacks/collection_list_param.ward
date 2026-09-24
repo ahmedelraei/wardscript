@@ -1,0 +1,11 @@
+// `List<Untrusted<T>>` means the elements are untrusted.
+import mcp "shell" as sh
+
+pub fn run_first(commands: List<Untrusted<String>>)
+    uses {sh.run}
+{
+    match commands.first() {
+        Some(c) => sh.run(c),
+        None => {}
+    }
+}

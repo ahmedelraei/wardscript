@@ -63,7 +63,8 @@ def needs_human(ticket: Ticket) -> bool:
         return ticket.refund_requested
 
 
-def handle(email: str, to: str) -> str:
+def handle(email: str, to: _rt.Trusted[str]) -> str:
+    to = _rt.vouched(to, "to", "handle")
     ticket = triage(email)
     reply = draft_reply(ticket)
     if needs_human(ticket):
@@ -76,11 +77,12 @@ def handle(email: str, to: str) -> str:
     return f"sent: {ticket.summary}"
 
 
-def handle_all(inbox: list[str], to: str) -> int:
+def handle_all(inbox: list[str], to: _rt.Trusted[str]) -> int:
+    to = _rt.vouched(to, "to", "handle_all")
     sent = 0
     for email in inbox:
         try:
-            handle(email, to)
+            handle(email, _rt.Trusted(to))
             sent = sent + 1
         except _rt.Thrown:
             pass
@@ -129,7 +131,7 @@ class Priority(_enum.Enum):
     Urgent = "Urgent"
 
 
-def handle(email: str, to: str) -> str: ...
+def handle(email: str, to: _rt.Trusted[str]) -> str: ...
 
 
-def handle_all(inbox: list[str], to: str) -> int: ...
+def handle_all(inbox: list[str], to: _rt.Trusted[str]) -> int: ...

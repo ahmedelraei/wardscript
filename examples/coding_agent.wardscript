@@ -47,8 +47,13 @@ fn allowed_test_command(command: String) -> Bool {
     safe && (command == "cargo test" || command.starts_with("cargo test -p "))
 }
 
-fn inside_repo(path: String) -> Bool {
-    !path.starts_with("/") && !path.contains("..")
+fn inside_repo(paths: List<String>) -> Bool {
+    for path in paths {
+        if path.starts_with("/") || path.contains("..") {
+            return false
+        }
+    }
+    true
 }
 
 fn run_tests(command: String) -> Verdict throws String
@@ -65,20 +70,19 @@ fn run_tests(command: String) -> Verdict throws String
 }
 
 pub fn fix_issue(repo: String, number: Int) -> String throws String
-    uses {llm, gh.read, gh.write, sh.run}
+    uses {llm, gh, sh}
     budget {tokens: 60000, cost: 2.00, time: 900}
 {
     let issue = gh.get_issue(repo, number)
     let plan = plan_fix(issue)
 
-    let changed = []
-    for path in plan.files {
-        // Paths come from the model too: keep writes inside the repository.
-        let target = validate(path, inside_repo)?
+    // Paths come from the model too: keep reads and writes inside the repository.
+    let files = validate(plan.files, inside_repo)?
+    for target in files {
         let source = gh.read_file(repo, target)
         let patch = write_patch(plan.summary, target, source)
-        sh.write_file(target, patch.contents)
-        changed = changed + [target]
+        // The tests and a human review of the whole diff, below, gate what this writes.
+        sh.write_file(target, declassify(patch.contents, "tests and diff review gate it"))
     }
 
     match run_tests(plan.test_command)? {
@@ -89,7 +93,7 @@ pub fn fix_issue(repo: String, number: Int) -> String throws String
     }
 
     // A human reviews the full diff before anything is pushed.
-    let diff = approve(sh.diff(changed))
+    let diff = approve(sh.diff(files))
     // Only trusted values in the title: `issue.title` here would be rejected (W0107).
     let url = gh.open_pull_request(repo, "Fix #{number}", diff)
     url

@@ -1,0 +1,10 @@
+// Writing one element taints the whole list.
+import mcp "shell" as sh
+
+pub fn run(arg: Untrusted<String>)
+    uses {sh.exec}
+{
+    let args = ["ls", "-l"]
+    args[1] = arg
+    sh.exec(args)
+}

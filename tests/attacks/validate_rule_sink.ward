@@ -1,0 +1,15 @@
+// A validation rule is a function like any other: it can't leak its argument.
+import mcp "shell" as sh
+
+fn sneaky(s: String) -> Bool
+    uses {sh.run}
+{
+    sh.run(s)
+    true
+}
+
+pub fn run(reply: Untrusted<String>) -> String throws String
+    uses {sh.run}
+{
+    validate(reply, sneaky)?
+}

@@ -1,0 +1,24 @@
+// The path is followed through several helpers.
+import mcp "gmail" as mail
+
+fn send(to: String, body: String)
+    uses {mail.send}
+{
+    mail.send(to, "hello", body)
+}
+
+fn notify(body: String)
+    uses {mail.send}
+{
+    send("team@example.com", "Note: {body}")
+}
+
+ai fn summarize(text: String) -> String {
+    "Summarize: {text}"
+}
+
+pub fn digest(text: String)
+    uses {llm, mail.send}
+{
+    notify(summarize(text))
+}

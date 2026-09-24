@@ -1,0 +1,10 @@
+// An alias for an untrusted type is untrusted too.
+import mcp "shell" as sh
+
+type Input = Untrusted<String>
+
+pub fn run(command: Input)
+    uses {sh.run}
+{
+    sh.run(command)
+}

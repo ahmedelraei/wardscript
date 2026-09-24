@@ -1,0 +1,203 @@
+// The fixed versions of tests/attacks: each checks, approves or declassifies untrusted
+// data before it reaches a sink, or only lets trusted data through.
+import mcp "shell" as sh
+import mcp "gmail" as mail
+import mcp "admin" as admin
+
+type Job {
+    name: String,
+    command: String,
+}
+
+type Email {
+    from: String,
+    body: Untrusted<String>,
+}
+
+type Command {
+    text: Trusted<String>,
+}
+
+enum Action {
+    Nothing,
+    Run(String),
+}
+
+ai fn suggest(issue: String) -> String {
+    "Suggest a shell command that fixes: {issue}"
+}
+
+ai fn decide(request: String) -> Action {
+    "Decide what to do about: {request}"
+}
+
+ai fn plan(goal: String) -> List<String> {
+    "List shell commands that achieve: {goal}"
+}
+
+fn allowed(command: String) -> Bool {
+    command == "ls" || command == "cargo test"
+}
+
+fn all_allowed(commands: List<String>) -> Bool {
+    for c in commands {
+        if !allowed(c) {
+            return false
+        }
+    }
+    true
+}
+
+pub fn direct(issue: String) throws String
+    uses {llm, sh.run}
+{
+    sh.run(validate(suggest(issue), allowed)?)
+}
+
+pub fn approved(issue: String)
+    uses {llm, sh.run}
+{
+    sh.run(approve(suggest(issue)))
+}
+
+pub fn concatenated(name: Untrusted<String>) throws String
+    uses {sh.run}
+{
+    let checked = validate(name, allowed)?
+    sh.run("echo " + checked)
+}
+
+pub fn collections(arg: Untrusted<String>)
+    uses {sh.exec}
+{
+    let args = ["ls"]
+    args = args.push(approve(arg))
+    sh.exec(args)
+}
+
+pub fn records(command: Untrusted<String>) throws String
+    uses {sh.run}
+{
+    let job = Job { name: "nightly", command: validate(command, allowed)? }
+    sh.run(job.command)
+}
+
+// Only the untrusted field is untrusted.
+pub fn untrusted_field(email: Email)
+    uses {mail.send}
+{
+    mail.send(email.from, "re: your email", "Thanks, we got it.")
+}
+
+pub fn trusted_field() -> Command {
+    Command { text: "ls" }
+}
+
+pub fn enums(request: String) throws String
+    uses {llm, sh.run}
+{
+    match decide(request) {
+        Action.Nothing => {}
+        Action.Run(command) => sh.run(validate(command, allowed)?),
+    }
+}
+
+// Calling a sink under an untrusted condition is allowed: only data is checked.
+pub fn sink_in_branch(reply: Untrusted<String>)
+    uses {sh.run}
+{
+    if reply.contains("delete") {
+        sh.run("ls")
+    }
+}
+
+// Branching on trusted data doesn't taint anything.
+pub fn trusted_branch(verbose: Bool)
+    uses {sh.run}
+{
+    let command = "ls"
+    if verbose {
+        command = "ls -la"
+    }
+    sh.run(command)
+}
+
+// A variable declared inside an untrusted branch isn't tainted by the branch itself.
+pub fn local_in_branch(reply: Untrusted<String>)
+    uses {sh.run}
+{
+    if reply.is_empty() {
+        let command = "ls"
+        sh.run(command)
+    }
+}
+
+pub fn loops(goal: String) throws String
+    uses {llm, sh.run}
+{
+    for command in validate(plan(goal), all_allowed)? {
+        sh.run(command)
+    }
+}
+
+pub fn counted(goal: String)
+    uses {llm, admin.log}
+{
+    let n = 0
+    for command in approve(plan(goal)) {
+        n = n + 1
+    }
+    admin.log(n)
+}
+
+// A helper that ignores its argument doesn't pass on its label.
+fn constant(s: String) -> String {
+    "ls"
+}
+
+pub fn helpers(reply: Untrusted<String>)
+    uses {sh.run}
+{
+    sh.run(constant(reply))
+}
+
+fn run_it(command: String)
+    uses {sh.run}
+{
+    sh.run(command)
+}
+
+pub fn helper_sink(command: Untrusted<String>)
+    uses {sh.run}
+{
+    run_it(declassify(command, "only reaches a sandboxed shell"))
+}
+
+fn deploy(target: Trusted<String>) -> String {
+    "deploying {target}"
+}
+
+pub fn trusted_param(target: Untrusted<String>) -> String throws String {
+    deploy(validate(target, allowed)?)
+}
+
+pub fn trusted_return(text: Untrusted<String>) -> Trusted<String> {
+    approve(text)
+}
+
+pub fn exceptions(reply: Untrusted<String>)
+    uses {sh.run}
+{
+    let command = try {
+        validate(reply, allowed)?
+    } catch _ {
+        "ls"
+    }
+    sh.run(approve(command))
+}
+
+pub fn validated_bool(request: Untrusted<String>)
+    uses {admin.set_admin}
+{
+    admin.set_admin(approve(request == "please"))
+}

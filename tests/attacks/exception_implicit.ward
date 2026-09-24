@@ -1,0 +1,18 @@
+// Whether `validate` throws depends on the value, so the `try`'s result does too.
+import mcp "shell" as sh
+
+fn short(s: String) -> Bool {
+    s.len() < 3
+}
+
+pub fn run(reply: Untrusted<String>)
+    uses {sh.run}
+{
+    let command = try {
+        validate(reply, short)?
+        "rm -rf /"
+    } catch _ {
+        "ls"
+    }
+    sh.run(command)
+}

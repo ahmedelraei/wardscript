@@ -1,0 +1,4 @@
+// Model output is untrusted; an `ai fn` can't declare otherwise.
+ai fn classify(text: String) -> Trusted<String> {
+    "Classify: {text}"
+}

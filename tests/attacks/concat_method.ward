@@ -1,0 +1,8 @@
+// Built-in string methods keep the label of their receiver.
+import mcp "shell" as sh
+
+pub fn shout(text: Untrusted<String>)
+    uses {sh.run}
+{
+    sh.run(text.trim().upper())
+}

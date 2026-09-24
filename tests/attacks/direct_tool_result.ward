@@ -1,0 +1,10 @@
+// A web page's text is mailed out verbatim.
+import mcp "web" as web
+import mcp "gmail" as mail
+
+pub fn forward(url: Trusted<String>)
+    uses {mail.send, web.fetch}
+{
+    let page = web.fetch(url)
+    mail.send("boss@example.com", "page", page)
+}

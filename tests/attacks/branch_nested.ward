@@ -1,0 +1,14 @@
+// The condition's label reaches assignments in nested blocks.
+import mcp "shell" as sh
+
+pub fn cleanup(reply: Untrusted<String>, verbose: Bool)
+    uses {sh.run}
+{
+    let command = "ls"
+    if reply.is_empty() {
+        if verbose {
+            command = "ls -la"
+        }
+    }
+    sh.run(command)
+}

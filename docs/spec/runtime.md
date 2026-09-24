@@ -1,8 +1,8 @@
 # Python backend and runtime
 
-Status: implemented in M3 (`ward_ir`, `ward_codegen_py`, `crates/ward_runtime/py`).
-Trust labels at the host boundary (M4), budgets (M5) and the audit trace (M6) are
-not enforced by the runtime yet. The design is recorded in
+Status: implemented in M3 (`ward_ir`, `ward_codegen_py`, `crates/ward_runtime/py`);
+trust at the host boundary in M4. Budgets (M5) and the audit trace (M6) are not
+enforced by the runtime yet. The design is recorded in
 [decision 006](../decisions/006-python-backend.md).
 
 ## Building
@@ -20,8 +20,9 @@ Generated code needs Python 3.10+ and the `wardscript` runtime package
 `ward run FILE FUNCTION ARGS...` builds to a temporary directory and calls a
 function of the entry module. Arguments are JSON values, decoded by the
 parameters' types; the result is printed as JSON. `--mock FILE` answers `ai fn`
-calls from a JSON object keyed by function name. `ward run` embeds the runtime, so
-it doesn't need the package installed. It uses `python3`, or `WARD_PYTHON`.
+calls from a JSON object keyed by function name. Arguments come from whoever runs
+the command, so `ward run` vouches for them (see below). `ward run` embeds the
+runtime, so it doesn't need the package installed. It uses `python3`, or `WARD_PYTHON`.
 
 ## Values
 
@@ -69,8 +70,28 @@ catches:
 | `AiOutputError` | the model's answers didn't match the return type on every attempt; `.errors` says why, per attempt |
 | `ApprovalDenied` | `approve` was refused, or no approver is configured |
 | `ToolError` | a tool or tool function isn't configured |
+| `TrustError` | the host passed a parameter that must be trusted without vouching for it |
 | `PanicError` | integer division by zero, an index out of bounds, a missing map key |
 | `DecodeError` | a JSON value doesn't match a type (`ward run` arguments, `wardscript.decode`) |
+
+## Trust at the host boundary
+
+The checker proves that data inside the program reaches sinks only after
+`validate`, `approve` or `declassify` ([trust](trust.md)). What the host passes in is
+untrusted by default. So a function parameter that reaches a sink (a tool
+argument, directly or through other functions, or a parameter declared `Trusted<T>`)
+only accepts a value the host vouches for, by wrapping it in `wardscript.Trusted`:
+
+```python
+from wardscript import Trusted
+
+support.handle(email, Trusted("ada@example.com"))
+support.handle(email, "ada@example.com")   # raises TrustError
+```
+
+Such parameters are annotated `Trusted[T]` in the generated code and stubs. Calls
+between Wardscript functions wrap arguments the checker proved trusted, so the
+same function works from both sides. Other parameters take plain values.
 
 ## The runtime
 
