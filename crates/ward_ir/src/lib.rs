@@ -235,6 +235,7 @@ pub enum ExprKind {
         tool: DefId,
         name: String,
         args: Vec<ExprId>,
+        site: Site,
     },
     /// A built-in method; the receiver's type is `recv`'s type.
     Method {

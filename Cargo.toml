@@ -1,6 +1,16 @@
 [workspace]
 resolver = "3"
 members = ["crates/*"]
+# The Python binding links against Python; maturin builds it (see crates/ward_runtime/py).
+default-members = [
+    "crates/ward_syntax",
+    "crates/ward_resolve",
+    "crates/ward_check",
+    "crates/ward_ir",
+    "crates/ward_codegen_py",
+    "crates/ward_runtime",
+    "crates/ward_cli",
+]
 
 [workspace.package]
 version = "0.0.1"
@@ -17,11 +27,12 @@ ward_ir = { path = "crates/ward_ir" }
 ward_codegen_py = { path = "crates/ward_codegen_py" }
 ward_runtime = { path = "crates/ward_runtime" }
 
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.5", features = ["derive", "env"] }
 insta = "1.40"
 ariadne = "0.6"
 la-arena = "0.3.1"
 logos = "0.16"
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 

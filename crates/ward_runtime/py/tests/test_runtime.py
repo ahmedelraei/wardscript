@@ -1,6 +1,8 @@
+import asyncio
 import dataclasses
 import enum
 import json
+import tempfile
 import unittest
 
 from wardscript import (
@@ -229,15 +231,69 @@ class Runtime(unittest.TestCase):
         with _rt.budget("outer", tokens=100) as outer:
             with _rt.budget("inner", cost=1.0) as inner:
                 _rt.ai("f", "p", _rt.Int)
-            self.assertEqual(inner.used, {"tokens": 10, "calls": 1, "cost": 0.5})
+            self.assertEqual(inner.used, (10.0, 1.0, 0.5))
             _rt.ai("f", "p", _rt.Int)
-        self.assertEqual(outer.used["calls"], 2)
-        self.assertEqual(outer.used["tokens"], 20)
+        self.assertEqual(outer.used, (20.0, 2.0, 1.0))
         with self.assertRaises(BudgetExceeded):
             with _rt.budget("outer", cost=10):
                 with _rt.budget("inner", cost=0.9):
                     _rt.ai("f", "p", _rt.Int)
                     _rt.ai("f", "p", _rt.Int)
+
+    def test_async_approver(self):
+        async def approver(request):
+            return request.value == "ok"
+
+        runtime.configure(approver=approver)
+        self.assertEqual(_rt.approve("ok", "a.ward:1:1"), "ok")
+        with self.assertRaises(ApprovalDenied):
+            _rt.approve("no", "a.ward:1:1")
+
+        async def inside_a_loop():
+            return _rt.approve("ok", "a.ward:1:1")
+
+        self.assertEqual(asyncio.run(inside_a_loop()), "ok")
+
+    def test_trace(self):
+        runtime.configure(
+            model=MockModel({"f": {"items": ["hi"], "next": None}}),
+            approver=lambda r: True,
+            tools={"mail": {"send": lambda to, body: "sent"}},
+        )
+        with _rt.call("run_me", [("to", Trusted("ada")), ("note", "x")]):
+            page = _rt.ai("f", "p", _rt.Adt(Page, _rt.String))
+            body = _rt.validate(page.items[0], lambda s: True, "short", "a.ward:2:1")
+            _rt.call_tool("mail", "send", "a.ward:3:1", "ada", body)
+        run = runtime.last_run()
+        kinds = [r["kind"] for r in run.records]
+        self.assertEqual(kinds, ["run_start", "ai_call", "validate", "tool_call", "run_end"])
+        start, ai, check, tool, end = run.records
+        self.assertEqual([a["vouched"] for a in start["args"]], [True, False])
+        self.assertEqual(end["status"], "ok")
+        self.assertEqual(end["calls"], 1.0)
+        # The tool's second argument is the validated value, which came from the model.
+        self.assertEqual(tool["digests"][1], check["leaves"][0]["digest"])
+        self.assertIn(check["leaves"][0]["digest"], [leaf["digest"] for leaf in ai["leaves"]])
+        self.assertEqual([r["seq"] for r in run.records], list(range(5)))
+
+    def test_trace_file_and_failed_run(self):
+        with tempfile.TemporaryDirectory() as d:
+            runtime.configure(trace_dir=d)
+            with self.assertRaises(Thrown):
+                with _rt.call("f", []):
+                    _rt.validate("x", lambda s: False, "never", "a.ward:1:1")
+            run = runtime.last_run()
+            with open(run.path, encoding="utf-8") as f:
+                lines = [json.loads(line) for line in f]
+            self.assertEqual(lines, run.records)
+            self.assertEqual(lines[-1]["status"], "threw")
+
+    def test_nested_calls_are_one_run(self):
+        with _rt.call("outer", []):
+            with _rt.call("inner", []):
+                _rt.declassify("x", "fine", "a.ward:1:1")
+        kinds = [r["kind"] for r in runtime.last_run().records]
+        self.assertEqual(kinds, ["run_start", "declassify", "run_end"])
 
     def test_vouched(self):
         self.assertEqual(_rt.vouched(Trusted("ada"), "to", "send"), "ada")
@@ -247,12 +303,52 @@ class Runtime(unittest.TestCase):
 
     def test_tools(self):
         with self.assertRaises(ToolError):
-            _rt.call_tool("mail", "send")
+            _rt.call_tool("mail", "send", "a.ward:1:1")
         runtime.configure(tools={"mail": {"send": lambda to: f"sent {to}"}})
-        self.assertEqual(_rt.call_tool("mail", "send", "ada"), "sent ada")
+        self.assertEqual(_rt.call_tool("mail", "send", "a.ward:1:1", "ada"), "sent ada")
         with self.assertRaises(ToolError):
-            _rt.call_tool("mail", "delete")
+            _rt.call_tool("mail", "delete", "a.ward:1:1")
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Cores(unittest.TestCase):
+    """The Rust core and the pure-Python fallback agree, when the Rust one is built."""
+
+    def setUp(self):
+        try:
+            from wardscript import _core
+        except ImportError:
+            self.skipTest("wardscript._core isn't built")
+        from wardscript import _core_py
+
+        self.cores = (_core, _core_py)
+
+    def test_digests(self):
+        for value in ['"hi"', '{"b": [1, 2.5, null], "a": "é\\n"}', "true", "[]"]:
+            rust, py = (c.leaves(value) for c in self.cores)
+            self.assertEqual([tuple(x) for x in rust], [tuple(x) for x in py], value)
+
+    def test_records(self):
+        events = [
+            {"kind": "run_start", "function": "f", "args": [{"name": "x", "value": 1, "vouched": False, "leaves": []}]},
+            {"kind": "validate", "rule": "r", "site": "a:1:1", "passed": True, "leaves": [{"path": "$", "digest": "0"}]},
+            {"kind": "budget_exceeded", "function": "f", "resource": "calls", "limit": 1.0, "used": 2.0},
+            {"kind": "run_end", "status": "ok", "error": None, "tokens": 3.0, "calls": 1.0, "cost": 0.0},
+        ]
+        lines = []
+        for core in self.cores:
+            r = core.Recorder()
+            lines.append([json.loads(r.record(json.dumps(e))) for e in events])
+        for rust, py in zip(*lines):
+            for rec in (rust, py):
+                del rec["run"], rec["time"]
+            self.assertEqual(json.dumps(rust), json.dumps(py))
+
+    def test_budgets(self):
+        for core in self.cores:
+            b = core.Budget("f", calls=1)
+            self.assertIsNone(b.charge_call())
+            self.assertEqual(b.charge_call(), ("calls", 1.0, 2.0))

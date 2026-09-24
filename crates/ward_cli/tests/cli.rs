@@ -35,6 +35,9 @@ fn run_calls_a_function() {
         r#"{"triage": {"customer": "Ada", "summary": "Crash", "priority": "Urgent",
             "category": "Billing", "tags": [], "order_id": null}}"#,
     );
+    let traces = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("run_traces");
+    let _ = std::fs::remove_dir_all(&traces);
+    let dir = traces.to_str().expect("utf-8 path");
     let out = common::ward(&[
         "run",
         "examples/triage.wardscript",
@@ -42,18 +45,36 @@ fn run_calls_a_function() {
         "\"help\"",
         "--mock",
         &answers,
+        "--trace-dir",
+        dir,
     ]);
     assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
     assert_eq!(
         String::from_utf8_lossy(&out.stdout),
         "\"[urgent] billing: Crash\"\n"
     );
+    // The run's trace, named on stderr, is what `ward trace show` reads.
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let run = stderr
+        .lines()
+        .find_map(|l| l.strip_prefix("trace: "))
+        .and_then(|l| l.split(' ').next())
+        .expect("trace line");
+    let shown = common::ward(&["trace", "show", run, "--dir", dir]);
+    assert_eq!(shown.status.code(), Some(0), "{}", common::render(&shown));
+    assert!(String::from_utf8_lossy(&shown.stdout).contains("`ai fn triage` attempt 1"));
+    assert_eq!(
+        common::ward(&["trace", "show", "nope", "--dir", dir])
+            .status
+            .code(),
+        Some(2)
+    );
 }
 
 #[test]
 fn run_reports_failures() {
     let run = |args: &[&str]| {
-        let mut all = vec!["run", "tests/e2e/semantics.wardscript"];
+        let mut all = vec!["run", "--no-trace", "tests/e2e/semantics.wardscript"];
         all.extend_from_slice(args);
         common::ward(&all)
     };

@@ -51,9 +51,51 @@ enum Command {
         #[arg(allow_negative_numbers = true)]
         args: Vec<String>,
         /// Answer `ai fn` calls from a JSON file: `{"fn_name": answer, ...}`
-        #[arg(long)]
+        #[arg(long, conflicts_with = "model")]
         mock: Option<PathBuf>,
+        /// Answer `ai fn` calls with a real model: `anthropic`, `anthropic:<model>` or
+        /// `openai:<model>`. Needs the provider's SDK and API key.
+        #[arg(long)]
+        model: Option<String>,
+        /// Where to write the run's audit trace
+        #[arg(long, default_value = ".ward/traces")]
+        trace_dir: PathBuf,
+        /// Don't write an audit trace
+        #[arg(long, conflicts_with = "trace_dir")]
+        no_trace: bool,
     },
+    /// Read the audit traces `ward run` and the runtime write
+    Trace {
+        #[command(subcommand)]
+        command: TraceCommand,
+    },
+}
+
+#[derive(Subcommand)]
+enum TraceCommand {
+    /// Show a run's events, and where each value that reached a tool came from
+    Show {
+        /// A run id, or a unique prefix of one; the latest run if left out
+        run: Option<String>,
+        #[arg(long, env = "WARD_TRACE_DIR", default_value = ".ward/traces")]
+        dir: PathBuf,
+    },
+    /// Print a run's trace in another format
+    Export {
+        run: Option<String>,
+        #[arg(long, env = "WARD_TRACE_DIR", default_value = ".ward/traces")]
+        dir: PathBuf,
+        #[arg(long, value_enum, default_value_t = TraceFormat::Otlp)]
+        format: TraceFormat,
+    },
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum TraceFormat {
+    /// OpenTelemetry spans, OTLP/JSON
+    Otlp,
+    /// The trace as written: one JSON object per line
+    Jsonl,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -77,7 +119,20 @@ fn main() -> ExitCode {
             function,
             args,
             mock,
-        } => run(&file, &function, &args, mock.as_deref()),
+            model,
+            trace_dir,
+            no_trace,
+        } => run(
+            &file,
+            &function,
+            &args,
+            &RunOptions {
+                mock,
+                model,
+                trace_dir: (!no_trace).then_some(trace_dir),
+            },
+        ),
+        Command::Trace { command } => trace(command),
     }
 }
 
@@ -155,7 +210,13 @@ fn build(file: &Path, target: Target, out: &Path) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn run(file: &Path, function: &str, args: &[String], mock: Option<&Path>) -> ExitCode {
+struct RunOptions {
+    mock: Option<PathBuf>,
+    model: Option<String>,
+    trace_dir: Option<PathBuf>,
+}
+
+fn run(file: &Path, function: &str, args: &[String], opts: &RunOptions) -> ExitCode {
     let program = match compile(file, "run") {
         Ok(p) => p,
         Err(code) => return code,
@@ -182,10 +243,22 @@ fn run(file: &Path, function: &str, args: &[String], mock: Option<&Path>) -> Exi
         );
         return ExitCode::from(exit::INTERNAL);
     }
-    let mock = match mock.map(std::path::absolute).transpose() {
+    let mock = match opts.mock.as_deref().map(std::path::absolute).transpose() {
         Ok(m) => m,
         Err(e) => {
             eprintln!("error: invalid mock path: {e}");
+            return ExitCode::from(exit::INTERNAL);
+        }
+    };
+    let trace_dir = match opts
+        .trace_dir
+        .as_deref()
+        .map(std::path::absolute)
+        .transpose()
+    {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: invalid trace directory: {e}");
             return ExitCode::from(exit::INTERNAL);
         }
     };
@@ -216,9 +289,17 @@ fn run(file: &Path, function: &str, args: &[String], mock: Option<&Path>) -> Exi
         .args(args)
         .env("PYTHONPATH", &dir)
         .env("PYTHONDONTWRITEBYTECODE", "1")
-        .env_remove("WARD_MOCK");
+        .env_remove("WARD_MOCK")
+        .env_remove("WARD_MODEL")
+        .env_remove("WARD_TRACE_DIR");
     if let Some(mock) = &mock {
         cmd.env("WARD_MOCK", mock);
+    }
+    if let Some(model) = &opts.model {
+        cmd.env("WARD_MODEL", model);
+    }
+    if let Some(dir) = &trace_dir {
+        cmd.env("WARD_TRACE_DIR", dir);
     }
     let status = cmd.status();
     let _ = std::fs::remove_dir_all(&dir);
@@ -291,5 +372,45 @@ fn check(file: &Path, format: Format) -> ExitCode {
         ExitCode::from(exit::DIAGNOSTICS)
     } else {
         ExitCode::SUCCESS
+    }
+}
+
+fn trace(command: TraceCommand) -> ExitCode {
+    let (run, dir) = match &command {
+        TraceCommand::Show { run, dir } | TraceCommand::Export { run, dir, .. } => (run, dir),
+    };
+    let records = match ward_runtime::trace::find(dir, run.as_deref().unwrap_or(""))
+        .and_then(|path| ward_runtime::trace::read(&path))
+    {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return ExitCode::from(exit::INTERNAL);
+        }
+    };
+    let text = match command {
+        TraceCommand::Show { .. } => ward_runtime::show::render(&records),
+        TraceCommand::Export {
+            format: TraceFormat::Otlp,
+            ..
+        } => format!(
+            "{}\n",
+            serde_json::to_string_pretty(&ward_runtime::otlp::export(&records)).unwrap_or_default()
+        ),
+        TraceCommand::Export {
+            format: TraceFormat::Jsonl,
+            ..
+        } => records
+            .iter()
+            .map(|r| serde_json::to_string(r).unwrap_or_default() + "\n")
+            .collect(),
+    };
+    let mut out = std::io::stdout().lock();
+    match out.write_all(text.as_bytes()) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("error: {e}");
+            ExitCode::from(exit::INTERNAL)
+        }
     }
 }

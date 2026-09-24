@@ -79,12 +79,12 @@ fn python(program: &Program, id: ModuleId, module: &Module) -> String {
     }
     let top = top_level_names(program, module);
     for f in &module.fns {
-        let params: Vec<String> = {
+        let param_names: Vec<String> = {
             let g = FnGen::new(f, &mut scope, &top);
             f.params.iter().map(|&p| g.local(p).to_owned()).collect()
         };
-        let params: Vec<String> = params
-            .into_iter()
+        let params: Vec<String> = param_names
+            .iter()
             .zip(&f.params)
             .zip(&f.trusted)
             .map(|((name, &p), &trusted)| {
@@ -105,9 +105,18 @@ fn python(program: &Program, id: ModuleId, module: &Module) -> String {
             names::ident(&f.name),
             params.join(", ")
         );
-        let indent = if f.budget.is_empty() {
-            ""
-        } else {
+        // The outermost call is a run in the audit trace.
+        let args: Vec<String> = param_names
+            .iter()
+            .zip(&f.params)
+            .map(|(n, &p)| format!("({}, {n})", names::string(&f.locals[p].name)))
+            .collect();
+        let mut contexts = vec![format!(
+            "_rt.call({}, [{}])",
+            names::string(&f.name),
+            args.join(", ")
+        )];
+        if !f.budget.is_empty() {
             let limits: Vec<String> = f
                 .budget
                 .iter()
@@ -116,14 +125,14 @@ fn python(program: &Program, id: ModuleId, module: &Module) -> String {
                     ward_ir::BudgetValue::Float(x) => format!("{k}={x:?}"),
                 })
                 .collect();
-            let _ = writeln!(
-                body,
-                "    with _rt.budget({}, {}):",
+            contexts.push(format!(
+                "_rt.budget({}, {})",
                 names::string(&f.name),
                 limits.join(", ")
-            );
-            "    "
-        };
+            ));
+        }
+        let _ = writeln!(body, "    with {}:", contexts.join(", "));
+        let indent = "    ";
         for line in g.lines {
             let _ = writeln!(body, "{indent}{line}");
         }
@@ -460,9 +469,27 @@ from wardscript.mock import MockModel
 # Arguments on the command line come from whoever runs it, so they're vouched for.
 def main(name, fn, params, trusted):
     mock = os.environ.get("WARD_MOCK")
+    model = os.environ.get("WARD_MODEL")
     if mock:
         with open(mock, encoding="utf-8") as f:
             runtime.configure(model=MockModel.from_json(f.read()))
+    elif model:
+        from wardscript.providers import load
+
+        try:
+            runtime.configure(model=load(model))
+        except (ImportError, ValueError) as e:
+            print(f"error: model `{model}`: {e}", file=sys.stderr)
+            return 2
+    try:
+        return call(name, fn, params, trusted)
+    finally:
+        run = runtime.last_run()
+        if run is not None and run.path is not None:
+            print(f"trace: {run.id} (ward trace show {run.id})", file=sys.stderr)
+
+
+def call(name, fn, params, trusted):
     args = []
     for i, (param, text) in enumerate(zip(params, sys.argv[1:])):
         try:

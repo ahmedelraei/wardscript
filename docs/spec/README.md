@@ -3,7 +3,7 @@
 This is the normative description of Wardscript. It is kept in sync with the
 implementation: every language feature lands together with its section here.
 
-Status: **M5 (effects, budgets, Rule of Two)**.
+Status: **M6 (runtime core, audit trace, model providers)**.
 
 ## Contents
 
@@ -15,7 +15,7 @@ Status: **M5 (effects, budgets, Rule of Two)**.
 | [Types](types.md) | implemented (M2) |
 | [Trust labels](trust.md) (`Trusted` / `Untrusted`, sources, sinks, `validate` / `approve` / `declassify`) | implemented (M4) |
 | [Effects, budgets, Rule of Two](effects.md) | implemented (M5) |
-| [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5); audit trace planned (M6) |
+| [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5), audit trace and providers (M6) |
 | MCP imports | planned (M7) |
 
 ## Diagnostics

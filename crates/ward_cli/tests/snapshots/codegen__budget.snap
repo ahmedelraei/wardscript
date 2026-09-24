@@ -16,16 +16,17 @@ __all__ = [
 
 
 def ask(q: str) -> str:
-    return _rt.ai("ask", f"Answer: {q}", _rt.String)
+    with _rt.call("ask", [("q", q)]):
+        return _rt.ai("ask", f"Answer: {q}", _rt.String)
 
 
 def strict(q: str) -> str:
-    with _rt.budget("strict", calls=1):
+    with _rt.call("strict", [("q", q)]), _rt.budget("strict", calls=1):
         return _rt.ai("strict", f"Answer: {q}", _rt.String)
 
 
 def chat(q: str, rounds: int) -> str:
-    with _rt.budget("chat", calls=3, tokens=1000, cost=0.05):
+    with _rt.call("chat", [("q", q), ("rounds", rounds)]), _rt.budget("chat", calls=3, tokens=1000, cost=0.05):
         answer = q
         i = 0
         while i < rounds:
@@ -35,13 +36,14 @@ def chat(q: str, rounds: int) -> str:
 
 
 def once(q: str) -> str:
-    return strict(q)
+    with _rt.call("once", [("q", q)]):
+        return strict(q)
 
 
 def slow(seconds: _rt.Trusted[float]) -> str:
-    with _rt.budget("slow", time=0.05):
+    with _rt.call("slow", [("seconds", seconds)]), _rt.budget("slow", time=0.05):
         seconds = _rt.vouched(seconds, "seconds", "slow")
-        _rt.call_tool("clock", "sleep", seconds)
+        _rt.call_tool("clock", "sleep", "budget.ward:38:5", seconds)
         return "done"
 
 === budget.pyi ===

@@ -65,7 +65,12 @@ fn e2e() {
             common::render(&parsed)
         );
 
-        let path = std::env::join_paths([out.clone(), common::runtime_py()]).expect("PYTHONPATH");
+        // With WARD_RUNTIME_INSTALLED, the runtime comes from an installed wheel instead.
+        let mut paths = vec![out.clone()];
+        if std::env::var_os("WARD_RUNTIME_INSTALLED").is_none() {
+            paths.push(common::runtime_py());
+        }
+        let path = std::env::join_paths(paths).expect("PYTHONPATH");
         let run = common::python()
             .arg(&driver)
             .env("PYTHONPATH", path)
