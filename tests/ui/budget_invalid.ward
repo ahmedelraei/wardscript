@@ -1,0 +1,10 @@
+// Budgets are `tokens`, `calls`, `cost` and `time`, written as non-negative literals.
+ai fn a(x: String) -> String
+    budget {tokens: 100, tokens: 200, calls: 1.5, cost: -1, time: limit(), money: 3}
+{
+    "{x}"
+}
+
+fn limit() -> Int {
+    5
+}

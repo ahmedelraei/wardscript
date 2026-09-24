@@ -1,6 +1,7 @@
 //! Type checking for Wardscript: bidirectional inference with unification, generics,
-//! exhaustive `match` and `?`. Trust labels are checked in `trust`; effects and budgets join in M5.
+//! exhaustive `match` and `?`. Trust labels are checked in `trust`; effects, budgets and the Rule of Two in `effects`.
 
+mod effects;
 mod exhaust;
 mod infer;
 mod lower;
@@ -98,6 +99,7 @@ pub fn analyze(entry: &Path, fs: &dyn FileSystem) -> Result<Analysis, LoadError>
         let (mut trust_diags, trusted_params) = trust::check(&program, &resolution, &checked.types);
         diags.append(&mut trust_diags);
         checked.trusted_params = trusted_params;
+        diags.append(&mut effects::check(&program, &resolution));
     }
     diags.sort_by_key(|d| (d.module, d.diagnostic.span().start));
     checked.diagnostics = diags;

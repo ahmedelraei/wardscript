@@ -32,7 +32,21 @@ class AiRequest:
         return text
 
 
+@dataclass(frozen=True)
+class Completion:
+    """A model's answer with what it cost, for budgets. A model may return plain text
+    instead; then tokens are estimated from the text's length and cost is 0."""
+
+    text: str
+    tokens: int | None = None
+    cost: float = 0.0
+
+
+def estimate_tokens(text: str) -> int:
+    return len(text) // 4 + 1
+
+
 class Model(Protocol):
-    def complete(self, request: AiRequest) -> str:
-        """Returns the model's answer: JSON text."""
+    def complete(self, request: AiRequest) -> str | Completion:
+        """Returns the model's answer: JSON text, or a `Completion` with its usage."""
         ...

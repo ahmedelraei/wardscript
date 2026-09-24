@@ -199,7 +199,9 @@ pub fn early(xs: List<Int>) -> Int {
 
 // Side effects through a tool keep left-to-right order, even when an argument
 // needs statements.
-pub fn order(c: Bool) -> String {
+pub fn order(c: Bool) -> String
+    uses {log.say}
+{
     let a = join(log.say("a"), if c {
         log.say("b")
     } else {

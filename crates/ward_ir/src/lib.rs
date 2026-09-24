@@ -117,6 +117,8 @@ pub struct Fn {
     pub params: Vec<LocalId>,
     /// Parameters that reach a sink. Callers outside Wardscript must vouch for them.
     pub trusted: Vec<bool>,
+    /// `budget {...}` limits, checked by the runtime: `tokens`, `calls`, `cost`, `time`.
+    pub budget: Vec<(String, BudgetValue)>,
     pub ret: Ty,
     pub throws: Option<Ty>,
     pub locals: Arena<Local>,
@@ -124,6 +126,12 @@ pub struct Fn {
     pub stmts: Arena<Stmt>,
     pub pats: Arena<Pat>,
     pub body: Body,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum BudgetValue {
+    Int(i64),
+    Float(f64),
 }
 
 pub enum Body {

@@ -32,6 +32,7 @@ without a span in this file, such as W0107 path steps in another module) (progra
 | W0021 | unclosed delimiter |
 | W0022 | string interpolation where it isn't allowed (import sources, patterns) |
 | W0023 | `pub` on an import |
+| W0024 | attribute on something other than a function or import |
 
 ## W010x: names and modules
 
@@ -72,6 +73,22 @@ without a span in this file, such as W0107 path steps in another module) (progra
 | W0129 | thrown error is neither caught by a `try` nor declared with `throws` |
 | W0130 | `ai fn` declares `throws` |
 | W0131 | *warning*: nothing in a `try` block can throw |
+
+## W02xx: effects, budgets, Rule of Two
+
+See [effects](effects.md).
+
+| Code | Meaning |
+|---|---|
+| W0200 | a function uses an effect it doesn't declare, directly or through a callee |
+| W0201 | *warning*: declared effect is never used, or `llm` declared on an `ai fn` |
+| W0202 | unknown effect: not `llm`, an imported tool or one of its functions |
+| W0210 | invalid budget: unknown name, not a non-negative number literal, or set twice |
+| W0211 | budget is always exceeded: the function makes more model calls on every run |
+| W0212 | *warning*: a callee's budget is larger than its caller's |
+| W0220 | Rule of Two: untrusted input, private reads and external changes in one function |
+| W0221 | invalid attribute, or `#[allow]` without a reason |
+| W0222 | *warning*: `#[allow(rule_of_two)]` on a function that doesn't need it |
 
 ## Error recovery
 

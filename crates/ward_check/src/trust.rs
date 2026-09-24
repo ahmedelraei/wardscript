@@ -218,6 +218,24 @@ pub(crate) fn check(
     (t.diags, trusted)
 }
 
+/// Whether `Untrusted<...>` appears in the type `ty` of `module`, through aliases.
+pub(crate) fn declares_untrusted(
+    program: &Program,
+    res: &Resolution,
+    module: ModuleId,
+    ty: TypeId,
+) -> bool {
+    let t = Trust {
+        program,
+        res,
+        types: &[],
+        summaries: HashMap::new(),
+        diags: Vec::new(),
+        reported: HashSet::new(),
+    };
+    t.declared(module, ty) == Declared::Untrusted
+}
+
 struct Trust<'p> {
     program: &'p Program,
     res: &'p Resolution,

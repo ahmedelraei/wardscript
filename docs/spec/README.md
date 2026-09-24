@@ -3,19 +3,19 @@
 This is the normative description of Wardscript. It is kept in sync with the
 implementation: every language feature lands together with its section here.
 
-Status: **M4 (trust labels)**.
+Status: **M5 (effects, budgets, Rule of Two)**.
 
 ## Contents
 
 | Section | Status |
 |---|---|
 | [Lexical structure and syntax](syntax.md) | implemented (M1) |
-| [Diagnostics](diagnostics.md) | syntax (M1), names and types (M2), trust (M4) |
+| [Diagnostics](diagnostics.md) | syntax (M1), names and types (M2), trust (M4), effects (M5) |
 | [Names, modules and imports](names.md) | implemented (M2) |
 | [Types](types.md) | implemented (M2) |
 | [Trust labels](trust.md) (`Trusted` / `Untrusted`, sources, sinks, `validate` / `approve` / `declassify`) | implemented (M4) |
-| Effects, budgets, Rule of Two | planned (M5) |
-| [Python backend and runtime](runtime.md) | implemented (M3); audit trace planned (M6) |
+| [Effects, budgets, Rule of Two](effects.md) | implemented (M5) |
+| [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5); audit trace planned (M6) |
 | MCP imports | planned (M7) |
 
 ## Diagnostics

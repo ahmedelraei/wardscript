@@ -1,0 +1,40 @@
+// Budgets enforced by the runtime. The driver is test_budget.py.
+import mcp "clock" as clock
+
+ai fn ask(q: String) -> String {
+    "Answer: {q}"
+}
+
+// One attempt only: an invalid answer can't be retried.
+ai fn strict(q: String) -> String
+    budget {calls: 1}
+{
+    "Answer: {q}"
+}
+
+pub fn chat(q: String, rounds: Int) -> String
+    uses {llm}
+    budget {calls: 3, tokens: 1000, cost: 0.05}
+{
+    let answer = q
+    let i = 0
+    while i < rounds {
+        answer = ask(answer)
+        i = i + 1
+    }
+    answer
+}
+
+pub fn once(q: String) -> String
+    uses {llm}
+{
+    strict(q)
+}
+
+pub fn slow(seconds: Float) -> String
+    uses {clock}
+    budget {time: 0.05}
+{
+    clock.sleep(seconds)
+    "done"
+}

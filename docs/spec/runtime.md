@@ -1,8 +1,8 @@
 # Python backend and runtime
 
 Status: implemented in M3 (`ward_ir`, `ward_codegen_py`, `crates/ward_runtime/py`);
-trust at the host boundary in M4. Budgets (M5) and the audit trace (M6) are not
-enforced by the runtime yet. The design is recorded in
+trust at the host boundary in M4, budgets in M5. The audit trace (M6) isn't
+written yet. The design is recorded in
 [decision 006](../decisions/006-python-backend.md).
 
 ## Building
@@ -68,11 +68,18 @@ catches:
 |---|---|
 | `NoModelError` | an `ai fn` is called with no model configured |
 | `AiOutputError` | the model's answers didn't match the return type on every attempt; `.errors` says why, per attempt |
+| `BudgetExceeded` | a function went over its `budget`; `.function`, `.resource`, `.limit`, `.used` |
 | `ApprovalDenied` | `approve` was refused, or no approver is configured |
 | `ToolError` | a tool or tool function isn't configured |
 | `TrustError` | the host passed a parameter that must be trusted without vouching for it |
 | `PanicError` | integer division by zero, an index out of bounds, a missing map key |
 | `DecodeError` | a JSON value doesn't match a type (`ward run` arguments, `wardscript.decode`) |
+
+## Budgets
+
+A function with a `budget` runs inside `wardscript._rt.budget(...)`, which charges
+every model call made while it runs, in callees too. Going over raises
+`BudgetExceeded`; see [effects](effects.md#budgets) for when each resource is checked.
 
 ## Trust at the host boundary
 
@@ -110,8 +117,9 @@ runtime.configure(
 `configure` only changes the settings it's given; `runtime.reset()` restores the
 defaults.
 
-- **`model`**: anything with `complete(request: AiRequest) -> str`, returning JSON
-  text. `AiRequest` has the `function` name, the `prompt` with arguments filled in,
+- **`model`**: anything with `complete(request: AiRequest) -> str | Completion`,
+  returning JSON text, or a `Completion(text, tokens, cost)` that also says what the
+  answer cost, for [budgets](effects.md#budgets). `AiRequest` has the `function` name, the `prompt` with arguments filled in,
   the JSON `schema` of the return type, the `attempt` number and the `errors` of
   earlier attempts; `request.instructions()` combines them into one prompt.
 - **`approver`**: called by `approve(x)` with an `ApprovalRequest(value, site)`;
@@ -135,6 +143,7 @@ after `retries + 1` attempts the call raises `AiOutputError`.
 ### The mock model
 
 `MockModel(answers)` answers each `ai fn` by name. An answer is a value (encoded
-as JSON; records and enums work), `Raw(text)` for literal text, `Seq(a, b, ...)`
+as JSON; records and enums work), `Raw(text)` for literal text,
+`Usage(answer, tokens=, cost=)` for an answer with its cost, `Seq(a, b, ...)`
 for one answer per call, or a function of the `AiRequest`. Every request is
 recorded in `model.calls`. `MockModel.from_json(text)` reads the `--mock` format.

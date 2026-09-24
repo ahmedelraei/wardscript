@@ -1,0 +1,259 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/budget_invalid.ward
+---
+exit: Some(1)
+--- human ---
+[W0210] Error: budget `tokens` is set twice
+   ╭─[ tests/ui/budget_invalid.ward:3:26 ]
+   │
+ 3 │     budget {tokens: 100, tokens: 200, calls: 1.5, cost: -1, time: limit(), money: 3}
+   │                     ─┬─  ───┬──  
+   │                      ╰─────────── first set here
+   │                             │    
+   │                             ╰──── set again here
+───╯
+[W0210] Error: budget `calls` must be a whole number
+   ╭─[ tests/ui/budget_invalid.ward:3:46 ]
+   │
+ 3 │     budget {tokens: 100, tokens: 200, calls: 1.5, cost: -1, time: limit(), money: 3}
+   │                                              ─┬─  
+   │                                               ╰─── expected a whole number written out
+   │ 
+   │ Help: budgets are checked when compiling, so they must be literals
+───╯
+[W0210] Error: budget `cost` must be a number
+   ╭─[ tests/ui/budget_invalid.ward:3:57 ]
+   │
+ 3 │     budget {tokens: 100, tokens: 200, calls: 1.5, cost: -1, time: limit(), money: 3}
+   │                                                         ─┬  
+   │                                                          ╰── budgets can't be negative
+   │ 
+   │ Help: budgets are checked when compiling, so they must be literals
+───╯
+[W0210] Error: budget `time` must be a number
+   ╭─[ tests/ui/budget_invalid.ward:3:67 ]
+   │
+ 3 │     budget {tokens: 100, tokens: 200, calls: 1.5, cost: -1, time: limit(), money: 3}
+   │                                                                   ───┬───  
+   │                                                                      ╰───── expected a number written out
+   │ 
+   │ Help: budgets are checked when compiling, so they must be literals
+───╯
+[W0210] Error: unknown budget `money`
+   ╭─[ tests/ui/budget_invalid.ward:3:76 ]
+   │
+ 3 │     budget {tokens: 100, tokens: 200, calls: 1.5, cost: -1, time: limit(), money: 3}
+   │                                                                            ──┬──  
+   │                                                                              ╰──── not a budget
+   │ 
+   │ Help: budgets are `tokens`, `calls`, `cost` (dollars) and `time` (seconds)
+───╯
+error: could not check `tests/ui/budget_invalid.ward` due to 5 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0210",
+      "file": "tests/ui/budget_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "set again here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 32,
+              "line": 3,
+              "offset": 147
+            },
+            "start": {
+              "column": 26,
+              "line": 3,
+              "offset": 141
+            }
+          }
+        },
+        {
+          "message": "first set here",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 24,
+              "line": 3,
+              "offset": 139
+            },
+            "start": {
+              "column": 21,
+              "line": 3,
+              "offset": 136
+            }
+          }
+        }
+      ],
+      "message": "budget `tokens` is set twice",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 32,
+          "line": 3,
+          "offset": 147
+        },
+        "start": {
+          "column": 26,
+          "line": 3,
+          "offset": 141
+        }
+      }
+    },
+    {
+      "code": "W0210",
+      "file": "tests/ui/budget_invalid.ward",
+      "help": "budgets are checked when compiling, so they must be literals",
+      "labels": [
+        {
+          "message": "expected a whole number written out",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 49,
+              "line": 3,
+              "offset": 164
+            },
+            "start": {
+              "column": 46,
+              "line": 3,
+              "offset": 161
+            }
+          }
+        }
+      ],
+      "message": "budget `calls` must be a whole number",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 49,
+          "line": 3,
+          "offset": 164
+        },
+        "start": {
+          "column": 46,
+          "line": 3,
+          "offset": 161
+        }
+      }
+    },
+    {
+      "code": "W0210",
+      "file": "tests/ui/budget_invalid.ward",
+      "help": "budgets are checked when compiling, so they must be literals",
+      "labels": [
+        {
+          "message": "budgets can't be negative",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 59,
+              "line": 3,
+              "offset": 174
+            },
+            "start": {
+              "column": 57,
+              "line": 3,
+              "offset": 172
+            }
+          }
+        }
+      ],
+      "message": "budget `cost` must be a number",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 59,
+          "line": 3,
+          "offset": 174
+        },
+        "start": {
+          "column": 57,
+          "line": 3,
+          "offset": 172
+        }
+      }
+    },
+    {
+      "code": "W0210",
+      "file": "tests/ui/budget_invalid.ward",
+      "help": "budgets are checked when compiling, so they must be literals",
+      "labels": [
+        {
+          "message": "expected a number written out",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 74,
+              "line": 3,
+              "offset": 189
+            },
+            "start": {
+              "column": 67,
+              "line": 3,
+              "offset": 182
+            }
+          }
+        }
+      ],
+      "message": "budget `time` must be a number",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 74,
+          "line": 3,
+          "offset": 189
+        },
+        "start": {
+          "column": 67,
+          "line": 3,
+          "offset": 182
+        }
+      }
+    },
+    {
+      "code": "W0210",
+      "file": "tests/ui/budget_invalid.ward",
+      "help": "budgets are `tokens`, `calls`, `cost` (dollars) and `time` (seconds)",
+      "labels": [
+        {
+          "message": "not a budget",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 81,
+              "line": 3,
+              "offset": 196
+            },
+            "start": {
+              "column": 76,
+              "line": 3,
+              "offset": 191
+            }
+          }
+        }
+      ],
+      "message": "unknown budget `money`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 81,
+          "line": 3,
+          "offset": 196
+        },
+        "start": {
+          "column": 76,
+          "line": 3,
+          "offset": 191
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/budget_invalid.ward"
+}

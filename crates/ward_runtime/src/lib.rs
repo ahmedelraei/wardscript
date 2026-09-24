@@ -10,6 +10,10 @@ pub const PYTHON_PACKAGE: &[(&str, &str)] = &[
     ),
     ("wardscript/_rt.py", include_str!("../py/wardscript/_rt.py")),
     (
+        "wardscript/budget.py",
+        include_str!("../py/wardscript/budget.py"),
+    ),
+    (
         "wardscript/errors.py",
         include_str!("../py/wardscript/errors.py"),
     ),

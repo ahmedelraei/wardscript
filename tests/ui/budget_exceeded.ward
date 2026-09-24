@@ -1,0 +1,34 @@
+// A budget smaller than the fewest model calls a function can make is always exceeded.
+ai fn ask(q: String) -> String {
+    "{q}"
+}
+
+ai fn never(q: String) -> String
+    budget {calls: 0}
+{
+    "{q}"
+}
+
+pub fn twice(q: String) -> String
+    uses {llm}
+    budget {calls: 1}
+{
+    let a = ask(q)
+    let b = ask(a)
+    b
+}
+
+// Only one call is certain: the loop and the second branch may not run.
+pub fn maybe(q: String, xs: List<String>, deep: Bool) -> String
+    uses {llm}
+    budget {calls: 1}
+{
+    for x in xs {
+        ask(x)
+    }
+    if deep {
+        ask(ask(q))
+    } else {
+        ask(q)
+    }
+}

@@ -1,0 +1,149 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/effects_unused.ward
+---
+exit: Some(0)
+--- human ---
+[W0201] Warning: `ai fn` implies `llm`; declaring it is redundant
+   ╭─[ tests/ui/effects_unused.ward:6:11 ]
+   │
+ 6 │     uses {llm}
+   │           ─┬─  
+   │            ╰─── remove this
+───╯
+[W0201] Warning: `send` declares an effect it doesn't use
+    ╭─[ tests/ui/effects_unused.ward:12:22 ]
+    │
+ 12 │     uses {mail.send, drive, llm}
+    │                      ──┬──  
+    │                        ╰──── never used
+    │ 
+    │ Help: remove it, so the declared effects say what the function does
+────╯
+[W0201] Warning: `send` declares an effect it doesn't use
+    ╭─[ tests/ui/effects_unused.ward:12:29 ]
+    │
+ 12 │     uses {mail.send, drive, llm}
+    │                             ─┬─  
+    │                              ╰─── never used
+    │ 
+    │ Help: remove it, so the declared effects say what the function does
+────╯
+ok: tests/ui/effects_unused.ward (3 warnings)
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0201",
+      "file": "tests/ui/effects_unused.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "remove this",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 14,
+              "line": 6,
+              "offset": 165
+            },
+            "start": {
+              "column": 11,
+              "line": 6,
+              "offset": 162
+            }
+          }
+        }
+      ],
+      "message": "`ai fn` implies `llm`; declaring it is redundant",
+      "severity": "warning",
+      "span": {
+        "end": {
+          "column": 14,
+          "line": 6,
+          "offset": 165
+        },
+        "start": {
+          "column": 11,
+          "line": 6,
+          "offset": 162
+        }
+      }
+    },
+    {
+      "code": "W0201",
+      "file": "tests/ui/effects_unused.ward",
+      "help": "remove it, so the declared effects say what the function does",
+      "labels": [
+        {
+          "message": "never used",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 27,
+              "line": 12,
+              "offset": 248
+            },
+            "start": {
+              "column": 22,
+              "line": 12,
+              "offset": 243
+            }
+          }
+        }
+      ],
+      "message": "`send` declares an effect it doesn't use",
+      "severity": "warning",
+      "span": {
+        "end": {
+          "column": 27,
+          "line": 12,
+          "offset": 248
+        },
+        "start": {
+          "column": 22,
+          "line": 12,
+          "offset": 243
+        }
+      }
+    },
+    {
+      "code": "W0201",
+      "file": "tests/ui/effects_unused.ward",
+      "help": "remove it, so the declared effects say what the function does",
+      "labels": [
+        {
+          "message": "never used",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 32,
+              "line": 12,
+              "offset": 253
+            },
+            "start": {
+              "column": 29,
+              "line": 12,
+              "offset": 250
+            }
+          }
+        }
+      ],
+      "message": "`send` declares an effect it doesn't use",
+      "severity": "warning",
+      "span": {
+        "end": {
+          "column": 32,
+          "line": 12,
+          "offset": 253
+        },
+        "start": {
+          "column": 29,
+          "line": 12,
+          "offset": 250
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/effects_unused.ward"
+}

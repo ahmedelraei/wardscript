@@ -1,0 +1,127 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/effects_across_modules/main.ward
+---
+exit: Some(1)
+--- human ---
+[W0202] Error: unknown effect `notify`
+   ╭─[ tests/ui/effects_across_modules/main.ward:6:11 ]
+   │
+ 6 │     uses {notify}
+   │           ───┬──  
+   │              ╰──── not an effect
+   │ 
+   │ Help: effects are `llm`, a tool imported with `import mcp`, or one of its functions, like `mail.send`
+───╯
+[W0200] Error: `run` uses `"gmail".send` but doesn't declare it
+   ╭─[ tests/ui/effects_across_modules/main.ward:8:5 ]
+   │
+ 8 │     notify.send("done")
+   │     ─────────┬─────────  
+   │              ╰─────────── calls `send`, which uses `"gmail".send`
+   │
+   ├─[ tests/ui/effects_across_modules/main.ward:8:5 ]
+   │
+ 5 │ pub fn run()
+   │        ─┬─  
+   │         ╰─── in this function
+   │ 
+   │ Help: import the tool to name its effect, e.g. `import mcp "gmail" as x`, then declare `uses {x}`
+───╯
+error: could not check `tests/ui/effects_across_modules/main.ward` due to 2 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0202",
+      "file": "tests/ui/effects_across_modules/main.ward",
+      "help": "effects are `llm`, a tool imported with `import mcp`, or one of its functions, like `mail.send`",
+      "labels": [
+        {
+          "message": "not an effect",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 6,
+              "offset": 194
+            },
+            "start": {
+              "column": 11,
+              "line": 6,
+              "offset": 188
+            }
+          }
+        }
+      ],
+      "message": "unknown effect `notify`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 6,
+          "offset": 194
+        },
+        "start": {
+          "column": 11,
+          "line": 6,
+          "offset": 188
+        }
+      }
+    },
+    {
+      "code": "W0200",
+      "file": "tests/ui/effects_across_modules/main.ward",
+      "help": "import the tool to name its effect, e.g. `import mcp \"gmail\" as x`, then declare `uses {x}`",
+      "labels": [
+        {
+          "message": "calls `send`, which uses `\"gmail\".send`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 24,
+              "line": 8,
+              "offset": 221
+            },
+            "start": {
+              "column": 5,
+              "line": 8,
+              "offset": 202
+            }
+          }
+        },
+        {
+          "message": "in this function",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 11,
+              "line": 5,
+              "offset": 175
+            },
+            "start": {
+              "column": 8,
+              "line": 5,
+              "offset": 172
+            }
+          }
+        }
+      ],
+      "message": "`run` uses `\"gmail\".send` but doesn't declare it",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 24,
+          "line": 8,
+          "offset": 221
+        },
+        "start": {
+          "column": 5,
+          "line": 8,
+          "offset": 202
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/effects_across_modules/main.ward"
+}

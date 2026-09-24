@@ -4,6 +4,8 @@
 // can steer the model. So every shell command the model proposes must pass an
 // allowlist, and nothing leaves the machine until a human approves the diff.
 
+#[readonly(get_issue)]
+#[private(read_file)]
 import mcp "github" as gh
 import mcp "shell" as sh
 
@@ -69,6 +71,7 @@ fn run_tests(command: String) -> Verdict throws String
     }
 }
 
+#[allow(rule_of_two, reason = "a human approves the full diff before anything is pushed")]
 pub fn fix_issue(repo: String, number: Int) -> String throws String
     uses {llm, gh, sh}
     budget {tokens: 60000, cost: 2.00, time: 900}

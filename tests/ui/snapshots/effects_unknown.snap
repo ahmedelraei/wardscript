@@ -1,0 +1,105 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/effects_unknown.ward
+---
+exit: Some(1)
+--- human ---
+[W0202] Error: unknown effect `net.read`
+   ╭─[ tests/ui/effects_unknown.ward:5:22 ]
+   │
+ 5 │     uses {mail.send, net.read, gmail}
+   │                      ────┬───  
+   │                          ╰───── not an effect
+   │ 
+   │ Help: effects are `llm`, a tool imported with `import mcp`, or one of its functions, like `mail.send`
+───╯
+[W0202] Error: unknown effect `gmail`
+   ╭─[ tests/ui/effects_unknown.ward:5:32 ]
+   │
+ 5 │     uses {mail.send, net.read, gmail}
+   │                                ──┬──  
+   │                                  ╰──── not an effect
+   │ 
+   │ Help: effects are `llm`, a tool imported with `import mcp`, or one of its functions, like `mail.send`
+───╯
+error: could not check `tests/ui/effects_unknown.ward` due to 2 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0202",
+      "file": "tests/ui/effects_unknown.ward",
+      "help": "effects are `llm`, a tool imported with `import mcp`, or one of its functions, like `mail.send`",
+      "labels": [
+        {
+          "message": "not an effect",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 30,
+              "line": 5,
+              "offset": 148
+            },
+            "start": {
+              "column": 22,
+              "line": 5,
+              "offset": 140
+            }
+          }
+        }
+      ],
+      "message": "unknown effect `net.read`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 30,
+          "line": 5,
+          "offset": 148
+        },
+        "start": {
+          "column": 22,
+          "line": 5,
+          "offset": 140
+        }
+      }
+    },
+    {
+      "code": "W0202",
+      "file": "tests/ui/effects_unknown.ward",
+      "help": "effects are `llm`, a tool imported with `import mcp`, or one of its functions, like `mail.send`",
+      "labels": [
+        {
+          "message": "not an effect",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 37,
+              "line": 5,
+              "offset": 155
+            },
+            "start": {
+              "column": 32,
+              "line": 5,
+              "offset": 150
+            }
+          }
+        }
+      ],
+      "message": "unknown effect `gmail`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 37,
+          "line": 5,
+          "offset": 155
+        },
+        "start": {
+          "column": 32,
+          "line": 5,
+          "offset": 150
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/effects_unknown.ward"
+}

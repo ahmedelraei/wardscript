@@ -1,0 +1,217 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/effects_missing.ward
+---
+exit: Some(1)
+--- human ---
+[W0200] Error: `direct` uses `mail.send` but doesn't declare it
+    ╭─[ tests/ui/effects_missing.ward:16:5 ]
+    │
+ 16 │     mail.send("team@example.com", "hi", "hello")
+    │     ──────────────────────┬─────────────────────  
+    │                           ╰─────────────────────── calls `mail.send` here
+    │
+    ├─[ tests/ui/effects_missing.ward:16:5 ]
+    │
+ 15 │ pub fn direct() {
+    │        ───┬──  
+    │           ╰──── in this function
+    │ 
+    │ Help: declare it: `uses {mail.send}`
+────╯
+[W0200] Error: `indirect` uses `llm` but doesn't declare it
+    ╭─[ tests/ui/effects_missing.ward:21:13 ]
+    │
+ 21 │     let s = summarize(text)
+    │             ───────┬───────  
+    │                    ╰───────── calls `ai fn summarize`, which uses `llm`
+    │
+    ├─[ tests/ui/effects_missing.ward:21:13 ]
+    │
+ 20 │ pub fn indirect(text: String) -> String {
+    │        ────┬───  
+    │            ╰───── in this function
+    │ 
+    │ Help: declare it: `uses {llm, mail.send}`
+────╯
+[W0200] Error: `indirect` uses `mail.send` but doesn't declare it
+    ╭─[ tests/ui/effects_missing.ward:22:5 ]
+    │
+ 22 │     notify("done")
+    │     ───────┬──────  
+    │            ╰──────── calls `notify`, which uses `mail.send`
+    │
+    ├─[ tests/ui/effects_missing.ward:22:5 ]
+    │
+ 20 │ pub fn indirect(text: String) -> String {
+    │        ────┬───  
+    │            ╰───── in this function
+    │ 
+    │ Help: declare it: `uses {llm, mail.send}`
+────╯
+error: could not check `tests/ui/effects_missing.ward` due to 3 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0200",
+      "file": "tests/ui/effects_missing.ward",
+      "help": "declare it: `uses {mail.send}`",
+      "labels": [
+        {
+          "message": "calls `mail.send` here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 49,
+              "line": 16,
+              "offset": 383
+            },
+            "start": {
+              "column": 5,
+              "line": 16,
+              "offset": 339
+            }
+          }
+        },
+        {
+          "message": "in this function",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 14,
+              "line": 15,
+              "offset": 330
+            },
+            "start": {
+              "column": 8,
+              "line": 15,
+              "offset": 324
+            }
+          }
+        }
+      ],
+      "message": "`direct` uses `mail.send` but doesn't declare it",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 49,
+          "line": 16,
+          "offset": 383
+        },
+        "start": {
+          "column": 5,
+          "line": 16,
+          "offset": 339
+        }
+      }
+    },
+    {
+      "code": "W0200",
+      "file": "tests/ui/effects_missing.ward",
+      "help": "declare it: `uses {llm, mail.send}`",
+      "labels": [
+        {
+          "message": "calls `ai fn summarize`, which uses `llm`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 28,
+              "line": 21,
+              "offset": 531
+            },
+            "start": {
+              "column": 13,
+              "line": 21,
+              "offset": 516
+            }
+          }
+        },
+        {
+          "message": "in this function",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 16,
+              "line": 20,
+              "offset": 477
+            },
+            "start": {
+              "column": 8,
+              "line": 20,
+              "offset": 469
+            }
+          }
+        }
+      ],
+      "message": "`indirect` uses `llm` but doesn't declare it",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 28,
+          "line": 21,
+          "offset": 531
+        },
+        "start": {
+          "column": 13,
+          "line": 21,
+          "offset": 516
+        }
+      }
+    },
+    {
+      "code": "W0200",
+      "file": "tests/ui/effects_missing.ward",
+      "help": "declare it: `uses {llm, mail.send}`",
+      "labels": [
+        {
+          "message": "calls `notify`, which uses `mail.send`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 22,
+              "offset": 550
+            },
+            "start": {
+              "column": 5,
+              "line": 22,
+              "offset": 536
+            }
+          }
+        },
+        {
+          "message": "in this function",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 16,
+              "line": 20,
+              "offset": 477
+            },
+            "start": {
+              "column": 8,
+              "line": 20,
+              "offset": 469
+            }
+          }
+        }
+      ],
+      "message": "`indirect` uses `mail.send` but doesn't declare it",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 19,
+          "line": 22,
+          "offset": 550
+        },
+        "start": {
+          "column": 5,
+          "line": 22,
+          "offset": 536
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/effects_missing.ward"
+}

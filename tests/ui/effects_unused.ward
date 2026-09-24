@@ -1,0 +1,15 @@
+// Declared effects that nothing uses are warned about.
+import mcp "gmail" as mail
+import mcp "drive" as drive
+
+ai fn summarize(text: String) -> String
+    uses {llm}
+{
+    "Summarize: {text}"
+}
+
+pub fn send(text: String)
+    uses {mail.send, drive, llm}
+{
+    mail.send("team@example.com", "note", text)
+}
