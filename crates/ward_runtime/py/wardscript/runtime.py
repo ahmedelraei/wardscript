@@ -11,7 +11,15 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Mapping, Union
 
 from . import audit, budget
-from .errors import AiOutputError, ApprovalDenied, DecodeError, NoModelError, Thrown, ToolError
+from .errors import (
+    AiOutputError,
+    ApprovalDenied,
+    DecodeError,
+    NoModelError,
+    Thrown,
+    ToolError,
+    TrustError,
+)
 from .model import AiRequest, Completion, Model, estimate_tokens
 from .schema import Type, decode, json_schema
 
@@ -44,6 +52,8 @@ class Config:
     #: Also sends each run to this OTLP/HTTP collector (e.g. `http://localhost:4318`);
     #: else `OTEL_EXPORTER_OTLP_ENDPOINT`, else nowhere.
     otlp_endpoint: str | None = None
+    #: Refuse a tool call whose argument is exactly an unchecked untrusted value.
+    check_sinks: bool = True
 
 
 _config = Config()
@@ -58,6 +68,7 @@ def configure(
     retries: int = _UNSET,
     trace_dir: str | None = _UNSET,
     otlp_endpoint: str | None = _UNSET,
+    check_sinks: bool = _UNSET,
 ) -> None:
     """Sets the runtime's configuration. Arguments left out keep their current value."""
     if model is not _UNSET:
@@ -74,6 +85,8 @@ def configure(
         _config.trace_dir = None if trace_dir is None else str(trace_dir)
     if otlp_endpoint is not _UNSET:
         _config.otlp_endpoint = otlp_endpoint
+    if check_sinks is not _UNSET:
+        _config.check_sinks = bool(check_sinks)
 
 
 def last_run() -> audit.Run | None:
@@ -205,6 +218,8 @@ def call_tool(source: str, name: str, site: str, *args: Any) -> Any:
     started = audit.now()
     error, result = None, None
     try:
+        for i, arg in enumerate(args):
+            audit.check_sink(f"{source}.{name}", i, arg)
         result = fn(*args)
         return result
     except Exception as e:

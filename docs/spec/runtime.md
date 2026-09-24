@@ -2,7 +2,7 @@
 
 Status: implemented in M3 (`ward_ir`, `ward_codegen_py`, `crates/ward_runtime/py`);
 trust at the host boundary in M4, budgets in M5; the Rust core, audit trace,
-model providers and collectors in M6. The design is recorded in
+model providers, sink checks and collectors in M6. The design is recorded in
 decisions [006](../decisions/006-python-backend.md) and
 [009](../decisions/009-runtime-core-and-trace.md).
 
@@ -188,6 +188,22 @@ Such parameters are annotated `Trusted[T]` in the generated code and stubs. Call
 between Wardscript functions wrap arguments the checker proved trusted, so the
 same function works from both sides. Other parameters take plain values.
 
+### Sink checks
+
+As defense in depth behind the checker, the runtime also checks every tool
+argument before calling the tool. It uses the trace's digests. If an argument,
+or a part of one, is exactly a value that came from an untrusted source in this
+run, and no `validate`, `approve` or `declassify` cleared that value and the host
+didn't vouch for it, the tool isn't called. Untrusted sources are model outputs,
+tool results and unvouched host arguments. The call raises `TrustError` and is
+recorded as a `tool_call` with that error.
+
+This catches what a checker bug or edited generated code would let through
+directly. It doesn't catch values built from untrusted ones, such as
+`"Re: " + subject`: exact matches are all the trace has. That's the checker's job.
+Strings shorter than 8 characters, numbers and booleans are skipped, since they
+match by chance. `configure(check_sinks=False)` turns the check off.
+
 ## The runtime
 
 ```python
@@ -224,6 +240,7 @@ defaults.
   either way.
 - **`otlp_endpoint`**: an OTLP/HTTP collector each run is also sent to
   ([above](#sending-runs-to-a-collector)).
+- **`check_sinks`**: the runtime [sink checks](#sink-checks) (default on).
 
 ### `ai fn` calls
 

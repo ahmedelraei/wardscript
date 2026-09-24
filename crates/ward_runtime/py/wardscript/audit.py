@@ -16,7 +16,7 @@ import warnings
 from typing import Any, Iterator
 
 from . import core
-from .errors import Thrown
+from .errors import Thrown, TrustError
 from .trust import Trusted
 
 
@@ -118,6 +118,74 @@ def send_otlp(run: Run, url: str) -> None:
             response.read()
     except Exception as e:
         warnings.warn(f"wardscript: couldn't send run {run.id} to {url}: {e}", stacklevel=2)
+
+
+# Leaves this short are too likely to match by chance, e.g. a literal "yes" in the
+# program and a model answering "yes".
+_MIN_TAINT_LEN = 8
+
+
+def _untrusted_origin(run: Run, value: Any) -> str | None:
+    """Where `value` came from, when it or one of its parts is exactly a value from an
+    untrusted source in this run that no check passed and the host didn't vouch for."""
+    sources: dict[str, str] = {}
+    cleared: set[str] = set()
+    for r in run.records:
+        kind = r["kind"]
+        if kind == "run_start":
+            for a in r["args"]:
+                if a["vouched"]:
+                    cleared.update(leaf["digest"] for leaf in a["leaves"])
+                else:
+                    for leaf in a["leaves"]:
+                        sources.setdefault(leaf["digest"], f"argument `{a['name']}` from the host")
+        elif kind == "ai_call":
+            for leaf in r["leaves"]:
+                sources.setdefault(leaf["digest"], f"the output of `ai fn {r['function']}`")
+        elif kind == "tool_call":
+            for leaf in r["leaves"]:
+                sources.setdefault(leaf["digest"], f"the result of `{r['tool']}.{r['function']}`")
+        elif kind == "validate" and r["passed"]:
+            cleared.update(leaf["digest"] for leaf in r["leaves"])
+        elif kind == "approve" and r["approved"]:
+            cleared.update(leaf["digest"] for leaf in r["leaves"])
+        elif kind == "declassify":
+            cleared.update(leaf["digest"] for leaf in r["leaves"])
+
+    def walk(v: Any) -> str | None:
+        if isinstance(v, str) and len(v) < _MIN_TAINT_LEN:
+            return None
+        if isinstance(v, (bool, int, float)) or v is None or v in ([], {}):
+            return None
+        d = core.digest(json.dumps(v, ensure_ascii=False))
+        if d in cleared:
+            return None
+        if d in sources:
+            return sources[d]
+        parts = v.values() if isinstance(v, dict) else v if isinstance(v, list) else ()
+        for x in parts:
+            found = walk(x)
+            if found:
+                return found
+        return None
+
+    return walk(to_json(value))
+
+
+def check_sink(tool: str, index: int, value: Any) -> None:
+    """Defense in depth behind the compiler: refuses a tool argument that is, exactly, an
+    unchecked untrusted value. Values combined from several sources aren't caught."""
+    from .runtime import config
+
+    run = _current.get()
+    if run is None or not config().check_sinks:
+        return
+    origin = _untrusted_origin(run, value)
+    if origin is not None:
+        raise TrustError(
+            f"argument {index + 1} of `{tool}` is {origin}, which no `validate`, `approve` "
+            "or `declassify` checked; the tool was not called"
+        )
 
 
 @contextlib.contextmanager
