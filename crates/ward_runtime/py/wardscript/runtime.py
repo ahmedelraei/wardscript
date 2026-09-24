@@ -11,7 +11,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Awaitable, Callable, Generator, Iterable, Mapping, Union
 
-from . import audit, budget
+from . import audit, budget, partial
 from .errors import (
     AiOutputError,
     ApprovalDenied,
@@ -69,6 +69,9 @@ class Config:
     check_sinks: bool = True
     #: Streams answers from models that can, passing each piece here.
     on_stream: StreamObserver | None = None
+    #: Streams answers from models that can, passing each version of the partly
+    #: decoded value here (`wardscript.partial`), and the complete one at the end.
+    on_partial: Callable[[Any], None] | None = None
     #: What to do when a `cost` budget meets a model whose cost is unknown: `"error"`
     #: raises `BudgetUnenforceable` (before the request when the model has no prices);
     #: `"warn"` warns once per function and counts the call as free.
@@ -92,6 +95,7 @@ def configure(
     otlp_endpoint: str | None = _UNSET,
     check_sinks: bool = _UNSET,
     on_stream: StreamObserver | None = _UNSET,
+    on_partial: Callable[[Any], None] | None = _UNSET,
     unpriced: str = _UNSET,
 ) -> None:
     """Sets the runtime's configuration. Arguments left out keep their current value."""
@@ -123,6 +127,8 @@ def configure(
         _config.check_sinks = bool(check_sinks)
     if on_stream is not _UNSET:
         _config.on_stream = on_stream
+    if on_partial is not _UNSET:
+        _config.on_partial = on_partial
     if unpriced is not _UNSET:
         if unpriced not in ("error", "warn"):
             raise ValueError('unpriced must be "error" or "warn"')
@@ -196,6 +202,7 @@ class _Attempt:
         #: This request's place among all of the call's requests, for the trace.
         self.number = len(errors) if number is None else number
         self.text = ""
+        self.last_partial: Any = partial.MISSING
         strict = _config.unpriced == "error"
         # A model that says it has no prices (`prices=None`) can't be counted.
         budget.before_priced_call(getattr(model, "prices", ()) is not None, strict)
@@ -206,7 +213,9 @@ class _Attempt:
         """Stream when the model can and something wants the pieces: an observer, or a
         token budget that can stop the answer early."""
         return callable(getattr(self.model, "stream", None)) and (
-            _config.on_stream is not None or budget.limits_tokens()
+            _config.on_stream is not None
+            or _config.on_partial is not None
+            or budget.limits_tokens()
         )
 
     def feed(self, chunk: str | Completion) -> Completion | None:
@@ -216,11 +225,25 @@ class _Attempt:
         self.text += chunk
         if _config.on_stream is not None:
             _config.on_stream(StreamChunk(self.request.function, self.request.attempt, chunk, self.text))
+        if _config.on_partial is not None:
+            self.partial()
         so_far = estimate_tokens(self.request.prompt) + estimate_tokens(self.text)
         if budget.tokens_over(so_far):
             # Stop reading; charging what was produced raises `BudgetExceeded`.
             self.finish(Completion(self.text, so_far))
         return None
+
+    def partial(self) -> None:
+        """Passes the answer so far, decoded as far as it goes, to `on_partial` when it
+        has grown."""
+        value = partial.parse_prefix(self.text)
+        if getattr(self.model, "stream_wraps_value", False):
+            # Providers stream `{"value": ...}`: structured output wants an object.
+            value = value.get("value", partial.MISSING) if isinstance(value, dict) else partial.MISSING
+        value = partial.decode_partial(self.returns, value)
+        if value is not partial.MISSING and value != self.last_partial and _config.on_partial is not None:
+            self.last_partial = value
+            _config.on_partial(partial.PartialValue(self.request.function, self.number, value))
 
     def finish(self, answer: str | Completion) -> tuple[bool, Any, str | None]:
         """Charges the answer and decodes it: `(ok, value, error)`."""
@@ -270,6 +293,8 @@ class _Attempt:
             leaves=audit.leaves(value) if ok else [],
         )
         budget.after_model_call(tokens, cost, _config.unpriced == "error")
+        if ok and _config.on_partial is not None:
+            _config.on_partial(partial.PartialValue(self.request.function, self.number, value, done=True))
 
 
     def failed(self, error: Exception) -> None:

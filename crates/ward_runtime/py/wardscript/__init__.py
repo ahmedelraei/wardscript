@@ -25,6 +25,7 @@ from .errors import (
     WardError,
 )
 from .model import AiRequest, Completion, Model, StreamChunk, StreamingModel
+from .partial import Partial, PartialValue
 from .runtime import ApprovalRequest, configure
 from .schema import decode, encode, json_schema
 from .trust import Trusted
@@ -44,6 +45,8 @@ __all__ = [
     "ModelUnavailable",
     "NoModelError",
     "PanicError",
+    "Partial",
+    "PartialValue",
     "RateLimited",
     "Some",
     "StreamChunk",

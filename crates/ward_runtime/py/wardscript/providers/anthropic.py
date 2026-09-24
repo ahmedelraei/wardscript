@@ -13,6 +13,9 @@ DEFAULT_MODEL = "claude-sonnet-5"
 
 
 class Anthropic:
+    #: `stream` yields the tool input, `{"value": ...}`.
+    stream_wraps_value = True
+
     def __init__(
         self,
         model: str | None = None,

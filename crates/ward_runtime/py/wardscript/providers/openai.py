@@ -11,6 +11,9 @@ from . import cost, object_schema, prompt_text, provider_errors
 
 
 class OpenAI:
+    #: `stream` yields the response object, `{"value": ...}`.
+    stream_wraps_value = True
+
     def __init__(
         self,
         model: str,

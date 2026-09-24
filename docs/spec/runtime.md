@@ -343,11 +343,20 @@ its stubs declare `async def`.
 A model can also have `stream(request)`, yielding the answer's text in pieces
 (sync or async). It may end with a `Completion` that gives the usage, and, if its
 text isn't empty, the final answer. The runtime streams instead of calling
-`complete` when `on_stream` is set or a `tokens` budget is active. After each
+`complete` when `on_stream` or `on_partial` is set or a `tokens` budget is active. After each
 piece, the tokens so far are estimated. If that goes over a `tokens` budget, the
 stream is closed and the call raises `BudgetExceeded`, without waiting for the
 rest of the answer. Both providers stream. Their pieces are the raw
-`{"value": ...}` JSON the API returns.
+`{"value": ...}` JSON the API returns (they say so with `stream_wraps_value`).
+
+**Partial values.** `configure(on_partial=f)` calls `f` with a
+`PartialValue(function, attempt, value, done)` each time the answer decodes further:
+a record the model is still writing is a `Partial(cls, fields)` with the fields
+that have started (read them as attributes); a string grows as it's written;
+numbers, booleans and enum variants appear once complete; lists hold their
+elements so far. Refinements and checks are only judged on the whole answer: the
+last call, with `done=True`, has the complete value after it passed them. A retry
+starts again from nothing, with the next `attempt`.
 
 ### `ai fn` calls
 

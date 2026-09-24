@@ -161,7 +161,7 @@ BAML defines tests in its files and runs them with `baml-cli test`.
 ---
 
 ## M11: Proof and polish (ongoing)
-- Typed streaming of partial decoded values (BAML has it; text streaming already exists, see decision 010).
+- [x] Typed streaming of partial decoded values (`configure(on_partial=...)`, `wardscript.partial`).
 - TypeScript backend (`ward_codegen_ts`) + napi-rs runtime binding.
 - AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility).
 - [x] LSP (`ward lsp`: diagnostics, hover, go to definition) + VS Code extension (`editors/vscode`); decision 016.
