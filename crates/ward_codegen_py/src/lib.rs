@@ -487,6 +487,11 @@ from wardscript.mock import MockModel
 def main(name, fn, params, trusted):
     mock = os.environ.get("WARD_MOCK")
     model = os.environ.get("WARD_MODEL")
+    mcp_config = os.environ.get("WARD_MCP_CONFIG")
+    if mcp_config:
+        from wardscript import mcp
+
+        runtime.configure(tools=mcp.load_config(mcp_config))
     if mock:
         with open(mock, encoding="utf-8") as f:
             runtime.configure(model=MockModel.from_json(f.read()))

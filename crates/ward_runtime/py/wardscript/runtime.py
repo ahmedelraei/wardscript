@@ -21,7 +21,7 @@ from .errors import (
     TrustError,
 )
 from .model import AiRequest, Completion, Model, StreamChunk, estimate_tokens
-from .schema import Type, decode, json_schema
+from .schema import Type, decode, encode, json_schema
 
 
 @dataclass(frozen=True)
@@ -358,17 +358,52 @@ def _tool(source: str, name: str) -> Callable[..., Any]:
 
 
 class _ToolCall:
-    def __init__(self, source: str, name: str, site: str, args: tuple[Any, ...]) -> None:
+    """A tool call. With a schema from `ward.lock`, the generated code passes the
+    parameter `names`, which of them are `sinks` and the type the result `returns`; a
+    tool object with a `call_tool(name, arguments)` method (an MCP server) then gets
+    named arguments."""
+
+    def __init__(
+        self,
+        source: str,
+        name: str,
+        site: str,
+        args: tuple[Any, ...],
+        mcp_name: str | None = None,
+        names: tuple[str, ...] | None = None,
+        sinks: tuple[bool, ...] | None = None,
+        returns: Type | None = None,
+    ) -> None:
         budget.check_time()
         self.source, self.name, self.site, self.args = source, name, site, args
-        self.fn = _tool(source, name)
+        self.returns = returns
+        impl = _config.tools.get(source)
+        call_named = getattr(impl, "call_tool", None)
+        if names is not None and callable(call_named):
+            arguments = {n: encode(a) for n, a in zip(names, args) if a is not None}
+            tool_name = mcp_name or name
+            self.fn: Callable[..., Any] = lambda *_: call_named(tool_name, arguments)
+            self.blocking = True
+        else:
+            self.fn = _tool(source, name)
+            self.blocking = False
         self.started = audit.now()
         try:
             for i, arg in enumerate(args):
-                audit.check_sink(f"{source}.{name}", i, arg)
+                if sinks is None or (sinks[i] if i < len(sinks) else True):
+                    audit.check_sink(f"{source}.{name}", i, arg)
         except TrustError as e:
             self.done(None, f"TrustError: {e}")
             raise
+
+    def result(self, value: Any) -> Any:
+        """The result, checked against the schema's type."""
+        if self.returns is None:
+            return value
+        try:
+            return decode(self.returns, value, f"result of `{self.source}.{self.name}`")
+        except DecodeError as e:
+            raise ToolError(f"`{self.source}.{self.name}` returned something its schema doesn't allow: {e}") from e
 
     def done(self, result: Any, error: str | None) -> None:
         audit.record(
@@ -385,10 +420,10 @@ class _ToolCall:
         budget.check_time()
 
 
-def call_tool(source: str, name: str, site: str, *args: Any) -> Any:
-    call = _ToolCall(source, name, site, args)
+def call_tool(source: str, name: str, site: str, *args: Any, **schema: Any) -> Any:
+    call = _ToolCall(source, name, site, args, **schema)
     try:
-        result = _resolve(call.fn(*args))
+        result = call.result(_resolve(call.fn(*args)))
     except Exception as e:
         call.done(None, f"{type(e).__name__}: {e}")
         raise
@@ -396,12 +431,17 @@ def call_tool(source: str, name: str, site: str, *args: Any) -> Any:
     return result
 
 
-async def call_tool_async(source: str, name: str, site: str, *args: Any) -> Any:
-    call = _ToolCall(source, name, site, args)
+async def call_tool_async(source: str, name: str, site: str, *args: Any, **schema: Any) -> Any:
+    call = _ToolCall(source, name, site, args, **schema)
     try:
-        result = call.fn(*args)
+        if call.blocking:
+            # An MCP request blocks; keep the event loop free.
+            result = await asyncio.to_thread(call.fn)
+        else:
+            result = call.fn(*args)
         if inspect.isawaitable(result):
             result = await result
+        result = call.result(result)
     except Exception as e:
         call.done(None, f"{type(e).__name__}: {e}")
         raise

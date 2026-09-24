@@ -934,14 +934,39 @@ impl FnCx<'_, '_> {
                 let ls = self.exprs(args);
                 self.call_fn(d, span, args, &ls)
             }
-            ValueRes::ToolMember(_) => {
+            ValueRes::ToolMember(d) => {
                 let name = self.src_text(self.span(callee));
+                let program = self.t.program;
+                let func = match &ast.exprs[callee].kind {
+                    ExprKind::Field { name, .. } => program
+                        .tool_schema(d)
+                        .and_then(|s| s.function(&name.name))
+                        .map(|f| (f, crate::tools::tool_sinks(program, d, &name.name))),
+                    _ => None,
+                };
                 let ls = self.exprs(args);
-                for (&a, l) in args.iter().zip(&ls) {
+                for (i, (&a, l)) in args.iter().zip(&ls).enumerate() {
+                    let what = match &func {
+                        Some((f, sinks)) => {
+                            if !sinks
+                                .as_ref()
+                                .and_then(|s| s.get(i))
+                                .copied()
+                                .unwrap_or(true)
+                            {
+                                continue;
+                            }
+                            match f.params.get(i) {
+                                Some(p) => format!("passed to `{name}` as `{}` here", p.name),
+                                None => format!("passed to `{name}` here"),
+                            }
+                        }
+                        None => format!("passed to `{name}` here"),
+                    };
                     self.meet(
                         l,
                         self.span(a),
-                        &format!("passed to `{name}` here"),
+                        &what,
                         &SinkPath {
                             steps: Vec::new(),
                             sink: format!("the tool call `{name}`"),

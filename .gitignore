@@ -3,3 +3,5 @@
 *.pending-snap
 .DS_Store
 .ward/
+__pycache__/
+*.pyc

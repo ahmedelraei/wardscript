@@ -1,0 +1,239 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/tools_annotations/main.ward
+---
+exit: Some(1)
+--- human ---
+[W0221] Error: tool `gmail` has no function `send_mail`
+   ╭─[ tests/ui/tools_annotations/main.ward:2:11 ]
+   │
+ 2 │ @readonly(send_mail)
+   │           ────┬────  
+   │               ╰────── unknown tool function
+   │ 
+   │ Help: a similar name exists: `send_email`
+───╯
+[W0221] Error: `gmail.read_message` has no parameter `ids`
+   ╭─[ tests/ui/tools_annotations/main.ward:3:7 ]
+   │
+ 3 │ @sink(read_message.ids)
+   │       ────────┬───────  
+   │               ╰───────── unknown parameter
+   │ 
+   │ Help: its parameters are `id`
+───╯
+[W0221] Error: `@not_sink` needs a reason
+   ╭─[ tests/ui/tools_annotations/main.ward:4:2 ]
+   │
+ 4 │ @not_sink(send_email.body)
+   │  ────┬───  
+   │      ╰───── say why untrusted data may reach these parameters
+   │ 
+   │ Help: add `reason = "..."`; it's what a reviewer reads
+───╯
+[W0221] Error: `@sink` takes tool parameters, like `send.body`
+   ╭─[ tests/ui/tools_annotations/main.ward:5:7 ]
+   │
+ 5 │ @sink(label_message)
+   │       ──────┬──────  
+   │             ╰──────── not a valid argument here
+───╯
+[W0221] Error: `@not_sink` doesn't take `why`
+   ╭─[ tests/ui/tools_annotations/main.ward:6:67 ]
+   │
+ 6 │ @not_sink(send_email.cc, reason = "copies only go to colleagues", why = "no")
+   │                                                                   ─────┬────  
+   │                                                                        ╰────── expected a parameter, like `send.body`
+───╯
+error: could not check `tests/ui/tools_annotations/main.ward` due to 5 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0221",
+      "file": "tests/ui/tools_annotations/main.ward",
+      "help": "a similar name exists: `send_email`",
+      "labels": [
+        {
+          "message": "unknown tool function",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 20,
+              "line": 2,
+              "offset": 71
+            },
+            "start": {
+              "column": 11,
+              "line": 2,
+              "offset": 62
+            }
+          }
+        }
+      ],
+      "message": "tool `gmail` has no function `send_mail`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 20,
+          "line": 2,
+          "offset": 71
+        },
+        "start": {
+          "column": 11,
+          "line": 2,
+          "offset": 62
+        }
+      }
+    },
+    {
+      "code": "W0221",
+      "file": "tests/ui/tools_annotations/main.ward",
+      "help": "its parameters are `id`",
+      "labels": [
+        {
+          "message": "unknown parameter",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 23,
+              "line": 3,
+              "offset": 95
+            },
+            "start": {
+              "column": 7,
+              "line": 3,
+              "offset": 79
+            }
+          }
+        }
+      ],
+      "message": "`gmail.read_message` has no parameter `ids`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 23,
+          "line": 3,
+          "offset": 95
+        },
+        "start": {
+          "column": 7,
+          "line": 3,
+          "offset": 79
+        }
+      }
+    },
+    {
+      "code": "W0221",
+      "file": "tests/ui/tools_annotations/main.ward",
+      "help": "add `reason = \"...\"`; it's what a reviewer reads",
+      "labels": [
+        {
+          "message": "say why untrusted data may reach these parameters",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 10,
+              "line": 4,
+              "offset": 106
+            },
+            "start": {
+              "column": 2,
+              "line": 4,
+              "offset": 98
+            }
+          }
+        }
+      ],
+      "message": "`@not_sink` needs a reason",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 10,
+          "line": 4,
+          "offset": 106
+        },
+        "start": {
+          "column": 2,
+          "line": 4,
+          "offset": 98
+        }
+      }
+    },
+    {
+      "code": "W0221",
+      "file": "tests/ui/tools_annotations/main.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "not a valid argument here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 20,
+              "line": 5,
+              "offset": 143
+            },
+            "start": {
+              "column": 7,
+              "line": 5,
+              "offset": 130
+            }
+          }
+        }
+      ],
+      "message": "`@sink` takes tool parameters, like `send.body`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 20,
+          "line": 5,
+          "offset": 143
+        },
+        "start": {
+          "column": 7,
+          "line": 5,
+          "offset": 130
+        }
+      }
+    },
+    {
+      "code": "W0221",
+      "file": "tests/ui/tools_annotations/main.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected a parameter, like `send.body`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 77,
+              "line": 6,
+              "offset": 221
+            },
+            "start": {
+              "column": 67,
+              "line": 6,
+              "offset": 211
+            }
+          }
+        }
+      ],
+      "message": "`@not_sink` doesn't take `why`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 77,
+          "line": 6,
+          "offset": 221
+        },
+        "start": {
+          "column": 67,
+          "line": 6,
+          "offset": 211
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/tools_annotations/main.ward"
+}

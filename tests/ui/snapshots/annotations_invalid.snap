@@ -4,7 +4,7 @@ description: tests/ui/annotations_invalid.ward
 ---
 exit: Some(1)
 --- human ---
-[W0221] Error: `@private` takes tool function names
+[W0221] Error: `@private` doesn't take `x`
    ╭─[ tests/ui/annotations_invalid.ward:6:10 ]
    │
  6 │ @private(x = "y")
@@ -18,7 +18,7 @@ exit: Some(1)
    │  ───┬──  
    │     ╰──── not recognized here
    │ 
-   │ Help: tool imports take `@private(f, ...)` and `@readonly(f, ...)`
+   │ Help: tool imports take `@private(f, ...)`, `@readonly(f, ...)`, `@sink(f.param, ...)` and `@not_sink(f.param, ..., reason = "...")`
 ───╯
 [W0221] Error: `@allow(rule_of_two)` needs a reason
     ╭─[ tests/ui/annotations_invalid.ward:10:1 ]
@@ -123,7 +123,7 @@ error: could not check `tests/ui/annotations_invalid.ward` due to 8 errors
           }
         }
       ],
-      "message": "`@private` takes tool function names",
+      "message": "`@private` doesn't take `x`",
       "severity": "error",
       "span": {
         "end": {
@@ -141,7 +141,7 @@ error: could not check `tests/ui/annotations_invalid.ward` due to 8 errors
     {
       "code": "W0221",
       "file": "tests/ui/annotations_invalid.ward",
-      "help": "tool imports take `@private(f, ...)` and `@readonly(f, ...)`",
+      "help": "tool imports take `@private(f, ...)`, `@readonly(f, ...)`, `@sink(f.param, ...)` and `@not_sink(f.param, ..., reason = \"...\")`",
       "labels": [
         {
           "message": "not recognized here",

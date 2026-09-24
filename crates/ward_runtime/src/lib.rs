@@ -35,6 +35,7 @@ pub const PYTHON_PACKAGE: &[(&str, &str)] = &[
         "wardscript/errors.py",
         include_str!("../py/wardscript/errors.py"),
     ),
+    ("wardscript/mcp.py", include_str!("../py/wardscript/mcp.py")),
     (
         "wardscript/mock.py",
         include_str!("../py/wardscript/mock.py"),

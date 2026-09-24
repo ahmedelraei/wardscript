@@ -644,6 +644,7 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 name,
                 args,
                 site,
+                schema,
             } => {
                 let source = self
                     .scope
@@ -658,6 +659,29 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 let args = self.args(args);
                 if !args.is_empty() {
                     parts.push(args);
+                }
+                if let Some(s) = schema {
+                    let tuple = |items: Vec<String>| match items.len() {
+                        1 => format!("({},)", items[0]),
+                        _ => format!("({})", items.join(", ")),
+                    };
+                    if s.mcp_name != *name {
+                        parts.push(format!("mcp_name={}", names::string(&s.mcp_name)));
+                    }
+                    parts.push(format!(
+                        "names={}",
+                        tuple(s.params.iter().map(|p| names::string(p)).collect())
+                    ));
+                    parts.push(format!(
+                        "sinks={}",
+                        tuple(
+                            s.sinks
+                                .iter()
+                                .map(|&b| if b { "True" } else { "False" }.to_owned())
+                                .collect()
+                        )
+                    ));
+                    parts.push(format!("returns={}", self.scope.descriptor(&s.returns)));
                 }
                 let call = self.op("call_tool");
                 self.awaited(format!("{call}({})", parts.join(", ")))

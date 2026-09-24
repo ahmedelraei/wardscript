@@ -1,0 +1,11 @@
+// A tool the lock doesn't list is dynamic, with a warning; `@sink` needs a schema.
+import mcp "gmail" as mail
+@sink(fetch.url)
+import mcp "web" as web
+
+pub fn f(url: String) throws String
+    uses {mail, web}
+{
+    let page = web.fetch(url)
+    mail.send_email("a@example.com", "page", declassify(page, "test"))?
+}

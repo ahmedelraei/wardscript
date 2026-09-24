@@ -1,0 +1,237 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/tools_typed/main.ward
+---
+exit: Some(1)
+--- human ---
+[W0105] Error: tool `gmail` has no function `send_mail`
+   ╭─[ tests/ui/tools_typed/main.ward:7:10 ]
+   │
+ 7 │     mail.send_mail("a@example.com", "s", "b")?
+   │          ────┬────  
+   │              ╰────── unknown tool function
+   │ 
+   │ Help: a similar name exists: `send_email`
+───╯
+[W0115] Error: tool function `mail.send_email` takes 3 to 4 arguments but 2 were given
+   ╭─[ tests/ui/tools_typed/main.ward:8:5 ]
+   │
+ 8 │     mail.send_email("a@example.com", "s")?
+   │     ──────────────────┬──────────────────  
+   │                       ╰──────────────────── expected at least 3 arguments
+───╯
+[W0110] Error: mismatched types: expected `String`, found `Int`
+   ╭─[ tests/ui/tools_typed/main.ward:9:43 ]
+   │
+ 9 │     mail.send_email("a@example.com", "s", 3)?
+   │                                           ┬  
+   │                                           ╰── expected `String`, found `Int`
+───╯
+[W0128] Error: `mail.label_message` can throw `String`, but this call isn't marked with `?`
+    ╭─[ tests/ui/tools_typed/main.ward:10:5 ]
+    │
+ 10 │     mail.label_message(id, "x")
+    │     ─────────────┬─────────────  
+    │                  ╰─────────────── add `?` after this call
+    │ 
+    │ Help: write `mail.label_message(...)?` to pass the error on, inside a `try` block or a function that `throws String`
+────╯
+[W0110] Error: mismatched types: expected `Int`, found `String`
+    ╭─[ tests/ui/tools_typed/main.ward:11:21 ]
+    │
+ 11 │     let text: Int = mail.read_message(id)?
+    │                     ───────────┬──────────  
+    │                                ╰──────────── expected `Int`, found `String`
+────╯
+error: could not check `tests/ui/tools_typed/main.ward` due to 5 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0105",
+      "file": "tests/ui/tools_typed/main.ward",
+      "help": "a similar name exists: `send_email`",
+      "labels": [
+        {
+          "message": "unknown tool function",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 7,
+              "offset": 148
+            },
+            "start": {
+              "column": 10,
+              "line": 7,
+              "offset": 139
+            }
+          }
+        }
+      ],
+      "message": "tool `gmail` has no function `send_mail`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 19,
+          "line": 7,
+          "offset": 148
+        },
+        "start": {
+          "column": 10,
+          "line": 7,
+          "offset": 139
+        }
+      }
+    },
+    {
+      "code": "W0115",
+      "file": "tests/ui/tools_typed/main.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected at least 3 arguments",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 42,
+              "line": 8,
+              "offset": 218
+            },
+            "start": {
+              "column": 5,
+              "line": 8,
+              "offset": 181
+            }
+          }
+        }
+      ],
+      "message": "tool function `mail.send_email` takes 3 to 4 arguments but 2 were given",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 42,
+          "line": 8,
+          "offset": 218
+        },
+        "start": {
+          "column": 5,
+          "line": 8,
+          "offset": 181
+        }
+      }
+    },
+    {
+      "code": "W0110",
+      "file": "tests/ui/tools_typed/main.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `String`, found `Int`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 44,
+              "line": 9,
+              "offset": 263
+            },
+            "start": {
+              "column": 43,
+              "line": 9,
+              "offset": 262
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `String`, found `Int`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 44,
+          "line": 9,
+          "offset": 263
+        },
+        "start": {
+          "column": 43,
+          "line": 9,
+          "offset": 262
+        }
+      }
+    },
+    {
+      "code": "W0128",
+      "file": "tests/ui/tools_typed/main.ward",
+      "help": "write `mail.label_message(...)?` to pass the error on, inside a `try` block or a function that `throws String`",
+      "labels": [
+        {
+          "message": "add `?` after this call",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 32,
+              "line": 10,
+              "offset": 297
+            },
+            "start": {
+              "column": 5,
+              "line": 10,
+              "offset": 270
+            }
+          }
+        }
+      ],
+      "message": "`mail.label_message` can throw `String`, but this call isn't marked with `?`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 32,
+          "line": 10,
+          "offset": 297
+        },
+        "start": {
+          "column": 5,
+          "line": 10,
+          "offset": 270
+        }
+      }
+    },
+    {
+      "code": "W0110",
+      "file": "tests/ui/tools_typed/main.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Int`, found `String`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 43,
+              "line": 11,
+              "offset": 340
+            },
+            "start": {
+              "column": 21,
+              "line": 11,
+              "offset": 318
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Int`, found `String`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 43,
+          "line": 11,
+          "offset": 340
+        },
+        "start": {
+          "column": 21,
+          "line": 11,
+          "offset": 318
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/tools_typed/main.ward"
+}

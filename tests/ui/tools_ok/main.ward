@@ -1,0 +1,18 @@
+// Optional parameters may be left out; a read-only, closed-world tool isn't a sink;
+// `@not_sink` frees a parameter; tool failures are caught like any throw.
+@not_sink(label_message.label, reason = "labels are only visible to the owner")
+import mcp "gmail" as mail
+
+pub fn f(query: Untrusted<String>, id: String) -> List<String> throws String
+    uses {mail}
+{
+    let ids = mail.list_messages(query)?
+    let first = mail.list_messages(query, Some(1))?
+    mail.label_message(id, first)?
+    try {
+        mail.read_message("missing")?
+    } catch e {
+        e
+    }
+    ids.lines()
+}

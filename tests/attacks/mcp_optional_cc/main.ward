@@ -1,0 +1,13 @@
+// An optional parameter is a sink too: a model picks who gets a copy.
+import mcp "gmail" as mail
+
+ai fn pick_cc(message: Untrusted<String>) -> String {
+    "Who else should see this? {message}"
+}
+
+pub fn reply(id: String, to: String) throws String
+    uses {llm, mail}
+{
+    let message = mail.read_message(id)?
+    mail.send_email(to, "Re", "Thanks", Some([pick_cc(message)]))?
+}

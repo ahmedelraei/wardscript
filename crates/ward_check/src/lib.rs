@@ -6,6 +6,7 @@ mod exhaust;
 mod infer;
 mod lower;
 mod methods;
+pub mod tools;
 mod trust;
 pub mod ty;
 

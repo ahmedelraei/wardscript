@@ -224,7 +224,8 @@ This catches what a checker bug or edited generated code would let through
 directly. It doesn't catch values built from untrusted ones, such as
 `"Re: " + subject`: exact matches are all the trace has. That's the checker's job.
 Strings shorter than 8 characters, numbers and booleans are skipped, since they
-match by chance. `configure(check_sinks=False)` turns the check off.
+match by chance. `configure(check_sinks=False)` turns the check off. For a tool
+with a schema, only its sink parameters are checked ([tools](tools.md#trust)).
 
 ## The runtime
 
@@ -258,7 +259,10 @@ defaults.
   thread if one is already running). A model's `complete` may be `async` too.
 - **`tools`**: implementations for `import mcp "source" as x`, keyed by `source`.
   Each is a mapping of functions or an object with a method per tool function;
-  `x.send(a, b)` calls `tools["source"].send(a, b)`.
+  `x.send(a, b)` calls `tools["source"].send(a, b)`. An object with a
+  `call_tool(name, arguments)` method, like an MCP server from
+  `wardscript.mcp.load_config("mcp.json")`, gets named arguments instead when the
+  tool has a schema ([tools](tools.md#at-run-time)).
 - **`retries`**: extra attempts after an invalid model answer (default 2).
 - **`trace_dir`**: where each run's audit trace is written; else `WARD_TRACE_DIR`,
   else nowhere. `runtime.last_run()` has the last run's `id`, `path` and `records`

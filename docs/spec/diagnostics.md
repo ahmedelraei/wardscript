@@ -90,6 +90,15 @@ See [effects](effects.md).
 | W0221 | invalid annotation, or `@allow` without a reason |
 | W0222 | *warning*: `@allow(rule_of_two)` on a function that doesn't need it |
 
+## W03xx: tools
+
+See [tools](tools.md).
+
+| Code | Meaning |
+|---|---|
+| W0300 | `ward.lock` can't be read: invalid JSON, an unknown version, or a malformed tool |
+| W0301 | *warning*: a tool import's source isn't in `ward.lock`, so its calls aren't typed |
+
 ## Error recovery
 
 The parser reports every independent syntax error in a file rather than stopping

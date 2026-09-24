@@ -109,6 +109,19 @@ pub struct Tool {
     pub source: String,
 }
 
+/// A tool function's schema, as the runtime needs it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ToolSchema {
+    /// The name the server knows the function by.
+    pub mcp_name: String,
+    /// Parameter names, in call order.
+    pub params: Vec<String>,
+    /// Which parameters are sinks.
+    pub sinks: Vec<bool>,
+    /// The result is decoded as this type.
+    pub returns: Ty,
+}
+
 pub struct Fn {
     pub def: DefId,
     pub name: String,
@@ -236,6 +249,8 @@ pub enum ExprKind {
         name: String,
         args: Vec<ExprId>,
         site: Site,
+        /// From `ward.lock`; `None` for a tool without a schema.
+        schema: Option<ToolSchema>,
     },
     /// A built-in method; the receiver's type is `recv`'s type.
     Method {

@@ -26,7 +26,7 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
 module      = item* ;
 item        = annotation* (import | ["pub"] (fn | ai_fn)) | ["pub"] (type | enum) ;
 annotation  = "@" IDENT ["(" [annotation_arg ("," annotation_arg)* [","]] ")"] ;
-annotation_arg = IDENT ["=" STRING] ;                        (* rule_of_two, reason = "..." *)
+annotation_arg = IDENT ("." IDENT)* ["=" STRING] ;                     (* rule_of_two, reason = "..." *)
 
 import      = "import" path ["as" IDENT]                 (* module import *)
             | "import" IDENT STRING "as" IDENT ;         (* tool import: import mcp "gmail" as mail *)

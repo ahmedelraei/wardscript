@@ -379,6 +379,13 @@ fn annotations() {
         Some("why")
     );
 
+    let parse = parse_ok("@not_sink(send.body, reason = \"why\")\nimport mcp \"gmail\" as mail\n");
+    let Some(Item::Import(i)) = parse.module.items.first() else {
+        panic!("expected an import");
+    };
+    assert_eq!(i.annotations[0].args[0].name.name, "send.body");
+    assert_eq!(codes("@sink(send.)\nimport mcp \"g\" as g\n"), ["W0010"]);
+
     assert_eq!(codes("@x\ntype T = Int\n"), ["W0024"]);
     assert_eq!(codes("@x\nenum E { A }\n"), ["W0024"]);
     assert_eq!(codes("@allow(a = b)\nfn f() {}\n"), ["W0010"]);
