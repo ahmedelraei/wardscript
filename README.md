@@ -4,7 +4,8 @@ A small, typed language for trustworthy AI functions and agents. The compiler
 proves that untrusted data (LLM output, tool results, network input) can't reach
 sensitive actions without an explicit `validate`, `approve` or `declassify` step.
 
-```wardscript
+<!-- wardscript: checked by `readme_examples_check_ok`; tagged rust only for highlighting -->
+```rust
 import mcp "gmail" as mail
 
 type Reply {
