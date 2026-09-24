@@ -54,4 +54,4 @@ cargo fmt --check
 - Sensitive actions (tool arguments marked `sink`) require `Trusted` arguments.
 - `validate(x, rule)`, `approve(x)` and `declassify(x, reason)` are the only ways to turn `Untrusted` into `Trusted`, and each one is recorded in the audit trace.
 - Effects: `uses {llm, net.read, mail.send, ...}`. A caller must declare everything its callees use.
-- Rule of Two: a function may not have all three at once: untrusted input, sensitive-data reads and external-state writes. Allowed only with an explicit `#[allow(rule_of_two, reason = "...")]`.
+- Rule of Two: a function may not have all three at once: untrusted input, sensitive-data reads and external-state writes. Allowed only with an explicit `@allow(rule_of_two, reason = "...")`.

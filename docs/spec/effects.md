@@ -81,12 +81,12 @@ A function may not have all three of these capabilities, counting its callees:
 | reads private data | a call to a tool function marked `private` |
 | changes external state or communicates | a call to a tool function not marked `private` or `readonly` |
 
-Until tool schemas arrive (M7), tool functions are classified with attributes on the
+Until tool schemas arrive (M7), tool functions are classified with annotations on the
 import. Anything unlisted is assumed to change external state.
 
 ```ward
-#[readonly(get_issue, search)]
-#[private(read_file)]
+@readonly(get_issue, search)
+@private(read_file)
 import mcp "github" as gh
 ```
 
@@ -95,20 +95,20 @@ with where each one comes from. Its callers aren't reported again. If a human
 reviews what the function does, it can be allowed, with a reason:
 
 ```ward
-#[allow(rule_of_two, reason = "a human approves the full diff before anything is pushed")]
+@allow(rule_of_two, reason = "a human approves the full diff before anything is pushed")
 pub fn fix_issue(repo: String, number: Int) -> String throws String
 ```
 
-A missing or empty reason, or an unknown attribute or argument, is W0221. An
-`#[allow(rule_of_two)]` on a function that doesn't break the rule is a warning
+A missing or empty reason, or an unknown annotation or argument, is W0221. An
+`@allow(rule_of_two)` on a function that doesn't break the rule is a warning
 (W0222).
 
-## Attributes
+## Annotations
 
-`#[name]` or `#[name(arg, key = "string")]` before a function or an import (see
+`@name` or `@name(arg, key = "string")` before a function or an import (see
 [syntax](syntax.md)). Only these are recognized:
 
-| Attribute | On |
+| Annotation | On |
 |---|---|
-| `#[allow(rule_of_two, reason = "...")]` | functions |
-| `#[private(f, ...)]`, `#[readonly(f, ...)]` | tool imports |
+| `@allow(rule_of_two, reason = "...")` | functions |
+| `@private(f, ...)`, `@readonly(f, ...)` | tool imports |

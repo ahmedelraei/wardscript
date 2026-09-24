@@ -130,7 +130,7 @@ impl Parser<'_> {
     fn at_item_start(&self) -> bool {
         matches!(
             self.peek(),
-            T::Fn | T::Ai | T::Pub | T::Type | T::Enum | T::Import | T::Hash
+            T::Fn | T::Ai | T::Pub | T::Type | T::Enum | T::Import | T::At
         )
     }
 
@@ -455,13 +455,13 @@ impl Parser<'_> {
     fn item(&mut self) -> PResult<Item> {
         let start = self.tok().span;
         let mut attrs = Vec::new();
-        while self.at(T::Hash) {
-            attrs.push(self.attribute()?);
+        while self.at(T::At) {
+            attrs.push(self.annotation()?);
         }
-        let mut item = self.item_after_attrs(start)?;
+        let mut item = self.item_after_annotations(start)?;
         match &mut item {
-            Item::Fn(f) => f.attrs = attrs,
-            Item::Import(i) => i.attrs = attrs,
+            Item::Fn(f) => f.annotations = attrs,
+            Item::Import(i) => i.annotations = attrs,
             other => {
                 let what = match other {
                     Item::Record(_) | Item::Alias(_) => "types",
@@ -470,12 +470,12 @@ impl Parser<'_> {
                 for a in attrs {
                     self.push(
                         Diagnostic::error(
-                            codes::MISPLACED_ATTRIBUTE,
-                            format!("attributes aren't allowed on {what}"),
+                            codes::MISPLACED_ANNOTATION,
+                            format!("annotations aren't allowed on {what}"),
                             a.span,
                         )
-                        .with_label("remove this attribute")
-                        .with_help("only functions and imports take attributes"),
+                        .with_label("remove this annotation")
+                        .with_help("only functions and imports take annotations"),
                     );
                 }
             }
@@ -483,25 +483,28 @@ impl Parser<'_> {
         Ok(item)
     }
 
-    /// `#[name]`, `#[name(arg, key = "value")]`
-    fn attribute(&mut self) -> PResult<Attribute> {
-        let hash = self.bump();
-        self.expect(T::LBracket)?;
+    /// `@name`, `@name(arg, key = "value")`
+    fn annotation(&mut self) -> PResult<Annotation> {
+        let at = self.bump();
+        // `ident` would take a keyword as the name, swallowing the `fn` after a bare `@`.
+        if !self.at(T::Ident) {
+            return Err(self.expected("an annotation name, like `allow`"));
+        }
         let name = self.ident()?;
         let args = if self.at(T::LParen) {
-            self.comma_list(T::LParen, T::RParen, |p| p.attr_arg())?.0
+            self.comma_list(T::LParen, T::RParen, |p| p.annotation_arg())?
+                .0
         } else {
             Vec::new()
         };
-        let close = self.expect(T::RBracket)?;
-        Ok(Attribute {
+        Ok(Annotation {
             name,
             args,
-            span: hash.span.to(close.span),
+            span: at.span.to(self.prev_span()),
         })
     }
 
-    fn attr_arg(&mut self) -> PResult<AttrArg> {
+    fn annotation_arg(&mut self) -> PResult<AnnotationArg> {
         let name = self.ident()?;
         let value = match self.eat(T::Eq) {
             Some(_) => {
@@ -509,15 +512,15 @@ impl Parser<'_> {
                     return Err(self.expected("a string"));
                 }
                 let t = self.bump();
-                Some((self.plain_string(t, "an attribute"), t.span))
+                Some((self.plain_string(t, "an annotation"), t.span))
             }
             None => None,
         };
         let span = value.as_ref().map_or(name.span, |(_, s)| name.span.to(*s));
-        Ok(AttrArg { name, value, span })
+        Ok(AnnotationArg { name, value, span })
     }
 
-    fn item_after_attrs(&mut self, start: Span) -> PResult<Item> {
+    fn item_after_annotations(&mut self, start: Span) -> PResult<Item> {
         let pub_tok = self.eat(T::Pub);
         let is_pub = pub_tok.is_some();
         match self.peek() {
@@ -645,7 +648,7 @@ impl Parser<'_> {
         };
 
         Ok(FnDecl {
-            attrs: Vec::new(),
+            annotations: Vec::new(),
             is_pub,
             is_ai,
             name,
@@ -828,7 +831,7 @@ impl Parser<'_> {
             (ImportKind::Module(path), alias)
         };
         Ok(Import {
-            attrs: Vec::new(),
+            annotations: Vec::new(),
             kind,
             alias,
             span: start.to(self.prev_span()),

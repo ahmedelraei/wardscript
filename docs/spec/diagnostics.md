@@ -32,7 +32,7 @@ without a span in this file, such as W0107 path steps in another module) (progra
 | W0021 | unclosed delimiter |
 | W0022 | string interpolation where it isn't allowed (import sources, patterns) |
 | W0023 | `pub` on an import |
-| W0024 | attribute on something other than a function or import |
+| W0024 | annotation on something other than a function or import |
 
 ## W010x: names and modules
 
@@ -87,8 +87,8 @@ See [effects](effects.md).
 | W0211 | budget is always exceeded: the function makes more model calls on every run |
 | W0212 | *warning*: a callee's budget is larger than its caller's |
 | W0220 | Rule of Two: untrusted input, private reads and external changes in one function |
-| W0221 | invalid attribute, or `#[allow]` without a reason |
-| W0222 | *warning*: `#[allow(rule_of_two)]` on a function that doesn't need it |
+| W0221 | invalid annotation, or `@allow` without a reason |
+| W0222 | *warning*: `@allow(rule_of_two)` on a function that doesn't need it |
 
 ## Error recovery
 

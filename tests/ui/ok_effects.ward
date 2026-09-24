@@ -2,8 +2,8 @@
 // `llm`, and a `validate` rule's effects count for its caller.
 import mcp "gmail" as mail
 import mcp "audit" as audit
-#[readonly(search)]
-#[private(read_contact)]
+@readonly(search)
+@private(read_contact)
 import mcp "contacts" as contacts
 
 ai fn draft(topic: String) -> String

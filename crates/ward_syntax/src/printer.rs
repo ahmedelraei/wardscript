@@ -72,9 +72,9 @@ impl<'m> Printer<'m> {
         }
     }
 
-    fn attrs(&mut self, attrs: &[Attribute]) {
-        for a in attrs {
-            self.w("#[");
+    fn annotations(&mut self, annotations: &[Annotation]) {
+        for a in annotations {
+            self.w("@");
             self.w(&a.name.name);
             if !a.args.is_empty() {
                 self.w("(");
@@ -87,15 +87,14 @@ impl<'m> Printer<'m> {
                 });
                 self.w(")");
             }
-            self.w("]");
             self.newline();
         }
     }
 
     fn item(&mut self, item: &Item) {
         match item {
-            Item::Fn(f) => self.attrs(&f.attrs),
-            Item::Import(i) => self.attrs(&i.attrs),
+            Item::Fn(f) => self.annotations(&f.annotations),
+            Item::Import(i) => self.annotations(&i.annotations),
             _ => {}
         }
         match item {

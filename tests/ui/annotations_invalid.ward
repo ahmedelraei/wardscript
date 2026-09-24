@@ -1,37 +1,37 @@
-// `#[allow(rule_of_two, reason = "...")]` needs a real reason, and only known attributes
+// `@allow(rule_of_two, reason = "...")` needs a real reason, and only known annotations
 // are accepted.
 import mcp "gmail" as mail
-#[private(read_file)]
+@private(read_file)
 import mcp "drive" as drive
-#[private(x = "y")]
-#[cached]
+@private(x = "y")
+@cached
 import mcp "calendar" as calendar
 
-#[allow(rule_of_two)]
+@allow(rule_of_two)
 pub fn a(r: Untrusted<String>)
     uses {drive, mail}
 {
     mail.send(approve(r), "x", approve(drive.read_file("f")))
 }
 
-#[allow(rule_of_two, reason = "  ")]
+@allow(rule_of_two, reason = "  ")
 pub fn b(r: Untrusted<String>)
     uses {drive, mail}
 {
     mail.send(approve(r), "x", approve(drive.read_file("f")))
 }
 
-#[allow(unused, reason = "why")]
-#[inline]
+@allow(unused, reason = "why")
+@inline
 pub fn c() {}
 
 // Nothing to allow here.
-#[allow(rule_of_two, reason = "reviewed")]
+@allow(rule_of_two, reason = "reviewed")
 pub fn d(r: Untrusted<String>) -> String {
     r
 }
 
-#[allow(rule_of_two, reason = "every message is approved by a human")]
+@allow(rule_of_two, reason = "every message is approved by a human")
 pub fn e(r: Untrusted<String>)
     uses {drive, mail}
 {

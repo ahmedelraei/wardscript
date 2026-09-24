@@ -10,7 +10,7 @@ use ward_resolve::{
     Builtin, DefId, ModuleId, ModuleRes, Program, ProgramDiagnostic, Resolution, ValueRes,
 };
 use ward_syntax::ast::{
-    Attribute, Block, ExprId, ExprKind, FnBody, FnDecl, ImportKind, Item, Lit, Module, StmtKind,
+    Annotation, Block, ExprId, ExprKind, FnBody, FnDecl, ImportKind, Item, Lit, Module, StmtKind,
     TemplatePart, UnOp,
 };
 use ward_syntax::diag::codes;
@@ -111,7 +111,7 @@ pub(crate) fn check(program: &Program, res: &Resolution) -> Vec<ProgramDiagnosti
         diags: Vec::new(),
         facts: HashMap::new(),
     };
-    cx.check_import_attrs();
+    cx.check_import_annotations();
     let events: HashMap<DefId, Vec<Event>> = fns
         .iter()
         .map(|&(def, f)| (def, cx.events(def, f)))
@@ -146,8 +146,9 @@ struct Cx<'p> {
     facts: HashMap<DefId, Facts>,
 }
 
-fn names(attr: &Attribute) -> impl Iterator<Item = &str> {
-    attr.args
+fn names(annotation: &Annotation) -> impl Iterator<Item = &str> {
+    annotation
+        .args
         .iter()
         .filter(|a| a.value.is_none())
         .map(|a| a.name.name.as_str())
@@ -175,7 +176,7 @@ impl<'p> Cx<'p> {
         let Item::Import(i) = self.program.item(def) else {
             return ToolClass::External;
         };
-        for a in &i.attrs {
+        for a in &i.annotations {
             if names(a).any(|n| n == func) {
                 match a.name.name.as_str() {
                     "private" => return ToolClass::Private,
@@ -215,31 +216,31 @@ impl<'p> Cx<'p> {
         }
     }
 
-    fn check_import_attrs(&mut self) {
+    fn check_import_annotations(&mut self) {
         let program = self.program;
         for m in program.module_ids() {
             for it in &program.module(m).ast.items {
                 let Item::Import(i) = it else { continue };
                 let is_tool = matches!(i.kind, ImportKind::Tool { .. });
-                for a in &i.attrs {
+                for a in &i.annotations {
                     let known = matches!(a.name.name.as_str(), "private" | "readonly");
                     let d = if !known || !is_tool {
                         Some(
                             Diagnostic::error(
-                                codes::INVALID_ATTRIBUTE,
-                                format!("unknown attribute `{}` on an import", a.name.name),
+                                codes::INVALID_ANNOTATION,
+                                format!("unknown annotation `{}` on an import", a.name.name),
                                 a.name.span,
                             )
                             .with_label("not recognized here")
                             .with_help(
-                                "tool imports take `#[private(f, ...)]` and `#[readonly(f, ...)]`",
+                                "tool imports take `@private(f, ...)` and `@readonly(f, ...)`",
                             ),
                         )
                     } else {
                         a.args.iter().find(|x| x.value.is_some()).map(|arg| {
                             Diagnostic::error(
-                                codes::INVALID_ATTRIBUTE,
-                                format!("`#[{}]` takes tool function names", a.name.name),
+                                codes::INVALID_ANNOTATION,
+                                format!("`@{}` takes tool function names", a.name.name),
                                 arg.span,
                             )
                             .with_label("expected a name, like `read_file`")
@@ -689,17 +690,17 @@ impl<'p> Cx<'p> {
     fn check_rule_of_two(&mut self, def: DefId, f: &FnDecl, events: &[Event]) {
         let module = def.module;
         let mut allow: Option<Span> = None;
-        for a in &f.attrs {
+        for a in &f.annotations {
             if a.name.name != "allow" {
                 self.err(
                     module,
                     Diagnostic::error(
-                        codes::INVALID_ATTRIBUTE,
-                        format!("unknown attribute `{}`", a.name.name),
+                        codes::INVALID_ANNOTATION,
+                        format!("unknown annotation `{}`", a.name.name),
                         a.name.span,
                     )
                     .with_label("not recognized")
-                    .with_help("functions take `#[allow(rule_of_two, reason = \"...\")]`"),
+                    .with_help("functions take `@allow(rule_of_two, reason = \"...\")`"),
                 );
                 continue;
             }
@@ -717,12 +718,12 @@ impl<'p> Cx<'p> {
                         self.err(
                             module,
                             Diagnostic::error(
-                                codes::INVALID_ATTRIBUTE,
-                                format!("`#[allow]` doesn't take `{}`", arg.name.name),
+                                codes::INVALID_ANNOTATION,
+                                format!("`@allow` doesn't take `{}`", arg.name.name),
                                 arg.span,
                             )
                             .with_label("not recognized")
-                            .with_help("write `#[allow(rule_of_two, reason = \"...\")]`"),
+                            .with_help("write `@allow(rule_of_two, reason = \"...\")`"),
                         );
                     }
                 }
@@ -732,12 +733,12 @@ impl<'p> Cx<'p> {
                 self.err(
                     module,
                     Diagnostic::error(
-                        codes::INVALID_ATTRIBUTE,
-                        "`#[allow]` must name what it allows",
+                        codes::INVALID_ANNOTATION,
+                        "`@allow` must name what it allows",
                         a.span,
                     )
                     .with_label("allows nothing")
-                    .with_help("write `#[allow(rule_of_two, reason = \"...\")]`"),
+                    .with_help("write `@allow(rule_of_two, reason = \"...\")`"),
                 );
             }
             match reason {
@@ -746,8 +747,8 @@ impl<'p> Cx<'p> {
                     self.err(
                         module,
                         Diagnostic::error(
-                            codes::INVALID_ATTRIBUTE,
-                            "the reason for an `#[allow]` can't be empty",
+                            codes::INVALID_ANNOTATION,
+                            "the reason for an `@allow` can't be empty",
                             span,
                         )
                         .with_label("say why this is safe"),
@@ -758,14 +759,12 @@ impl<'p> Cx<'p> {
                     self.err(
                         module,
                         Diagnostic::error(
-                            codes::INVALID_ATTRIBUTE,
-                            "`#[allow(rule_of_two)]` needs a reason",
+                            codes::INVALID_ANNOTATION,
+                            "`@allow(rule_of_two)` needs a reason",
                             a.span,
                         )
                         .with_label("no reason given")
-                        .with_help(
-                            "say why this is safe: `#[allow(rule_of_two, reason = \"...\")]`",
-                        ),
+                        .with_help("say why this is safe: `@allow(rule_of_two, reason = \"...\")`"),
                     );
                 }
                 _ => {}
@@ -799,7 +798,7 @@ impl<'p> Cx<'p> {
                 }
                 d = d.with_help(
                     "split it so no function has all three, or, if a human reviews what it does, \
-                     `#[allow(rule_of_two, reason = \"...\")]`",
+                     `@allow(rule_of_two, reason = \"...\")`",
                 );
                 self.err(module, d);
             }
@@ -812,7 +811,7 @@ impl<'p> Cx<'p> {
                         span,
                     )
                     .with_label("nothing to allow")
-                    .with_help("remove the attribute"),
+                    .with_help("remove the annotation"),
                 );
             }
             _ => {}
