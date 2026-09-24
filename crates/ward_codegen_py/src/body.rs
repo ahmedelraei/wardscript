@@ -64,6 +64,8 @@ pub struct FnGen<'a, 'p> {
     tmp: u32,
     indent: usize,
     pub lines: Vec<String>,
+    /// Generate `async def`s that await calls, models, approvals and tools.
+    pub asyncio: bool,
 }
 
 impl<'a, 'p> FnGen<'a, 'p> {
@@ -92,6 +94,7 @@ impl<'a, 'p> FnGen<'a, 'p> {
             tmp: 0,
             indent: 1,
             lines: Vec::new(),
+            asyncio: false,
         }
     }
 
@@ -153,12 +156,34 @@ impl<'a, 'p> FnGen<'a, 'p> {
             Body::Ai { prompt } => {
                 let prompt = self.expr(*prompt);
                 let returns = self.scope.descriptor(&f.ret);
+                let call = if self.asyncio {
+                    "await _rt.ai_async"
+                } else {
+                    "_rt.ai"
+                };
                 self.line(format!(
-                    "return _rt.ai({}, {}, {returns})",
+                    "return {call}({}, {}, {returns})",
                     names::string(&f.name),
                     prompt.text
                 ));
             }
+        }
+    }
+
+    /// A runtime operation that has an async version.
+    fn op(&self, name: &str) -> String {
+        if self.asyncio {
+            format!("_rt.{name}_async")
+        } else {
+            format!("_rt.{name}")
+        }
+    }
+
+    fn awaited(&self, call: String) -> Py {
+        if self.asyncio {
+            Py::new(format!("await {call}"), UNARY)
+        } else {
+            Py::atom(call)
         }
     }
 
@@ -612,7 +637,7 @@ impl<'a, 'p> FnGen<'a, 'p> {
                     })
                     .collect::<Vec<_>>()
                     .join(", ");
-                Py::atom(format!("{name}({args})"))
+                self.awaited(format!("{name}({args})"))
             }
             ExprKind::ToolCall {
                 tool,
@@ -634,7 +659,8 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 if !args.is_empty() {
                     parts.push(args);
                 }
-                Py::atom(format!("_rt.call_tool({})", parts.join(", ")))
+                let call = self.op("call_tool");
+                self.awaited(format!("{call}({})", parts.join(", ")))
             }
             ExprKind::Method { method, recv, args } => self.method(*method, *recv, args),
             ExprKind::DynMethod { recv, name, args } => {
@@ -759,8 +785,9 @@ impl<'a, 'p> FnGen<'a, 'p> {
                     rule_fn = format!("lambda _v: {rule_fn}(_rt.Trusted(_v))");
                 }
                 let rule_name = rule_def.map_or("?", |f| f.name.as_str());
-                Py::atom(format!(
-                    "_rt.validate({}, {rule_fn}, {}, {})",
+                let call = self.op("validate");
+                self.awaited(format!(
+                    "{call}({}, {rule_fn}, {}, {})",
                     v.at(TERNARY),
                     names::string(rule_name),
                     names::string(&site.to_string())
@@ -768,8 +795,9 @@ impl<'a, 'p> FnGen<'a, 'p> {
             }
             ExprKind::Approve { value, site } => {
                 let v = self.expr(*value);
-                Py::atom(format!(
-                    "_rt.approve({}, {})",
+                let call = self.op("approve");
+                self.awaited(format!(
+                    "{call}({}, {})",
                     v.at(TERNARY),
                     names::string(&site.to_string())
                 ))

@@ -18,9 +18,22 @@ class FakeAnthropic:
         self.requests = []
         self.messages = self
 
-    def create(self, **request):
+    def create(self, stream=False, **request):
         self.requests.append(request)
+        if stream:
+            return self.events()
         return NS(content=self.content, usage=NS(input_tokens=100, output_tokens=20))
+
+    def events(self):
+        yield NS(type="message_start", message=NS(usage=NS(input_tokens=100, output_tokens=1)))
+        for block in self.content:
+            if block.type == "tool_use":
+                text = json.dumps(block.input)
+                for i in range(0, len(text), 3):
+                    yield NS(type="content_block_delta", delta=NS(type="input_json_delta", partial_json=text[i : i + 3]))
+            else:
+                yield NS(type="content_block_delta", delta=NS(type="text_delta", text=block.text))
+        yield NS(type="message_delta", usage=NS(output_tokens=20))
 
 
 class FakeOpenAI:
@@ -29,10 +42,13 @@ class FakeOpenAI:
         self.requests = []
         self.chat = NS(completions=self)
 
-    def create(self, **request):
+    def create(self, stream=False, stream_options=None, **request):
         self.requests.append(request)
-        message = NS(content=self.content)
-        return NS(choices=[NS(message=message)], usage=NS(prompt_tokens=100, completion_tokens=20))
+        usage = NS(prompt_tokens=100, completion_tokens=20)
+        if stream:
+            chunks = [NS(choices=[NS(delta=NS(content=c))], usage=None) for c in self.content]
+            return iter([*chunks, NS(choices=[], usage=usage)])
+        return NS(choices=[NS(message=NS(content=self.content))], usage=usage)
 
 
 SCHEMA = {"$ref": "#/$defs/T", "$defs": {"T": {"type": "object", "properties": {"a": {"type": "integer"}}}}}
@@ -80,6 +96,25 @@ class Providers(unittest.TestCase):
         with _rt.budget("f", tokens=1000) as b:
             self.assertEqual(_rt.ai("f", "p", _rt.Int), 7)
         self.assertEqual(b.used[0], 120.0)
+
+    def test_streaming(self):
+        for model in (
+            Anthropic(prices=(3.0, 15.0), client=FakeAnthropic([NS(type="tool_use", input={"value": [1, 2]})])),
+            OpenAI("m", prices=(3.0, 15.0), client=FakeOpenAI(json.dumps({"value": [1, 2]}))),
+        ):
+            seen = []
+            runtime.configure(model=model, on_stream=seen.append)
+            self.assertEqual(_rt.ai("f", "p", _rt.List(_rt.Int)), [1, 2])
+            self.assertEqual(json.loads(seen[-1].text), {"value": [1, 2]})
+            self.assertGreater(len(seen), 1)
+            with _rt.budget("f", tokens=1000) as b:
+                _rt.ai("f", "p", _rt.List(_rt.Int))
+            self.assertEqual(b.used, (120.0, 1.0, (100 * 3 + 20 * 15) / 1e6))
+
+    def test_anthropic_stream_without_a_tool_call(self):
+        model = Anthropic(client=FakeAnthropic([NS(type="text", text="not json")]))
+        *deltas, done = model.stream(AiRequest("f", "p", SCHEMA))
+        self.assertEqual((deltas, done.text), (["not json"], "not json"))
 
     def test_load(self):
         with self.assertRaises(ValueError):

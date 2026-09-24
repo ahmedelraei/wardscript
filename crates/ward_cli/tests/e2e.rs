@@ -1,5 +1,5 @@
 //! Builds each `tests/e2e/test_*.py` driver's program (named on its `# ward: <file>`
-//! first line) to Python, then runs the driver against the generated modules and the
+//! first line, optionally followed by `ward build` flags) to Python, then runs the driver against the generated modules and the
 //! `wardscript` runtime, with the deterministic mock model.
 
 #![allow(clippy::expect_used, clippy::panic)]
@@ -45,7 +45,10 @@ fn e2e() {
     let drivers = drivers();
     assert!(!drivers.is_empty(), "no e2e drivers found");
     for (name, driver, src) in drivers {
-        let out = common::build(&name, &src);
+        let mut words = src.split_whitespace();
+        let file = words.next().unwrap_or_default();
+        let flags: Vec<&str> = words.collect();
+        let out = common::build_with(&name, file, &flags);
 
         // Stubs aren't imported by the drivers; make sure they at least parse.
         let stubs: Vec<PathBuf> = common::files_under(&out)

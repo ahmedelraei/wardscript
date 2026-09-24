@@ -16,14 +16,34 @@ _active: contextvars.ContextVar[tuple[Any, ...]] = contextvars.ContextVar(
 )
 
 
+#: Token limits of the active budgets, for stopping a streamed answer early.
+_token_limits: contextvars.ContextVar[tuple[tuple[Any, float], ...]] = contextvars.ContextVar(
+    "wardscript_token_limits", default=()
+)
+
+
 @contextlib.contextmanager
 def budget(function: str, **limits: float) -> Iterator[Any]:
     b = core.Budget(function, **limits)
     token = _active.set((*_active.get(), b))
+    tokens = limits.get("tokens")
+    limit_token = _token_limits.set(
+        _token_limits.get() + (((b, float(tokens)),) if tokens is not None else ())
+    )
     try:
         yield b
     finally:
+        _token_limits.reset(limit_token)
         _active.reset(token)
+
+
+def limits_tokens() -> bool:
+    return bool(_token_limits.get())
+
+
+def tokens_over(tokens: float) -> bool:
+    """Whether charging `tokens` more would go over a `tokens` budget."""
+    return any(b.used[0] + tokens > limit for b, limit in _token_limits.get())
 
 
 def active() -> tuple[Any, ...]:

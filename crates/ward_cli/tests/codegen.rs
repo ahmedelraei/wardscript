@@ -21,8 +21,15 @@ fn generated_python() {
         })
         .collect();
     programs.push(("modules".into(), "tests/e2e/modules/main.wardscript".into()));
+    programs.push((
+        "support_async".into(),
+        "examples/support.wardscript --async".into(),
+    ));
     for (name, src) in programs {
-        let out = common::build(&format!("codegen_{name}"), &src);
+        let mut words = src.split_whitespace();
+        let file = words.next().unwrap_or_default();
+        let flags: Vec<&str> = words.collect();
+        let out = common::build_with(&format!("codegen_{name}"), file, &flags);
         let mut snapshot = String::new();
         for file in common::files_under(&out) {
             let text = std::fs::read_to_string(out.join(&file)).expect("read output");

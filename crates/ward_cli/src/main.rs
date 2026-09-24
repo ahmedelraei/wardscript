@@ -42,6 +42,9 @@ enum Command {
         /// Output directory
         #[arg(short, long, default_value = "build")]
         out: PathBuf,
+        /// Generate `async def` functions, for asyncio hosts
+        #[arg(long = "async")]
+        asyncio: bool,
     },
     /// Build a program and call one of its functions
     Run {
@@ -117,7 +120,12 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     match cli.command {
         Command::Check { file, format } => check(&file, format),
-        Command::Build { file, target, out } => build(&file, target, &out),
+        Command::Build {
+            file,
+            target,
+            out,
+            asyncio,
+        } => build(&file, target, &out, asyncio),
         Command::Run {
             file,
             function,
@@ -193,13 +201,13 @@ fn write_files<'a>(
     Ok(())
 }
 
-fn build(file: &Path, target: Target, out: &Path) -> ExitCode {
+fn build(file: &Path, target: Target, out: &Path, asyncio: bool) -> ExitCode {
     let Target::Python = target;
     let program = match compile(file, "build") {
         Ok(p) => p,
         Err(code) => return code,
     };
-    let files = ward_codegen_py::generate(&program);
+    let files = ward_codegen_py::generate_with(&program, ward_codegen_py::Options { asyncio });
     if let Err(e) = write_files(
         out,
         files.iter().map(|f| (f.path.clone(), f.contents.as_str())),
