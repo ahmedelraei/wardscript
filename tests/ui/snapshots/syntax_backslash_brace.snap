@@ -1,5 +1,5 @@
 ---
-source: crates/ws_cli/tests/ui.rs
+source: crates/ward_cli/tests/ui.rs
 description: tests/ui/syntax_backslash_brace.wardscript
 ---
 exit: Some(1)

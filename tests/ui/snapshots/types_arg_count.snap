@@ -1,5 +1,5 @@
 ---
-source: crates/ws_cli/tests/ui.rs
+source: crates/ward_cli/tests/ui.rs
 description: tests/ui/types_arg_count.wardscript
 ---
 exit: Some(1)

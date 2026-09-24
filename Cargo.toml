@@ -10,12 +10,12 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [workspace.dependencies]
-ws_syntax = { path = "crates/ws_syntax" }
-ws_resolve = { path = "crates/ws_resolve" }
-ws_check = { path = "crates/ws_check" }
-ws_ir = { path = "crates/ws_ir" }
-ws_codegen_py = { path = "crates/ws_codegen_py" }
-ws_runtime = { path = "crates/ws_runtime" }
+ward_syntax = { path = "crates/ward_syntax" }
+ward_resolve = { path = "crates/ward_resolve" }
+ward_check = { path = "crates/ward_check" }
+ward_ir = { path = "crates/ward_ir" }
+ward_codegen_py = { path = "crates/ward_codegen_py" }
+ward_runtime = { path = "crates/ward_runtime" }
 
 clap = { version = "4.5", features = ["derive"] }
 insta = "1.40"

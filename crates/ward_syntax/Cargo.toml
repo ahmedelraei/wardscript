@@ -1,0 +1,18 @@
+[package]
+name = "ward_syntax"
+description = "Lexer, parser and arena-allocated AST for Wardscript."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+la-arena.workspace = true
+logos.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+
+[lints]
+workspace = true

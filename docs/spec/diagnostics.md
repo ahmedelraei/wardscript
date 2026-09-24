@@ -1,6 +1,6 @@
 # Diagnostics
 
-Every diagnostic has a stable code, listed in `ws_syntax::diag::codes` (a test fails
+Every diagnostic has a stable code, listed in `ward_syntax::diag::codes` (a test fails
 if a code is missing from this page or assigned twice). A code's meaning never changes once assigned,
 and retired codes are not reused. `ward check --format json` reports each
 diagnostic with its `code`, `severity`, `message`, primary `span`, all `labels`
