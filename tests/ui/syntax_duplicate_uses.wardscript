@@ -1,0 +1,6 @@
+fn f() -> Int
+    uses {llm}
+    uses {net.read}
+{
+    1
+}

@@ -1,0 +1,7 @@
+fn f() -> Int {
+    let x = 1;
+    x
+
+fn g() -> Int {
+    2
+}

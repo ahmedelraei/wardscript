@@ -1,0 +1,62 @@
+// Every syntactic form the parser accepts.
+import support.tickets as t
+import mcp "gmail" as mail
+
+pub type Page<T> {
+    items: List<T>,
+    next: Option<String>,
+}
+
+type Id = String
+
+pub enum Shape {
+    Point,
+    Circle(Float),
+    Rect(Float, Float),
+}
+
+pub fn classify(text: Untrusted<String>) -> Shape
+    uses {llm}
+    budget {tokens: 500, cost: 0.01, time: 30, calls: 2}
+    by llm "Which shape does this describe? {text}\n\nAnswer with JSON like {{\"kind\": ...}}."
+
+fn area(s: Shape) -> Float {
+    match s {
+        Shape.Point => 0.0,
+        Shape.Circle(r) => 3.14 * r * r,
+        Shape.Rect(w, h) => {
+            let a = w * h;
+            a
+        }
+    }
+}
+
+fn sum_positive(xs: List<Int>) -> Int {
+    let total = 0;
+    for x in xs {
+        if x > 0 && !(x == 13) {
+            total = total + x;
+        } else if x < -100 {
+            return -1;
+        }
+    }
+    while total >= 1_000 {
+        total = total % 1_000;
+    }
+    total
+}
+
+fn lookup(pages: List<Page<Id>>, i: Int) -> Result<Id, String> {
+    let page = pages[i];
+    let first = first_item(page)?;
+    let label = match first {
+        "" => "empty",
+        other => other,
+    };
+    Ok("{label}: {page.items[0]}")
+}
+
+fn origin() -> Page<Int> {
+    let next = None;
+    Page { items: [1, 2, 3], next }
+}

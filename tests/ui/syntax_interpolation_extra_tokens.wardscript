@@ -1,0 +1,3 @@
+fn f(a: Int, b: Int) -> String {
+    "pair: {a b}"
+}

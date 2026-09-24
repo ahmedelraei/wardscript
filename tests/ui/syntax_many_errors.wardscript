@@ -1,0 +1,22 @@
+// Recovery: every function has its own error, and all of them are reported.
+
+fn a() -> Int {
+    let x = 1
+    x
+}
+
+fn b(y: ) -> Int {
+    y
+}
+
+fn c() -> String
+    by llm prompt
+
+fn d() -> Bool {
+    1 < 2 < 3
+}
+
+fn e() -> Int {
+    let z = (1 + ;
+    z
+}

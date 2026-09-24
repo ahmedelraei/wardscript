@@ -1,0 +1,103 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_backslash_brace.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0003] Error: unknown escape `\{`
+   ╭─[ tests/ui/syntax_backslash_brace.wardscript:2:17 ]
+   │
+ 2 │     "old style: \{x\}"
+   │                 ─┬  
+   │                  ╰── unknown escape
+   │ 
+   │ Help: braces are escaped by doubling: write `{{`
+───╯
+[W0003] Error: unknown escape `\}`
+   ╭─[ tests/ui/syntax_backslash_brace.wardscript:2:20 ]
+   │
+ 2 │     "old style: \{x\}"
+   │                    ─┬  
+   │                     ╰── unknown escape
+   │ 
+   │ Help: braces are escaped by doubling: write `}}`
+───╯
+error: could not check `tests/ui/syntax_backslash_brace.wardscript` due to 2 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0003",
+      "help": "braces are escaped by doubling: write `{{`",
+      "labels": [
+        {
+          "message": "unknown escape",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 2,
+              "offset": 37
+            },
+            "start": {
+              "column": 17,
+              "line": 2,
+              "offset": 35
+            }
+          }
+        }
+      ],
+      "message": "unknown escape `\\{`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 19,
+          "line": 2,
+          "offset": 37
+        },
+        "start": {
+          "column": 17,
+          "line": 2,
+          "offset": 35
+        }
+      }
+    },
+    {
+      "code": "W0003",
+      "help": "braces are escaped by doubling: write `}}`",
+      "labels": [
+        {
+          "message": "unknown escape",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 22,
+              "line": 2,
+              "offset": 40
+            },
+            "start": {
+              "column": 20,
+              "line": 2,
+              "offset": 38
+            }
+          }
+        }
+      ],
+      "message": "unknown escape `\\}`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 22,
+          "line": 2,
+          "offset": 40
+        },
+        "start": {
+          "column": 20,
+          "line": 2,
+          "offset": 38
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_backslash_brace.wardscript"
+}

@@ -1,0 +1,58 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_pub_import.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0023] Error: imports can't be `pub`
+   ╭─[ tests/ui/syntax_pub_import.wardscript:1:1 ]
+   │
+ 1 │ pub import support.tickets
+   │ ─┬─  
+   │  ╰─── remove this `pub`
+   │ 
+   │ Help: re-exporting imported names isn't supported
+───╯
+error: could not check `tests/ui/syntax_pub_import.wardscript` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0023",
+      "help": "re-exporting imported names isn't supported",
+      "labels": [
+        {
+          "message": "remove this `pub`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "start": {
+              "column": 1,
+              "line": 1,
+              "offset": 0
+            }
+          }
+        }
+      ],
+      "message": "imports can't be `pub`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 4,
+          "line": 1,
+          "offset": 3
+        },
+        "start": {
+          "column": 1,
+          "line": 1,
+          "offset": 0
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_pub_import.wardscript"
+}

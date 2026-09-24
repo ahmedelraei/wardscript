@@ -1,0 +1,252 @@
+---
+source: crates/ws_cli/tests/ui.rs
+description: tests/ui/syntax_many_errors.wardscript
+---
+exit: Some(1)
+--- human ---
+[W0015] Error: expected `;`, found `x`
+   ╭─[ tests/ui/syntax_many_errors.wardscript:4:13 ]
+   │
+ 4 │     let x = 1
+   │             ┬  
+   │             ╰── expected `;` after this
+   │ 
+   │ Help: statements end with `;`
+───╯
+[W0013] Error: expected a type, found `)`
+   ╭─[ tests/ui/syntax_many_errors.wardscript:8:9 ]
+   │
+ 8 │ fn b(y: ) -> Int {
+   │         ┬  
+   │         ╰── expected a type such as `String` or `List<Int>`
+───╯
+[W0016] Error: expected a prompt string after `by llm`, found `prompt`
+    ╭─[ tests/ui/syntax_many_errors.wardscript:13:12 ]
+    │
+ 13 │     by llm prompt
+    │            ───┬──  
+    │               ╰──── expected a string literal
+    │ 
+    │ Help: write the prompt inline; use `{...}` to insert values: `by llm "Summarize: {text}"`
+────╯
+[W0019] Error: comparison operators can't be chained
+    ╭─[ tests/ui/syntax_many_errors.wardscript:16:11 ]
+    │
+ 16 │     1 < 2 < 3
+    │       ┬   ┬  
+    │       ╰────── first comparison
+    │           │  
+    │           ╰── second comparison
+    │ 
+    │ Help: split it with `&&`, e.g. `a < b && b < c`
+────╯
+[W0012] Error: expected an expression, found `;`
+    ╭─[ tests/ui/syntax_many_errors.wardscript:20:18 ]
+    │
+ 20 │     let z = (1 + ;
+    │                  ┬  
+    │                  ╰── expected an expression
+────╯
+error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0015",
+      "help": "statements end with `;`",
+      "labels": [
+        {
+          "message": "expected `;` after this",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 14,
+              "line": 4,
+              "offset": 107
+            },
+            "start": {
+              "column": 13,
+              "line": 4,
+              "offset": 106
+            }
+          }
+        }
+      ],
+      "message": "expected `;`, found `x`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 14,
+          "line": 4,
+          "offset": 107
+        },
+        "start": {
+          "column": 13,
+          "line": 4,
+          "offset": 106
+        }
+      }
+    },
+    {
+      "code": "W0013",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected a type such as `String` or `List<Int>`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 10,
+              "line": 8,
+              "offset": 126
+            },
+            "start": {
+              "column": 9,
+              "line": 8,
+              "offset": 125
+            }
+          }
+        }
+      ],
+      "message": "expected a type, found `)`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 10,
+          "line": 8,
+          "offset": 126
+        },
+        "start": {
+          "column": 9,
+          "line": 8,
+          "offset": 125
+        }
+      }
+    },
+    {
+      "code": "W0016",
+      "help": "write the prompt inline; use `{...}` to insert values: `by llm \"Summarize: {text}\"`",
+      "labels": [
+        {
+          "message": "expected a string literal",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 18,
+              "line": 13,
+              "offset": 179
+            },
+            "start": {
+              "column": 12,
+              "line": 13,
+              "offset": 173
+            }
+          }
+        }
+      ],
+      "message": "expected a prompt string after `by llm`, found `prompt`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 18,
+          "line": 13,
+          "offset": 179
+        },
+        "start": {
+          "column": 12,
+          "line": 13,
+          "offset": 173
+        }
+      }
+    },
+    {
+      "code": "W0019",
+      "help": "split it with `&&`, e.g. `a < b && b < c`",
+      "labels": [
+        {
+          "message": "second comparison",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 12,
+              "line": 16,
+              "offset": 209
+            },
+            "start": {
+              "column": 11,
+              "line": 16,
+              "offset": 208
+            }
+          }
+        },
+        {
+          "message": "first comparison",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 8,
+              "line": 16,
+              "offset": 205
+            },
+            "start": {
+              "column": 7,
+              "line": 16,
+              "offset": 204
+            }
+          }
+        }
+      ],
+      "message": "comparison operators can't be chained",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 12,
+          "line": 16,
+          "offset": 209
+        },
+        "start": {
+          "column": 11,
+          "line": 16,
+          "offset": 208
+        }
+      }
+    },
+    {
+      "code": "W0012",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected an expression",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 19,
+              "line": 20,
+              "offset": 249
+            },
+            "start": {
+              "column": 18,
+              "line": 20,
+              "offset": 248
+            }
+          }
+        }
+      ],
+      "message": "expected an expression, found `;`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 19,
+          "line": 20,
+          "offset": 249
+        },
+        "start": {
+          "column": 18,
+          "line": 20,
+          "offset": 248
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_many_errors.wardscript"
+}

@@ -1,0 +1,4 @@
+fn f() -> Int {
+    let match = 1;
+    1
+}
