@@ -967,6 +967,7 @@ impl Walker<'_, '_> {
                     self.expr(*cond, true);
                     self.block(body, false);
                 }
+                StmtKind::Assert { cond, .. } => self.expr(*cond, true),
             }
         }
         if let Some(t) = b.tail {
@@ -1112,6 +1113,7 @@ impl MinCalls<'_, '_> {
                 // The body may run zero times.
                 StmtKind::For { iter, .. } => n += self.expr(*iter),
                 StmtKind::While { cond, .. } => n += self.expr(*cond),
+                StmtKind::Assert { cond, .. } => n += self.expr(*cond),
             }
         }
         (n + b.tail.map_or(0, |t| self.expr(t))).min(CALLS_CAP)

@@ -28,6 +28,7 @@ pub fn parse(src: &str) -> Parse {
         in_interpolation: false,
         newlines: false,
         lex_errors,
+        in_test: false,
     };
     p.items();
     let mut diagnostics = p.diags;
@@ -77,6 +78,8 @@ struct Parser<'s> {
     newlines: bool,
     /// Start offsets of characters the lexer rejected.
     lex_errors: Vec<u32>,
+    /// Inside a `test` body, where `assert` starts a statement.
+    in_test: bool,
 }
 
 impl Parser<'_> {
@@ -131,7 +134,14 @@ impl Parser<'_> {
         matches!(
             self.peek(),
             T::Fn | T::Ai | T::Pub | T::Type | T::Enum | T::Import | T::At
-        )
+        ) || self.at_test_start()
+    }
+
+    /// `test "name"`: `test` is only a keyword here.
+    fn at_test_start(&self) -> bool {
+        self.at(T::Ident)
+            && self.text(self.tok().span) == "test"
+            && matches!(self.nth_tok(1).kind, T::Str | T::UnterminatedStr)
     }
 
     fn found(&self, t: Token) -> String {
@@ -465,6 +475,7 @@ impl Parser<'_> {
             other => {
                 let what = match other {
                     Item::Record(_) | Item::Alias(_) => "types",
+                    Item::Test(_) => "tests",
                     _ => "enums",
                 };
                 for a in attrs {
@@ -529,6 +540,9 @@ impl Parser<'_> {
     }
 
     fn item_after_annotations(&mut self, start: Span) -> PResult<Item> {
+        if self.at_test_start() {
+            return self.test_decl(start).map(Item::Test);
+        }
         let pub_tok = self.eat(T::Pub);
         let is_pub = pub_tok.is_some();
         match self.peek() {
@@ -707,6 +721,21 @@ impl Parser<'_> {
             model,
             checks,
             body,
+            span: start.to(self.prev_span()),
+        })
+    }
+
+    fn test_decl(&mut self, start: Span) -> PResult<TestDecl> {
+        self.bump();
+        let t = self.bump();
+        let name = self.plain_string(t, "a test name");
+        let saved = std::mem::replace(&mut self.in_test, true);
+        let body = self.block();
+        self.in_test = saved;
+        Ok(TestDecl {
+            name,
+            name_span: t.span,
+            body: body?,
             span: start.to(self.prev_span()),
         })
     }
@@ -1026,6 +1055,22 @@ impl Parser<'_> {
     fn stmt(&mut self) -> PResult<StmtOut> {
         let start = self.tok().span;
         let kind = match self.peek() {
+            T::Ident if self.in_test && self.text(self.tok().span) == "assert" => {
+                self.bump();
+                let cond = self.expr()?;
+                let message = match self.eat(T::FatArrow) {
+                    Some(_) => {
+                        if !matches!(self.peek(), T::Str | T::UnterminatedStr) {
+                            return Err(self.expected("a message string"));
+                        }
+                        let t = self.bump();
+                        Some((self.plain_string(t, "an assertion message"), t.span))
+                    }
+                    None => None,
+                };
+                self.stmt_end();
+                StmtKind::Assert { cond, message }
+            }
             T::Let => {
                 self.bump();
                 let name = self.ident()?;

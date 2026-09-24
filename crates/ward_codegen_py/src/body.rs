@@ -453,6 +453,21 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 let value = self.expr(*e);
                 self.line(format!("raise _rt.Thrown({})", value.text));
             }
+            Stmt::Assert {
+                cond,
+                message,
+                site,
+            } => {
+                let c = self.expr(*cond);
+                self.line(format!("if not {}:", c.at(ATOM)));
+                self.nested(|g| {
+                    g.line(format!(
+                        "raise _rt.TestFailure({}, {})",
+                        names::string(message),
+                        names::string(&site.to_string())
+                    ));
+                });
+            }
             Stmt::For { local, iter, body } => {
                 let iter = self.expr(*iter);
                 let name = self.local(*local).to_owned();

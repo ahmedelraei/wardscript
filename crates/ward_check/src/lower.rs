@@ -53,7 +53,7 @@ impl Checker<'_> {
                         };
                         self.fns.insert(def, sig);
                     }
-                    Item::Import(_) => {}
+                    Item::Import(_) | Item::Test(_) => {}
                 }
             }
         }

@@ -3,7 +3,7 @@
 Wardscript is a small, typed language for trustworthy AI functions and agents. What sets it apart is that the **compiler proves untrusted data can't reach sensitive actions** without an explicit `validate`, `approve` or `declassify` step.
 
 - Source files use `.ward` (canonical) or `.wardscript`; the compiler treats both identically. Use `.ward` in all docs, examples and tests.
-- CLI command: `ward` (`ward check | build | run | trace`)
+- CLI command: `ward` (`ward check | build | run | test | lock | trace`)
 - The compiler and runtime core are written in Rust (a Cargo workspace)
 - First backend: Python. Then TypeScript, then WASM through `wasm-encoder`. **No LLVM or Cranelift.**
 

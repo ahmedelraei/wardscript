@@ -473,3 +473,19 @@ fn check_clause() {
         ["W0022"]
     );
 }
+
+#[test]
+fn test_blocks() {
+    let src = "fn f() -> Int {\n    1\n}\n\ntest \"f is one\" {\n    let x = f()\n    assert x == 1 => \"one\"\n    assert x > 0\n}\n";
+    let parse = parse_ok(src);
+    let Some(Item::Test(t)) = parse.module.items.get(1) else {
+        panic!("expected a test");
+    };
+    assert_eq!(t.name, "f is one");
+    assert_eq!(t.body.stmts.len(), 3);
+    assert_eq!(assert_round_trips(src), src);
+    // `test` and `assert` are names elsewhere.
+    parse_ok("fn test(assert: Int) -> Int {\n    let test = assert\n    test\n}\n");
+    assert_eq!(codes("@x\ntest \"t\" {}\n"), ["W0024"]);
+    assert_eq!(codes("test \"{x}\" {}\n"), ["W0022"]);
+}

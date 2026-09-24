@@ -12,7 +12,8 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
 - **Keywords** (reserved; can't be used as names):
   `ai fn pub let type enum match if else for in while return throw throws try catch import as uses budget true false`.
   `model` and `check` are keywords only where a clause can start (`model {`, `check {`),
-  and `where` only after a type; elsewhere they're names.
+  `where` only after a type, `test` only before a string at the top level, and
+  `assert` only at the start of a statement in a test; elsewhere they're names.
 - **Integers**: `[0-9][0-9_]*`, 64-bit signed. `_` separators are ignored (`1_000`).
 - **Floats**: `[0-9][0-9_]*.[0-9][0-9_]*`. No exponent form; a leading digit is required.
 - **Strings**: `"..."`, may span lines. Escapes: `\n \r \t \0 \\ \"`.
@@ -26,7 +27,8 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
 
 ```ebnf
 module      = item* ;
-item        = annotation* (import | ["pub"] (fn | ai_fn)) | ["pub"] (type | enum) ;
+item        = annotation* (import | ["pub"] (fn | ai_fn)) | ["pub"] (type | enum) | test ;
+test        = "test" STRING block ;                       (* run by `ward test` *)
 annotation  = "@" IDENT ["(" [annotation_arg ("," annotation_arg)* [","]] ")"] ;
 annotation_arg = IDENT ("." IDENT)* ["=" STRING] ;                     (* rule_of_two, reason = "..." *)
 
@@ -62,6 +64,7 @@ stmt        = ( "let" IDENT [":" type] "=" expr
               | "throw" expr
               | "for" IDENT "in" expr_ns block
               | "while" expr_ns block
+              | "assert" expr ["=>" STRING]              (* only in tests *)
               | expr "=" expr                            (* target: name, field or index *)
               | expr ) end ;
 end         = ";" | line break | before "}" ;

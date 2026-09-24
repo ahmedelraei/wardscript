@@ -1,0 +1,11 @@
+// Tests are checked for trust like any code: a model's answer can't reach a sink here
+// either.
+import mcp "gmail" as mail
+
+ai fn draft(topic: String) -> String {
+    "Write about {topic}"
+}
+
+test "sends a draft" {
+    mail.send("a@example.com", "draft", draft("cats"))
+}

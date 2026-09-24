@@ -50,3 +50,19 @@ pub fn route(email: Untrusted<String>) -> String
     }
     "{urgent}{queue(ticket)}: {ticket.summary}{order}"
 }
+
+// `ward test examples/triage.wardscript` replays the answers in
+// `triage.recordings.json`; `ward test --record --model anthropic` records new ones.
+
+test "a crash goes to engineering, urgently" {
+    let queue = route("The checkout page crashes every time I pay for order 1042!")
+    assert queue.starts_with("[urgent] engineering/") => "crashes are urgent bugs"
+    assert queue.ends_with("(order 1042)")
+}
+
+test "a double charge goes to billing" {
+    let ticket = triage("I was charged twice for my subscription this month.")
+    assert queue(ticket) == "billing"
+    assert ticket.order_id.is_none()
+    assert ticket.priority != Priority.Low
+}

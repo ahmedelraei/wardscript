@@ -2,7 +2,7 @@
 
 from .audit import call
 from .budget import budget
-from .errors import Thrown
+from .errors import TestFailure, Thrown
 from .runtime import (
     ai,
     ai_async,
@@ -64,6 +64,7 @@ __all__ = [
     "Param",
     "Refined",
     "String",
+    "TestFailure",
     "Thrown",
     "Trusted",
     "Unit",

@@ -98,6 +98,12 @@ impl<'m> Printer<'m> {
             _ => {}
         }
         match item {
+            Item::Test(t) => {
+                self.w("test ");
+                self.string(&t.name);
+                self.w(" ");
+                self.block(&t.body);
+            }
             Item::Import(i) => self.import(i),
             Item::Record(r) => {
                 self.vis(r.is_pub);
@@ -370,6 +376,14 @@ impl<'m> Printer<'m> {
                 self.expr(*cond, true);
                 self.w(" ");
                 self.block(body);
+            }
+            StmtKind::Assert { cond, message } => {
+                self.w("assert ");
+                self.expr(*cond, false);
+                if let Some((m, _)) = message {
+                    self.w(" => ");
+                    self.string(m);
+                }
             }
         }
     }
