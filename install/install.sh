@@ -49,8 +49,9 @@ version="${WARD_VERSION:-}"
 if [ -z "$version" ]; then
     [ -z "${WARD_DOWNLOAD_BASE:-}" ] || fail "WARD_DOWNLOAD_BASE needs WARD_VERSION"
     # /releases/latest skips pre-releases, and every release is one during the beta.
-    version="$(fetch_stdout "https://api.github.com/repos/$REPO/releases?per_page=1" |
-        sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)"
+    # Only tags like v1.2.3 count: a release made another way may have no archives.
+    version="$(fetch_stdout "https://api.github.com/repos/$REPO/releases?per_page=30" |
+        tr ',' '\n' | sed -n 's/.*"tag_name": *"\(v[0-9][^"]*\)".*/\1/p' | head -n 1)"
     [ -n "$version" ] || fail "couldn't find a release of $REPO"
 fi
 base="${WARD_DOWNLOAD_BASE:-https://github.com/$REPO/releases/download}/$version"
