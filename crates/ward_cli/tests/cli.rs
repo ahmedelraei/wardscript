@@ -362,3 +362,38 @@ fn init_makes_a_project_that_checks_and_tests() {
     let out = common::ward(&["init", d]);
     assert_eq!(out.status.code(), Some(2), "{}", common::render(&out));
 }
+
+#[test]
+fn fmt_checks_and_formats() {
+    let mut files: Vec<String> = common::wardscript_files("examples")
+        .iter()
+        .map(|p| p.to_str().expect("utf-8").to_owned())
+        .collect();
+    files.push("examples/inbox/main.ward".into());
+    let mut args = vec!["fmt", "--check"];
+    args.extend(files.iter().map(String::as_str));
+    let out = common::ward(&args);
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "the examples aren't formatted\n{}",
+        common::render(&out)
+    );
+
+    let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("fmt");
+    std::fs::create_dir_all(&dir).expect("mkdir");
+    let file = dir.join("messy.ward");
+    std::fs::write(&file, "fn f(x:Int)->Int{   // keep me\n  x+1}\n").expect("write");
+    let f = file.to_str().expect("utf-8");
+    let out = common::ward(&["fmt", "--check", f]);
+    assert_eq!(out.status.code(), Some(1), "{}", common::render(&out));
+    let out = common::ward(&["fmt", f]);
+    assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
+    assert_eq!(
+        std::fs::read_to_string(&file).expect("read"),
+        "fn f(x: Int) -> Int {  // keep me\n    x + 1\n}\n"
+    );
+    std::fs::write(&file, "fn f( {\n").expect("write");
+    let out = common::ward(&["fmt", f]);
+    assert_eq!(out.status.code(), Some(1), "{}", common::render(&out));
+}

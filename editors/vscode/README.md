@@ -2,7 +2,8 @@
 
 Highlighting for `.ward` and `.wardscript` files, and the Wardscript language server
 (`ward lsp`): diagnostics as you type (with their `W0xxx` codes and the path
-untrusted data took), the type of an expression on hover, and go to definition.
+untrusted data took), the type of an expression on hover, go to definition, and
+formatting (`ward fmt`).
 
 ## Install from source
 
