@@ -51,6 +51,21 @@ export function roundHalfAway(x: number): number {
   return x >= 0 ? Math.floor(x + 0.5) : -Math.floor(-x + 0.5);
 }
 
+const INT = /^[+-]?[0-9]+$/;
+const FLOAT = /^[+-]?[0-9]+(\.[0-9]+)?$/;
+
+export function parseInt(s: string): Option<number> {
+  const t = s.trim();
+  if (!INT.test(t)) return null;
+  const n = Number(t);
+  return Number.isSafeInteger(n) ? some(n) : null;
+}
+
+export function parseFloat(s: string): Option<number> {
+  const t = s.trim();
+  return FLOAT.test(t) ? some(Number(t)) : null;
+}
+
 function checkIndex(xs: readonly unknown[], i: number): void {
   if (!(i >= 0 && i < xs.length)) {
     throw new PanicError(`index ${i} is out of bounds for a list of length ${xs.length}`);

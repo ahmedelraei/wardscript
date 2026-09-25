@@ -1070,6 +1070,8 @@ impl<'a, 'p> FnGen<'a, 'p> {
             Split => meth("split", a(0)),
             Lines => meth("splitlines", String::new()),
             Replace => meth("replace", format!("{}, {}", a(0), a(1))),
+            ParseInt => call("_rt.parse_int"),
+            ParseFloat => call("_rt.parse_float"),
             ListGet => Py::atom(format!("_rt.list_get({}, {})", r.at(TERNARY), a(0))),
             ListFirst => call("_rt.first"),
             ListLast => call("_rt.last"),

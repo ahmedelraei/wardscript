@@ -18,6 +18,8 @@ pub fn method(recv: &Ty, name: &str) -> Option<MethodSig> {
         (Ty::String, "split") => sig(vec![Ty::String], Ty::list(Ty::String)),
         (Ty::String, "lines") => sig(vec![], Ty::list(Ty::String)),
         (Ty::String, "replace") => sig(vec![Ty::String, Ty::String], Ty::String),
+        (Ty::String, "parse_int") => sig(vec![], Ty::option(Ty::Int)),
+        (Ty::String, "parse_float") => sig(vec![], Ty::option(Ty::Float)),
 
         (Ty::List(_), "len") => sig(vec![], Ty::Int),
         (Ty::List(_), "is_empty") => sig(vec![], Ty::Bool),
@@ -46,7 +48,7 @@ pub fn method(recv: &Ty, name: &str) -> Option<MethodSig> {
 
 /// Method names available on `recv`, for "did you mean" suggestions.
 pub fn names(recv: &Ty) -> Vec<&'static str> {
-    const ALL: [&str; 25] = [
+    const ALL: [&str; 27] = [
         "len",
         "is_empty",
         "contains",
@@ -58,6 +60,8 @@ pub fn names(recv: &Ty) -> Vec<&'static str> {
         "split",
         "lines",
         "replace",
+        "parse_int",
+        "parse_float",
         "get",
         "first",
         "last",

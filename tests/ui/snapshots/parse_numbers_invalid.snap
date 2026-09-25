@@ -1,0 +1,101 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/parse_numbers_invalid.ward
+---
+exit: Some(1)
+--- human ---
+[W0110] Error: mismatched types: expected `Int`, found `Option<Int>`
+   ╭─[ tests/ui/parse_numbers_invalid.ward:3:5 ]
+   │
+ 3 │     s.parse_int()
+   │     ──────┬──────  
+   │           ╰──────── expected `Int`, found `Option<Int>`
+───╯
+[W0110] Error: mismatched types: expected `Float`, found `Int`
+   ╭─[ tests/ui/parse_numbers_invalid.ward:7:31 ]
+   │
+ 7 │     s.parse_float().unwrap_or(0)
+   │                               ┬  
+   │                               ╰── expected `Float`, found `Int`
+───╯
+error: could not check `tests/ui/parse_numbers_invalid.ward` due to 2 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0110",
+      "file": "tests/ui/parse_numbers_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Int`, found `Option<Int>`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 18,
+              "line": 3,
+              "offset": 123
+            },
+            "start": {
+              "column": 5,
+              "line": 3,
+              "offset": 110
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Int`, found `Option<Int>`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 18,
+          "line": 3,
+          "offset": 123
+        },
+        "start": {
+          "column": 5,
+          "line": 3,
+          "offset": 110
+        }
+      }
+    },
+    {
+      "code": "W0110",
+      "file": "tests/ui/parse_numbers_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Float`, found `Int`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 32,
+              "line": 7,
+              "offset": 190
+            },
+            "start": {
+              "column": 31,
+              "line": 7,
+              "offset": 189
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Float`, found `Int`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 32,
+          "line": 7,
+          "offset": 190
+        },
+        "start": {
+          "column": 31,
+          "line": 7,
+          "offset": 189
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/parse_numbers_invalid.ward"
+}

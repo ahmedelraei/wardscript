@@ -19,6 +19,8 @@ __all__ = [
     "int_rem",
     "float_rem",
     "rounded",
+    "int_or",
+    "float_or",
     "shadowing",
     "keywords",
     "bools",
@@ -117,6 +119,16 @@ def float_rem(a: float, b: float) -> float:
 def rounded(x: float) -> int:
     with _rt.call("rounded", [("x", x)]):
         return _rt.round_half_away(x)
+
+
+def int_or(s: str, fallback: int) -> int:
+    with _rt.call("int_or", [("s", s), ("fallback", fallback)]):
+        return _rt.unwrap_or(_rt.parse_int(s), fallback)
+
+
+def float_or(s: str, fallback: float) -> float:
+    with _rt.call("float_or", [("s", s), ("fallback", fallback)]):
+        return _rt.unwrap_or(_rt.parse_float(s), fallback)
 
 
 def shadowing() -> int:
@@ -274,7 +286,7 @@ def short(s: str) -> bool:
 def validated(s: str) -> str:
     with _rt.call("validated", [("s", s)]):
         try:
-            return _rt.validate(s, short, "short", "semantics.ward:175:9")
+            return _rt.validate(s, short, "short", "semantics.ward:183:9")
         except _rt.Thrown as _t1:
             err = _t1.value
             return err
@@ -300,16 +312,16 @@ def early(xs: list[int]) -> int:
 
 def order(c: bool) -> str:
     with _rt.call("order", [("c", c)]):
-        _t1 = _rt.call_tool("log", "say", "semantics.ward:205:18", "a")
+        _t1 = _rt.call_tool("log", "say", "semantics.ward:213:18", "a")
         if c:
-            _t2 = _rt.call_tool("log", "say", "semantics.ward:206:9", "b")
+            _t2 = _rt.call_tool("log", "say", "semantics.ward:214:9", "b")
         else:
-            t = _rt.call_tool("log", "say", "semantics.ward:208:17", "c")
+            t = _rt.call_tool("log", "say", "semantics.ward:216:17", "c")
             _t2 = t
         a = join(_t1, _t2)
         _t3 = c
         if not _t3:
-            _rt.call_tool("log", "say", "semantics.ward:212:9", "d")
+            _rt.call_tool("log", "say", "semantics.ward:220:9", "d")
             _t3 = True
         b = _t3
         return f"{a} {_rt.to_str(b)}"
@@ -414,6 +426,12 @@ def float_rem(a: float, b: float) -> float: ...
 
 
 def rounded(x: float) -> int: ...
+
+
+def int_or(s: str, fallback: int) -> int: ...
+
+
+def float_or(s: str, fallback: float) -> float: ...
 
 
 def shadowing() -> int: ...

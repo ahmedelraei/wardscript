@@ -1,0 +1,8 @@
+// A number parsed out of untrusted text is as untrusted as the text.
+import mcp "billing" as billing
+
+pub fn charge(reply: Untrusted<String>)
+    uses {billing.charge}
+{
+    billing.charge(reply.parse_int().unwrap_or(0))
+}

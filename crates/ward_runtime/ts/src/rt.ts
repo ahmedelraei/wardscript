@@ -40,6 +40,8 @@ export {
   mapGet,
   mapIndex,
   mapSet,
+  parseFloat,
+  parseInt,
   roundHalfAway,
   some,
   strLen,

@@ -152,10 +152,12 @@ Lists and maps are immutable: `push` and `insert` return a new collection.
 
 | Receiver | Methods |
 |---|---|
-| `String` | `len() -> Int`, `is_empty() -> Bool`, `contains/starts_with/ends_with(String) -> Bool`, `trim/lower/upper() -> String`, `split(String) -> List<String>`, `lines() -> List<String>`, `replace(String, String) -> String` |
+| `String` | `len() -> Int`, `is_empty() -> Bool`, `contains/starts_with/ends_with(String) -> Bool`, `trim/lower/upper() -> String`, `split(String) -> List<String>`, `lines() -> List<String>`, `replace(String, String) -> String`, `parse_int() -> Option<Int>`, `parse_float() -> Option<Float>` |
 | `List<T>` | `len() -> Int`, `is_empty() -> Bool`, `contains(T) -> Bool`, `get(Int) -> Option<T>`, `first/last() -> Option<T>`, `push(T) -> List<T>` |
 | `Map<K, V>` | `len() -> Int`, `is_empty() -> Bool`, `get(K) -> Option<V>`, `contains_key(K) -> Bool`, `keys() -> List<K>`, `values() -> List<V>`, `insert(K, V) -> Map<K, V>` |
 | `Option<T>` | `is_some/is_none() -> Bool`, `unwrap_or(T) -> T` |
 | `Int` | `to_string() -> String`, `to_float() -> Float` |
 | `Float` | `to_string() -> String`, `round() -> Int` |
 | `Bool` | `to_string() -> String` |
+
+`parse_int` accepts `[+-]?[0-9]+` and `parse_float` accepts `[+-]?[0-9]+(.[0-9]+)?`, after trimming whitespace; anything else, or an integer outside `Int`'s range, is `None`. The result is as trusted as the string ([WEP 020](../weps/020-parse-numbers.md)).

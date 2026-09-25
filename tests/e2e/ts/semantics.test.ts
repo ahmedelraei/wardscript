@@ -106,6 +106,19 @@ test("evaluation order", async () => {
   assert.deepEqual(said, ["a", "c", "d"]);
 });
 
+test("parsing numbers", async () => {
+  assert.equal(await s.int_or(" 42 ", 0), 42);
+  assert.equal(await s.int_or("-7", 0), -7);
+  for (const bad of ["", "4.2", "1e3", "0x10", "1_000", "9223372036854775808"]) {
+    assert.equal(await s.int_or(bad, 0), 0, bad);
+  }
+  assert.equal(await s.float_or("4.2", 0), 4.2);
+  assert.equal(await s.float_or("180", 0), 180);
+  for (const bad of ["", ".5", "5.", "1e3", "nan", "inf"]) {
+    assert.equal(await s.float_or(bad, -1), -1, bad);
+  }
+});
+
 test("unit functions return nothing", async () => {
   assert.equal(await s.noop(1), undefined);
   assert.equal(await s.noop(-1), undefined);

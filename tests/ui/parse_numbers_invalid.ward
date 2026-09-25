@@ -1,0 +1,8 @@
+// parse_int and parse_float return an Option: a string may not be a number.
+fn price(s: String) -> Int {
+    s.parse_int()
+}
+
+fn rating(s: String) -> Float {
+    s.parse_float().unwrap_or(0)
+}

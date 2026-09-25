@@ -58,6 +58,16 @@ class Semantics(unittest.TestCase):
         self.assertEqual(s.depth(None), "none")
         self.assertEqual(s.nested(3), 3)
 
+    def test_parsing_numbers(self):
+        self.assertEqual(s.int_or(" 42 ", 0), 42)
+        self.assertEqual(s.int_or("-7", 0), -7)
+        for bad in ("", "4.2", "1e3", "0x10", "1_000", "9223372036854775808"):
+            self.assertEqual(s.int_or(bad, 0), 0, bad)
+        self.assertEqual(s.float_or("4.2", 0.0), 4.2)
+        self.assertEqual(s.float_or("180", 0.0), 180.0)
+        for bad in ("", ".5", "5.", "1e3", "nan", "inf"):
+            self.assertEqual(s.float_or(bad, -1.0), -1.0, bad)
+
     def test_lists(self):
         self.assertEqual(s.get_or([1, 2], 1, 9), 2)
         self.assertEqual(s.get_or([1, 2], 2, 9), 9)

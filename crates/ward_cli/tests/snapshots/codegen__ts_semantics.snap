@@ -51,6 +51,18 @@ export async function rounded(x: number): Promise<number> {
   });
 }
 
+export async function int_or(s: string, fallback: number): Promise<number> {
+  return _rt.call("int_or", [["s", s], ["fallback", fallback]], async () => {
+    return _rt.unwrapOr(_rt.parseInt(s), fallback);
+  });
+}
+
+export async function float_or(s: string, fallback: number): Promise<number> {
+  return _rt.call("float_or", [["s", s], ["fallback", fallback]], async () => {
+    return _rt.unwrapOr(_rt.parseFloat(s), fallback);
+  });
+}
+
 export async function shadowing(): Promise<number> {
   return _rt.call("shadowing", [], async () => {
     let x!: number;
@@ -259,7 +271,7 @@ export async function validated(s: string): Promise<string> {
   return _rt.call("validated", [["s", s]], async () => {
     let err!: string;
     try {
-      return await _rt.validate(s, short, "short", "semantics.ward:175:9");
+      return await _rt.validate(s, short, "short", "semantics.ward:183:9");
     } catch (_t1) {
       if (!(_t1 instanceof _rt.Thrown)) throw _t1;
       err = _t1.value as any;
@@ -302,17 +314,17 @@ export async function order(c: boolean): Promise<string> {
     let _t1!: any;
     let _t2!: any;
     let _t3!: any;
-    _t1 = (await _rt.callTool("log", "say", "semantics.ward:205:18", ["a"])) as any;
+    _t1 = (await _rt.callTool("log", "say", "semantics.ward:213:18", ["a"])) as any;
     if (c) {
-      _t2 = (await _rt.callTool("log", "say", "semantics.ward:206:9", ["b"])) as any;
+      _t2 = (await _rt.callTool("log", "say", "semantics.ward:214:9", ["b"])) as any;
     } else {
-      t = (await _rt.callTool("log", "say", "semantics.ward:208:17", ["c"])) as any;
+      t = (await _rt.callTool("log", "say", "semantics.ward:216:17", ["c"])) as any;
       _t2 = t;
     }
     a = await join(_t1, _t2);
     _t3 = c;
     if (!_t3) {
-      (await _rt.callTool("log", "say", "semantics.ward:212:9", ["d"])) as any;
+      (await _rt.callTool("log", "say", "semantics.ward:220:9", ["d"])) as any;
       _t3 = true;
     }
     b = _t3;

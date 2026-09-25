@@ -13,6 +13,7 @@ import dataclasses
 import enum
 import json
 import math
+import re
 from typing import Any
 
 from .errors import PanicError
@@ -80,6 +81,23 @@ def round_half_away(x: float) -> int:
     if math.isnan(x) or math.isinf(x):
         raise PanicError(f"cannot round {x} to an integer")
     return math.floor(x + 0.5) if x >= 0 else -math.floor(-x + 0.5)
+
+
+_INT = re.compile(r"[+-]?[0-9]+")
+_FLOAT = re.compile(r"[+-]?[0-9]+(\.[0-9]+)?")
+
+
+def parse_int(s: str) -> Any:
+    t = s.strip()
+    if not _INT.fullmatch(t):
+        return None
+    n = int(t)
+    return some(n) if -(2**63) <= n < 2**63 else None
+
+
+def parse_float(s: str) -> Any:
+    t = s.strip()
+    return some(float(t)) if _FLOAT.fullmatch(t) else None
 
 
 def _check_index(xs: list, i: int) -> None:

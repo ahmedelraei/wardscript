@@ -39,6 +39,14 @@ pub fn rounded(x: Float) -> Int {
     x.round()
 }
 
+pub fn int_or(s: String, fallback: Int) -> Int {
+    s.parse_int().unwrap_or(fallback)
+}
+
+pub fn float_or(s: String, fallback: Float) -> Float {
+    s.parse_float().unwrap_or(fallback)
+}
+
 pub fn shadowing() -> Int {
     let x = 1
     let y = {

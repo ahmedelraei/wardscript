@@ -1075,6 +1075,8 @@ impl<'a, 'p> FnGen<'a, 'p> {
             Split => meth("split", a(0)),
             Lines => call("_rt.lines"),
             Replace => meth("replaceAll", format!("{}, {}", a(0), a(1))),
+            ParseInt => call("_rt.parseInt"),
+            ParseFloat => call("_rt.parseFloat"),
             ListGet => Ts::atom(format!("_rt.listGet({}, {})", r.at(TERNARY), a(0))),
             ListFirst => call("_rt.first"),
             ListLast => call("_rt.last"),
