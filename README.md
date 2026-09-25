@@ -61,6 +61,7 @@ Next: proof and polish (M11): typed streaming, the TypeScript backend, an LSP. S
 and [docs/spec](docs/spec/README.md) for the language specification.
 
 [docs/guide.md](docs/guide.md) gets you started: install, `ward init`, and a tour.
+[docs/demo.md](docs/demo.md) shows a vulnerable agent that doesn't compile.
 
 ```bash
 cargo run -p ward_cli -- init hello                         # a first project
