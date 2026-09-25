@@ -28,7 +28,7 @@ macOS Apple Silicon and Intel, Windows x86_64), checks it against its SHA-256, p
 PATH. `WARD_VERSION=v0.1.0-beta.1` picks a release, `WARD_INSTALL_DIR` another folder,
 and `WARD_NO_MODIFY_PATH=1` leaves your PATH alone. You can also download an archive
 from the [releases](https://github.com/ahmedelraei/wardscript/releases) and check it
-against `SHA256SUMS`. To uninstall, delete `~/.ward` and the PATH line the installer
+against `SHA256SUMS` or its build attestation ([verifying](releasing.md#verifying-a-download)). To uninstall, delete `~/.ward` and the PATH line the installer
 added (it's marked "Added by the Wardscript installer").
 
 `ward run` and `ward test` bring their own copy of the Python runtime. To import

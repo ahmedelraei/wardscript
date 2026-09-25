@@ -30,6 +30,11 @@ jobs:
           - { target: x86_64-apple-darwin, os: macos-latest, run: false }
           - { target: x86_64-pc-windows-msvc, os: windows-latest, run: true }
     runs-on: ${{ matrix.os }}
+    env:
+      # Signing runs only once its secrets exist; until then releases are unsigned.
+      # docs/releasing.md lists the secrets.
+      SIGN_MACOS: ${{ secrets.MACOS_CERTIFICATE != '' && github.event_name != 'pull_request' }}
+      SIGN_WINDOWS: ${{ secrets.AZURE_CLIENT_ID != '' && github.event_name != 'pull_request' }}
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -49,6 +54,51 @@ jobs:
             *-musl) export CC="musl-gcc" ;;
           esac
           cargo build --release --locked -p ward_cli --target ${{ matrix.target }}
+      - name: Sign and notarize (macOS)
+        if: contains(matrix.target, 'apple') && env.SIGN_MACOS == 'true'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          bin="target/${{ matrix.target }}/release/ward"
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password="$(openssl rand -hex 16)"
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -f pkcs12 -k "$keychain" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -k "$password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          # Hardened runtime and a secure timestamp are what notarization requires.
+          codesign --force --timestamp --options runtime --sign "$MACOS_SIGNING_IDENTITY" "$bin"
+          codesign --verify --strict --verbose=2 "$bin"
+          echo "$APPLE_API_KEY" | base64 --decode > "$RUNNER_TEMP/api_key.p8"
+          ditto -c -k --keepParent "$bin" "$RUNNER_TEMP/ward.zip"
+          # A bare executable can't be stapled; Gatekeeper looks the ticket up online.
+          xcrun notarytool submit "$RUNNER_TEMP/ward.zip" --key "$RUNNER_TEMP/api_key.p8" \
+            --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait
+          rm -f "$RUNNER_TEMP/certificate.p12" "$RUNNER_TEMP/api_key.p8"
+          security delete-keychain "$keychain"
+      - name: Sign (Windows)
+        if: contains(matrix.target, 'windows') && env.SIGN_WINDOWS == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
+          files: ${{ github.workspace }}\target\${{ matrix.target }}\release\ward.exe
+          file-digest: SHA256
+          timestamp-digest: SHA256
+          description: Wardscript
+          description-url: https://github.com/${{ github.repository }}
       - name: Package
         id: package
         shell: bash
@@ -116,10 +166,12 @@ jobs:
       - name: install.sh rejects a corrupted download
         if: runner.os != 'Windows'
         run: |
-          f="$(ls site/${WARD_VERSION}/*.tar.gz | head -1)"
-          cp "$f" "$f.bak" && printf 'x' >> "$f"
-          if WARD_INSTALL_DIR="$RUNNER_TEMP/bad" sh install/install.sh; then echo "should have failed"; exit 1; fi
-          mv "$f.bak" "$f"
+          # Corrupt every archive, whichever one this runner's platform picks.
+          cp -r site site.bak
+          for f in site/${WARD_VERSION}/*.tar.gz; do printf 'x' >> "$f"; done
+          if WARD_INSTALL_DIR="$RUNNER_TEMP/bad" WARD_NO_MODIFY_PATH=1 sh install/install.sh; then echo "should have failed"; exit 1; fi
+          test ! -e "$RUNNER_TEMP/bad/ward"
+          cp site.bak/${WARD_VERSION}/* site/${WARD_VERSION}/
       - name: install.ps1
         if: runner.os == 'Windows'
         shell: pwsh
@@ -134,6 +186,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # For the build provenance attestations.
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
@@ -144,6 +199,13 @@ jobs:
         run: |
           version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           test "${GITHUB_REF_NAME}" = "v${version}" || { echo "tag ${GITHUB_REF_NAME} but Cargo.toml says ${version}"; exit 1; }
+      # A signed record (Sigstore) that each archive was built by this workflow from this
+      # commit: `gh attestation verify <archive> --repo <owner>/wardscript`.
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            dist/ward-*.tar.gz
+            dist/ward-*.zip
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
@@ -168,6 +230,8 @@ jobs:
           \`\`\`
 
           Or download the archive for your platform below and check it against \`SHA256SUMS\`.
+          Each archive has a build provenance attestation; with the GitHub CLI:
+          \`gh attestation verify <archive> --repo ${GITHUB_REPOSITORY}\`.
           EOF
           gh release create "${GITHUB_REF_NAME}" dist/* ${prerelease} \
             --title "Wardscript ${GITHUB_REF_NAME}" --notes-file notes.md
