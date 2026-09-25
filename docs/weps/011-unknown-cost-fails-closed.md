@@ -1,6 +1,6 @@
-# 011: Unknown model cost fails closed
+# WEP 011: Unknown model cost fails closed
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decision
 

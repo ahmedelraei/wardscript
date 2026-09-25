@@ -1,6 +1,6 @@
-# 008: Effects, budgets and the Rule of Two
+# WEP 008: Effects, budgets and the Rule of Two
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decision
 

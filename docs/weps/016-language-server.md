@@ -1,6 +1,6 @@
-# 016: The language server
+# WEP 016: The language server
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decision
 

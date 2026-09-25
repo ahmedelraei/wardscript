@@ -1,7 +1,7 @@
 # Tests
 
 Status: implemented in M10 (`test` blocks, `ward test`, `wardscript.testing`).
-Design notes are in [decision 015](../decisions/015-tests.md).
+Design notes are in [WEP 015](../weps/015-tests.md).
 
 ```ward
 test "a double charge goes to billing" {

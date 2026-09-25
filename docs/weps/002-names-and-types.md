@@ -1,6 +1,6 @@
-# 002: Names and base types (M2)
+# WEP 002: Names and base types (M2)
 
-**Status:** accepted, 2026-09-24
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decisions
 

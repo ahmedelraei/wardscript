@@ -2,7 +2,7 @@
 
 Status: implemented in M7 (`ward_resolve::tools`, `ward_check::tools`, `ward lock`,
 `wardscript.mcp`). Design notes are in
-[decision 012](../decisions/012-mcp-imports.md).
+[WEP 012](../weps/012-mcp-imports.md).
 
 ```ward
 @private(list_messages, read_message)

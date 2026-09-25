@@ -1,7 +1,7 @@
 # Trust labels
 
 Status: implemented in M4 (`ward_check::trust`). Design notes are in
-[decision 007](../decisions/007-trust-labels.md).
+[WEP 007](../weps/007-trust-labels.md).
 
 Every value has a label, `Trusted` or `Untrusted`. Combining values gives the least
 trusted of their labels (`Trusted + Untrusted = Untrusted`). The checker proves that

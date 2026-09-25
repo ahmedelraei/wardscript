@@ -1,6 +1,6 @@
-# 006: How Wardscript values map onto Python
+# WEP 006: How Wardscript values map onto Python
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decision
 

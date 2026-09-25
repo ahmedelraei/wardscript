@@ -1,6 +1,6 @@
-# 005: Exceptions replace `Result`
+# WEP 005: Exceptions replace `Result`
 
-**Status:** accepted, 2026-09-24. Supersedes the `Result` type (002) and the
+**Status:** Final. Accepted 2026-09-24. Supersedes the `Result` type (002) and the
 auto-`Ok` return (004).
 
 ## Decision

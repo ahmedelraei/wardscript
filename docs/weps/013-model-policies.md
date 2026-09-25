@@ -1,6 +1,6 @@
-# 013: Model fallbacks and retry policies
+# WEP 013: Model fallbacks and retry policies
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decision
 

@@ -1,6 +1,6 @@
-# 004: Line breaks end statements; `return x` wraps in `Ok`
+# WEP 004: Line breaks end statements; `return x` wraps in `Ok`
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decisions
 

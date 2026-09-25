@@ -1,6 +1,6 @@
-# 012: MCP imports and `ward.lock`
+# WEP 012: MCP imports and `ward.lock`
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decision
 

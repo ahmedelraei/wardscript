@@ -1,6 +1,6 @@
-# 001: Surface syntax choices (M1)
+# WEP 001: Surface syntax choices (M1)
 
-**Status:** accepted, 2026-09-24
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decisions
 

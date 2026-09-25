@@ -1,6 +1,6 @@
-# 014: Refinements and checks on answers
+# WEP 014: Refinements and checks on answers
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decision
 

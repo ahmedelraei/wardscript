@@ -1,6 +1,6 @@
-# 015: Tests with recorded responses
+# WEP 015: Tests with recorded responses
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decision
 

@@ -1,6 +1,6 @@
-# 010: Runtime sink checks, collectors, async code and streaming
+# WEP 010: Runtime sink checks, collectors, async code and streaming
 
-**Status:** accepted, 2026-09-25.
+**Status:** Final. Accepted 2026-09-25.
 
 ## Decision
 

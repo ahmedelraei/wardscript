@@ -1,6 +1,6 @@
-# 018: The AgentDojo port
+# WEP 018: The AgentDojo port
 
-**Status:** accepted; banking, Slack and workspace suites ported, 2026-09-25.
+**Status:** Accepted 2026-09-25. Banking, Slack and workspace suites ported; travel and a real-model run remain.
 
 ## Decision
 

@@ -1,6 +1,6 @@
-# 017: The TypeScript backend
+# WEP 017: The TypeScript backend
 
-**Status:** accepted, 2026-09-25.
+**Status:** Final. Accepted 2026-09-25.
 
 ## Decision
 

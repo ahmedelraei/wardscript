@@ -1,6 +1,6 @@
 # Classes
 
-Status: implemented (decision [019](../decisions/019-classes.md)).
+Status: implemented (WEP [019](../weps/019-classes.md)).
 
 A **class** describes objects: values with fields that methods read and change,
 shared by reference. Records stay what they were, immutable values that are copied

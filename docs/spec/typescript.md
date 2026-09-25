@@ -2,7 +2,7 @@
 
 Status: implemented in M11 (`ward_codegen_ts`, the `wardscript` npm package in
 `crates/ward_runtime/ts`). Design notes are in
-[decision 017](../decisions/017-typescript-backend.md).
+[WEP 017](../weps/017-typescript-backend.md).
 
 ```bash
 ward build examples/triage.ward --target typescript -o src/generated

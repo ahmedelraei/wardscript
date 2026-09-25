@@ -3,9 +3,9 @@
 Status: implemented in M3 (`ward_ir`, `ward_codegen_py`, `crates/ward_runtime/py`);
 trust at the host boundary in M4, budgets in M5; the Rust core, audit trace,
 model providers, sink checks, collectors, async code and streaming in M6. The design
-is recorded in decisions [006](../decisions/006-python-backend.md),
-[009](../decisions/009-runtime-core-and-trace.md) and
-[010](../decisions/010-sink-checks-async-streaming.md).
+is recorded in WEPs [006](../weps/006-python-backend.md),
+[009](../weps/009-runtime-core-and-trace.md) and
+[010](../weps/010-sink-checks-async-streaming.md).
 
 ## Building
 

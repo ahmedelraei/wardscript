@@ -39,6 +39,7 @@ editors/vscode/  # VS Code extension: grammar + `ward lsp` client
 - No `unwrap()` or `panic!` in library crates. Use typed errors (`thiserror`).
 - AST and IR nodes live in arenas (`la-arena`) and are referenced by ID. Don't use `Rc<RefCell<...>>` graphs.
 - Keep `docs/spec/` in sync with each feature you add.
+- Changes to syntax, types, trust, effects, backend output or diagnostic meanings need a WEP first (`docs/weps/000-process.md`). Write it as a Draft before the code, and mark it Final once the spec is updated.
 - Tests with real LLMs are opt-in (`WARD_LIVE=1`). CI uses a deterministic mock model.
 
 ## Commands

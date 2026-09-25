@@ -1,6 +1,6 @@
-# 003: `ai fn` replaces `by llm`
+# WEP 003: `ai fn` replaces `by llm`
 
-**Status:** accepted, 2026-09-24. Supersedes the `by llm "prompt"` form from 001.
+**Status:** Final. Accepted 2026-09-24. Supersedes the `by llm "prompt"` form from 001.
 
 ## Decision
 

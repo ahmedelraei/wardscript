@@ -1,6 +1,6 @@
-# 007: Trust labels
+# WEP 007: Trust labels
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decision
 

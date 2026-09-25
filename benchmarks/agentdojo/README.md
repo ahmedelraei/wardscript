@@ -141,4 +141,4 @@ every injection task as AgentDojo runs it. It needs `pip install anthropic` and
 - The Rule of Two isn't exercised: no tool is marked `@private`.
 - The travel suite is still to do.
 - The blind authors were model sessions in the same environment. They saw a few file names they
-  were told not to open (decision 018, the workspace attack folders) but no contents.
+  were told not to open (WEP 018, the workspace attack folders) but no contents.

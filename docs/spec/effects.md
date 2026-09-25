@@ -1,7 +1,7 @@
 # Effects, budgets and the Rule of Two
 
 Status: implemented in M5 (`ward_check::effects`; budgets enforced by the runtime).
-Design notes are in [decision 008](../decisions/008-effects-budgets-rule-of-two.md).
+Design notes are in [WEP 008](../weps/008-effects-budgets-rule-of-two.md).
 
 ## Effects
 

@@ -1,6 +1,6 @@
-# 009: The Rust runtime core and the audit trace
+# WEP 009: The Rust runtime core and the audit trace
 
-**Status:** accepted, 2026-09-24.
+**Status:** Final. Accepted 2026-09-24.
 
 ## Decision
 

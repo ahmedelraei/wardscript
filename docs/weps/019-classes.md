@@ -1,6 +1,6 @@
-# 019: Classes
+# WEP 019: Classes
 
-**Status:** accepted, 2026-09-25.
+**Status:** Final. Accepted 2026-09-25.
 
 ## Decision
 
