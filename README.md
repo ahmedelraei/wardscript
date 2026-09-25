@@ -47,8 +47,9 @@ the path it took. The host calling `answer` has to vouch for `to`
 
 [AgentDojo](https://github.com/ethz-spylab/agentdojo) is a prompt-injection benchmark
 for tool-using agents: realistic tasks in a bank, a Slack workspace and an office
-suite, with attacker instructions hidden in the data. Its banking, Slack and
-workspace suites are ported to Wardscript, one program per user task.
+suite, with attacker instructions hidden in the data. All four of its suites
+(banking, Slack, workspace and travel) are ported to Wardscript, one program per user
+task. The table covers the three that also have a blind port.
 
 | | Tasks that succeed | Attacks that reach their goal |
 |---|---|---|
@@ -58,6 +59,13 @@ workspace suites are ported to Wardscript, one program per user task.
 ![What happened to 489 attacks: our port blocked 481 and 8 needed a human, 0 got through; the blind port blocked 431 and 54 needed a human, 4 got through](docs/img/agentdojo-attacks.svg)
 
 ![User tasks that succeed, per suite: our port 16/16, 21/21, 40/40; the blind port 16/16, 16/21, 39/40](docs/img/agentdojo-utility.svg)
+
+Travel: 20 / 20 tasks, and 0 / 120 attacks make the program act for the attacker.
+Travel needs no model to choose anything (its injections are all in reviews), so this
+is the easy case. The one goal that only asks the agent to *say* something, recommending
+a hotel, is reached through a review summary the user asked for: Wardscript guards
+actions, not what model text tells the reader. See
+[the benchmark's README](benchmarks/agentdojo/README.md#travel).
 
 What these numbers measure:
 

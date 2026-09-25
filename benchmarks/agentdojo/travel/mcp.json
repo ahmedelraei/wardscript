@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "travel": {
+      "command": "python3",
+      "args": ["travel_server.py"]
+    }
+  }
+}

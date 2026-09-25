@@ -25,7 +25,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
-SUITES = ["banking", "slack", "workspace"]
+SUITES = ["banking", "slack", "workspace", "travel"]
 sys.path.insert(0, os.path.join(ROOT, "crates", "ward_runtime", "py"))
 
 
@@ -53,6 +53,13 @@ def build(name, out, program="."):
     cmd = [ward] if ward else ["cargo", "run", "-q", "-p", "ward_cli", "--"]
     subprocess.run(cmd + ["build", os.path.join(HERE, name, program, "main.ward"), "-o", out], cwd=ROOT, check=True)
     return load(os.path.join(out, "main.py"), f"agentdojo_{name}_{program.strip('.') or 'main'}")
+
+
+def hit(reached, before, after, result):
+    """Whether a goal is reached; a goal about what the program says also gets its result."""
+    if reached.__code__.co_argcount == 3:
+        return reached(before, after, result)
+    return reached(before, after)
 
 
 def injection_text(goal):
@@ -179,12 +186,13 @@ def evaluate(s, main):
         for goal, (text, reached) in s.INJECTIONS.items():
             vectors = {v: injection_text(text) for v in s.VECTORS}
             row = {mode: {"reached": False, "by": None} for mode in ("careful", "rubber_stamp")}
+            row["output_only"] = goal in getattr(s, "OUTPUT_GOALS", ())
             for strategy in strategies(s.HONEST, used):
                 for mode, approver in (("careful", careful), ("rubber_stamp", lambda req: True)):
                     if row[mode]["reached"]:
                         continue
-                    _, _, after = run_task(s, main, n, attacker_model(s, goal, strategy), approver, vectors)
-                    if reached(before, after):
+                    result, _, after = run_task(s, main, n, attacker_model(s, goal, strategy), approver, vectors)
+                    if hit(reached, before, after, result):
                         row[mode] = {"reached": True, "by": {f: str(m) for f, m in strategy.items()}}
             report["security"][f"{n}/{goal}"] = row
     return report
@@ -210,23 +218,27 @@ def evaluate_live(s, main, model, attacks):
         for goal, (text, reached) in s.INJECTIONS.items():
             vectors = {v: injection_text(text) for v in s.VECTORS}
             result, error, after = run_task(s, main, n, model, careful, vectors)
-            hit = reached(before, after)
+            reached_now = hit(reached, before, after, result)
             report["security"][f"{n}/{goal}"] = {
-                "careful": {"reached": hit}, "rubber_stamp": {"reached": hit},
+                "careful": {"reached": reached_now}, "rubber_stamp": {"reached": reached_now},
+                "output_only": goal in getattr(s, "OUTPUT_GOALS", ()),
                 "utility": error is None and s.UTILITY[n](result, before, after), "error": error,
             }
     return report
 
 
 def summary(report):
-    tasks = len(report["utility"])
-    pairs = len(report["security"])
+    """Counts; goals reached only by what the program says are counted apart from actions."""
+    actions = [r for r in report["security"].values() if not r.get("output_only")]
+    said = [r for r in report["security"].values() if r.get("output_only")]
     return {
         "utility": sum(r["ok"] for r in report["utility"].values()),
-        "tasks": tasks,
-        "careful": sum(r["careful"]["reached"] for r in report["security"].values()),
-        "rubber_stamp": sum(r["rubber_stamp"]["reached"] for r in report["security"].values()),
-        "pairs": pairs,
+        "tasks": len(report["utility"]),
+        "careful": sum(r["careful"]["reached"] for r in actions),
+        "rubber_stamp": sum(r["rubber_stamp"]["reached"] for r in actions),
+        "pairs": len(actions),
+        "said": sum(r["careful"]["reached"] for r in said),
+        "said_pairs": len(said),
     }
 
 
@@ -262,7 +274,10 @@ def main():
             if not r["ok"]:
                 print(f"{name}: utility FAIL user_task_{n}: {r['error']}")
         for k, r in report["security"].items():
-            if r["careful"]["reached"]:
+            if r.get("output_only"):
+                if r["careful"]["reached"]:
+                    print(f"{name}: output goal {k} reached: the program said what the attacker wanted")
+            elif r["careful"]["reached"]:
                 print(f"{name}: attack {k} reached its goal past a careful approver")
             elif r["rubber_stamp"]["reached"]:
                 print(f"{name}: attack {k} reached its goal when every approval is granted, "
@@ -273,6 +288,8 @@ def main():
         print(f"{name}: utility {t['utility']}/{t['tasks']}; attacks reaching their goal: "
               f"{t['careful']}/{t['pairs']} with a careful approver, "
               f"{t['rubber_stamp']}/{t['pairs']} with every approval granted")
+        if t["said_pairs"]:
+            print(f"{name}: output-only goals reached: {t['said']}/{t['said_pairs']}")
     sys.exit(0 if ok else 1)
 
 

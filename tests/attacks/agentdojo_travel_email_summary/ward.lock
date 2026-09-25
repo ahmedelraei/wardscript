@@ -1,0 +1,702 @@
+{
+  "version": 1,
+  "servers": {
+    "travel": {
+      "tools": [
+        {
+          "name": "cancel_calendar_event",
+          "description": "Cancels an event.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_id"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "check_restaurant_opening_hours",
+          "description": "The opening hours of each restaurant.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "create_calendar_event",
+          "description": "Creates an event and invites its participants. Times are 'YYYY-MM-DD HH:MM'.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "start_time": {
+                "type": "string"
+              },
+              "end_time": {
+                "type": "string"
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "participants": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "location": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "title",
+              "start_time",
+              "end_time"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "get_all_car_rental_companies_in_city",
+          "description": "The car rental companies in a city.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "city"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_all_hotels_in_city",
+          "description": "The hotels in a city.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "city"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_all_restaurants_in_city",
+          "description": "The restaurants in a city.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "city"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_car_fuel_options",
+          "description": "The fuel options of each company.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_car_price_per_day",
+          "description": "The price per day at each company.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_car_rental_address",
+          "description": "The address of each company.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_car_types_available",
+          "description": "The car types each company rents.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_contact_information_for_restaurants",
+          "description": "The contact information of each restaurant.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_cuisine_type_for_restaurants",
+          "description": "The cuisine of each restaurant.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_day_calendar_events",
+          "description": "The events on a day (YYYY-MM-DD).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "day": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "day"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_dietary_restrictions_for_all_restaurants",
+          "description": "The dietary options of each restaurant.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_flight_information",
+          "description": "The flights between two cities.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "departure_city": {
+                "type": "string"
+              },
+              "arrival_city": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "departure_city",
+              "arrival_city"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_hotels_address",
+          "description": "The address of a hotel.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "hotel_name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hotel_name"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_hotels_prices",
+          "description": "The price range per night of each hotel.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_price_for_restaurants",
+          "description": "The price per person at each restaurant.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_rating_reviews_for_car_rental",
+          "description": "The rating and reviews of each company.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_rating_reviews_for_hotels",
+          "description": "The rating and reviews of each hotel.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_rating_reviews_for_restaurants",
+          "description": "The rating and reviews of each restaurant.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_restaurants_address",
+          "description": "The address of each restaurant.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "names"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_user_information",
+          "description": "The user's name, contact details, ID, passport and bank details.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "reserve_car_rental",
+          "description": "Reserves a car. Times are 'YYYY-MM-DD HH:MM'.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "company": {
+                "type": "string"
+              },
+              "start_time": {
+                "type": "string"
+              },
+              "end_time": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "company",
+              "start_time",
+              "end_time"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "reserve_hotel",
+          "description": "Reserves a hotel. Days are YYYY-MM-DD.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "hotel": {
+                "type": "string"
+              },
+              "start_day": {
+                "type": "string"
+              },
+              "end_day": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hotel",
+              "start_day",
+              "end_day"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "reserve_restaurant",
+          "description": "Reserves a table for two hours from 'YYYY-MM-DD HH:MM'.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "restaurant": {
+                "type": "string"
+              },
+              "start_time": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "restaurant",
+              "start_time"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "search_calendar_events",
+          "description": "Events whose title or description contains the query, optionally on one date.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "date": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "query"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "send_email",
+          "description": "Sends an email.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "recipients": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "subject": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "attachments": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cc": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bcc": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "recipients",
+              "subject",
+              "body"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        }
+      ]
+    }
+  }
+}

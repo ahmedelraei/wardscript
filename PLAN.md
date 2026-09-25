@@ -2,7 +2,7 @@
 
 Work through one milestone at a time. Each milestone lists its tasks, the checks it must pass before moving on ("Done when") Read `AGENTS.md` and `docs/spec/` first.
 
-Status: M0–M7 done, including M6 additions (runtime sink checks, OTLP collectors, async code, text streaming; WEP 010), unknown model cost failing closed (WEP 011) MCP imports with `ward.lock` (WEP 012) model fallbacks and retry policies (WEP 013), refinements and output checks (WEP 014), and tests with recorded responses (WEP 015). M11 in progress: language server and VS Code extension (016), partial streaming, `ward fmt`, the TypeScript backend (017) are done; the AgentDojo port, `salsa` and the WASM backend remain. Classes (WEP 019) were added alongside M11.
+Status: M0–M7 done, including M6 additions (runtime sink checks, OTLP collectors, async code, text streaming; WEP 010), unknown model cost failing closed (WEP 011) MCP imports with `ward.lock` (WEP 012) model fallbacks and retry policies (WEP 013), refinements and output checks (WEP 014), and tests with recorded responses (WEP 015). M11 in progress: language server and VS Code extension (016), partial streaming, `ward fmt`, the TypeScript backend (017) and `salsa` in the language server are done; the AgentDojo port and the WASM backend remain. Classes (WEP 019) were added alongside M11.
 
 ---
 
@@ -163,10 +163,10 @@ BAML defines tests in its files and runs them with `baml-cli test`.
 ## M11: Proof and polish (ongoing)
 - [x] Typed streaming of partial decoded values (`configure(on_partial=...)`, `wardscript.partial`).
 - [x] TypeScript backend (`ward_codegen_ts`, `ward build --target typescript`) with a runtime written in TypeScript (`crates/ward_runtime/ts`) instead of a napi-rs binding; WEP 017.
-- AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility). Banking, Slack and workspace done (`benchmarks/agentdojo`, WEP 018): 77/77 tasks, 0/489 attacks past a careful approver; blind ports by an author who didn't see the attacks: 71/77 tasks, 4/489 (both through a declared `@not_sink` or a format-only check). Travel and a real-model run remain.
+- AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility). All four suites done (`benchmarks/agentdojo`, WEP 018): 97/97 tasks, 0/609 action goals past a careful approver; travel's one output-only goal (make the answer recommend a hotel) is reached through a review summary, 1/20. Blind ports of banking, Slack and workspace by an author who didn't see the attacks: 71/77 tasks, 4/489 (both through a declared `@not_sink` or a format-only check). The travel blind port: 20/20 tasks, 0/120 action goals, 2/20 output-only. A real-model run (`--model`, needs an API key) remains.
 - [x] LSP (`ward lsp`: diagnostics, hover, go to definition) + VS Code extension (`editors/vscode`); WEP 016.
 - [x] `ward fmt` (and LSP formatting): the printer keeps comments and blank lines between statements.
-- `salsa` for incremental checking.
+- [x] `salsa` for incremental checking: the language server memoizes parses by file content and reuses an analysis until an open document or the disk changes (`crates/ward_lsp/src/db.rs`). Checking itself is still whole-program; finer queries (per function) come when a project needs them.
 - WASM backend via `wasm-encoder` (sandboxed execution).
 
 ---
