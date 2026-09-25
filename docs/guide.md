@@ -3,7 +3,7 @@
 Wardscript is a typed language for AI functions and agents. Its checker proves that
 untrusted data (model output, tool results, network input) can't reach a sensitive
 action without an explicit `validate`, `approve` or `declassify`. Programs compile to
-Python.
+Python or TypeScript.
 
 ## Install
 
@@ -62,7 +62,7 @@ extension that uses it.
 |---|---|
 | `ward init [DIR]` | start a project |
 | `ward check FILE` | check a program (`--format json` for tools) |
-| `ward build FILE -o DIR` | compile to Python (`--async` for asyncio hosts) |
+| `ward build FILE -o DIR` | compile to Python (`--async` for asyncio hosts), or `--target typescript` ([TypeScript](spec/typescript.md)) |
 | `ward run FILE FN ARGS...` | build and call a function (`--mock`, `--model`) |
 | `ward test FILE [FILTER...]` | run tests from recordings (`--record` to record) |
 | `ward lock [mcp.json]` | pin MCP tool schemas in `ward.lock` (`--check` in CI) |

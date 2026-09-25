@@ -18,6 +18,7 @@ Status: **M10 (tests)**.
 | [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5), audit trace, providers, sink checks, async and streaming (M6), model policies (M8) |
 | [Tools and MCP imports](tools.md) (`ward.lock`, typed tool calls, sink parameters) | implemented (M7) |
 | [Tests](testing.md) (`test` blocks, `assert`, `ward test`, recordings) | implemented (M10) |
+| [The TypeScript backend](typescript.md) | implemented (M11) |
 
 ## Diagnostics
 

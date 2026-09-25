@@ -8,6 +8,7 @@ default-members = [
     "crates/ward_check",
     "crates/ward_ir",
     "crates/ward_codegen_py",
+    "crates/ward_codegen_ts",
     "crates/ward_runtime",
     "crates/ward_lsp",
     "crates/ward_cli",
@@ -26,6 +27,7 @@ ward_resolve = { path = "crates/ward_resolve" }
 ward_check = { path = "crates/ward_check" }
 ward_ir = { path = "crates/ward_ir" }
 ward_codegen_py = { path = "crates/ward_codegen_py" }
+ward_codegen_ts = { path = "crates/ward_codegen_ts" }
 ward_runtime = { path = "crates/ward_runtime" }
 ward_lsp = { path = "crates/ward_lsp" }
 

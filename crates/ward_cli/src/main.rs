@@ -160,6 +160,8 @@ enum Format {
 #[derive(Clone, Copy, ValueEnum)]
 enum Target {
     Python,
+    /// TypeScript for Node 22+, with the `wardscript` npm package as its runtime
+    Typescript,
 }
 
 fn main() -> ExitCode {
@@ -281,28 +283,34 @@ fn write_files<'a>(
 }
 
 fn build(file: &Path, target: Target, out: &Path, asyncio: bool) -> ExitCode {
-    let Target::Python = target;
     let program = match compile(file, "build") {
         Ok(p) => p,
         Err(code) => return code,
     };
-    let files = ward_codegen_py::generate_with(
-        &program,
-        ward_codegen_py::Options {
-            asyncio,
-            tests: false,
-        },
-    );
-    if let Err(e) = write_files(
-        out,
-        files.iter().map(|f| (f.path.clone(), f.contents.as_str())),
-    ) {
+    let files: Vec<(PathBuf, String)> = match target {
+        Target::Python => ward_codegen_py::generate_with(
+            &program,
+            ward_codegen_py::Options {
+                asyncio,
+                tests: false,
+            },
+        )
+        .into_iter()
+        .map(|f| (f.path, f.contents))
+        .collect(),
+        // TypeScript is always async.
+        Target::Typescript => ward_codegen_ts::generate(&program)
+            .into_iter()
+            .map(|f| (f.path, f.contents))
+            .collect(),
+    };
+    if let Err(e) = write_files(out, files.iter().map(|(p, c)| (p.clone(), c.as_str()))) {
         eprintln!("error: cannot write to `{}`: {e}", out.display());
         return ExitCode::from(exit::INTERNAL);
     }
     let entry = files
         .first()
-        .map_or_else(PathBuf::new, |f| out.join(&f.path));
+        .map_or_else(PathBuf::new, |(p, _)| out.join(p));
     eprintln!("built: {} -> {}", file.display(), entry.display());
     ExitCode::SUCCESS
 }
