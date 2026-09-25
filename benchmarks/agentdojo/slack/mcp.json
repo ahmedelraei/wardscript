@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "slack": {
+      "command": "python3",
+      "args": ["slack_server.py"]
+    }
+  }
+}
