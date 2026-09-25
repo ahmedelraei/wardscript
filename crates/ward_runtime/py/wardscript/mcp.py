@@ -78,7 +78,7 @@ class Server:
             {
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": {},
-                "clientInfo": {"name": "wardscript", "version": "0.0.1"},
+                "clientInfo": {"name": "wardscript", "version": "0.1.0b1"},
             },
         )
         self._send({"jsonrpc": "2.0", "method": "notifications/initialized"})

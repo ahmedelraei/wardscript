@@ -50,7 +50,7 @@ export class Server {
     this.ready = this.request("initialize", {
       protocolVersion: PROTOCOL_VERSION,
       capabilities: {},
-      clientInfo: { name: "wardscript", version: "0.0.1" },
+      clientInfo: { name: "wardscript", version: "0.1.0-beta.1" },
     }).then(() => this.send({ jsonrpc: "2.0", method: "notifications/initialized" }));
     return this.ready;
   }

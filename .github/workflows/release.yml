@@ -1,0 +1,173 @@
+name: Release
+
+# A `v*` tag builds `ward` for each platform and publishes a GitHub release (a
+# pre-release while the version has a `-beta`/`-rc` suffix). Pull requests that touch
+# the release or the installers build everything and test the installers against the
+# built archives, without publishing.
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - install/**
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, run: true }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm, run: true }
+          - { target: aarch64-apple-darwin, os: macos-latest, run: true }
+          # Cross-compiled on the Apple Silicon runner, so it isn't run here.
+          - { target: x86_64-apple-darwin, os: macos-latest, run: false }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, run: true }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Install musl
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Build
+        shell: bash
+        run: |
+          # ring's C code needs a musl C compiler for the static Linux builds.
+          case "${{ matrix.target }}" in
+            *-musl) export CC="musl-gcc" ;;
+          esac
+          cargo build --release --locked -p ward_cli --target ${{ matrix.target }}
+      - name: Package
+        id: package
+        shell: bash
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          name="ward-v${version}-${{ matrix.target }}"
+          mkdir -p dist stage
+          cp LICENSE-APACHE LICENSE-MIT README.md stage/
+          if [[ "${{ matrix.target }}" == *windows* ]]; then
+            cp "target/${{ matrix.target }}/release/ward.exe" stage/
+            (cd stage && 7z a -tzip "../dist/${name}.zip" . >/dev/null)
+            asset="${name}.zip"
+          else
+            cp "target/${{ matrix.target }}/release/ward" stage/
+            tar -C stage -czf "dist/${name}.tar.gz" .
+            asset="${name}.tar.gz"
+          fi
+          if command -v sha256sum >/dev/null; then sum="sha256sum"; else sum="shasum -a 256"; fi
+          (cd dist && $sum "$asset" > "${asset}.sha256")
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - name: Smoke test
+        if: matrix.run
+        shell: bash
+        run: |
+          ward="stage/ward"; [[ -f stage/ward.exe ]] && ward="stage/ward.exe"
+          "$ward" --version
+          "$ward" check examples/support.wardscript
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ward-${{ matrix.target }}
+          path: dist/*
+
+  installers:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Serve the archives like a release
+        shell: bash
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          mkdir -p "site/v${version}" && cp artifacts/* "site/v${version}/"
+          echo "WARD_VERSION=v${version}" >> "$GITHUB_ENV"
+          echo "WARD_DOWNLOAD_BASE=http://127.0.0.1:8765" >> "$GITHUB_ENV"
+          py="$(command -v python3 || command -v python)"
+          (cd site && nohup "$py" -m http.server 8765 --bind 127.0.0.1 >/dev/null 2>&1 &)
+          sleep 2
+      - name: install.sh
+        if: runner.os != 'Windows'
+        run: |
+          sh install/install.sh
+          "$HOME/.ward/bin/ward" --version
+          grep -q '.ward/bin' "$HOME/.profile"
+          # A second run replaces the binary and doesn't add PATH twice.
+          sh install/install.sh
+          test "$(grep -c '.ward/bin' "$HOME/.profile")" = 1
+      - name: install.sh rejects a corrupted download
+        if: runner.os != 'Windows'
+        run: |
+          f="$(ls site/${WARD_VERSION}/*.tar.gz | head -1)"
+          cp "$f" "$f.bak" && printf 'x' >> "$f"
+          if WARD_INSTALL_DIR="$RUNNER_TEMP/bad" sh install/install.sh; then echo "should have failed"; exit 1; fi
+          mv "$f.bak" "$f"
+      - name: install.ps1
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./install/install.ps1
+          & "$env:USERPROFILE\.ward\bin\ward.exe" --version
+          if ([Environment]::GetEnvironmentVariable('Path', 'User') -notlike "*\.ward\bin*") { throw "PATH not updated" }
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, installers]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Check the tag matches the version
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          test "${GITHUB_REF_NAME}" = "v${version}" || { echo "tag ${GITHUB_REF_NAME} but Cargo.toml says ${version}"; exit 1; }
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat dist/*.sha256 > dist/SHA256SUMS
+          cp install/install.sh install/install.ps1 dist/
+          prerelease=""
+          case "${GITHUB_REF_NAME}" in *-*) prerelease="--prerelease" ;; esac
+          cat > notes.md <<EOF
+          **Beta:** the language and its diagnostics may still change between releases.
+
+          Install on macOS or Linux:
+
+          \`\`\`bash
+          curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/install/install.sh | sh
+          \`\`\`
+
+          Install on Windows (PowerShell):
+
+          \`\`\`powershell
+          irm https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/install/install.ps1 | iex
+          \`\`\`
+
+          Or download the archive for your platform below and check it against \`SHA256SUMS\`.
+          EOF
+          gh release create "${GITHUB_REF_NAME}" dist/* ${prerelease} \
+            --title "Wardscript ${GITHUB_REF_NAME}" --notes-file notes.md

@@ -7,15 +7,42 @@ Python or TypeScript.
 
 ## Install
 
+Wardscript is in **beta**: the language and its diagnostics may still change between
+releases.
+
+On macOS or Linux:
+
 ```bash
-cargo install --path crates/ward_cli                 # the `ward` command
-pip install maturin && (cd crates/ward_runtime/py && maturin build --release -o dist)
-pip install crates/ward_runtime/py/dist/*.whl        # the `wardscript` runtime, for `ward build` output
+curl -fsSL https://raw.githubusercontent.com/ahmedelraei/wardscript/main/install/install.sh | sh
 ```
 
-`ward run` and `ward test` don't need the runtime installed: they bring their own
-copy. For real models, install a provider's SDK (`pip install anthropic` or
-`openai`) and set its API key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`).
+On Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/ahmedelraei/wardscript/main/install/install.ps1 | iex
+```
+
+The installer downloads the newest release for your platform (Linux x86_64 and arm64,
+macOS Apple Silicon and Intel, Windows x86_64), checks it against its SHA-256, puts
+`ward` in `~/.ward/bin` (`%USERPROFILE%\.ward\bin` on Windows) and adds that to your
+PATH. `WARD_VERSION=v0.1.0-beta.1` picks a release, `WARD_INSTALL_DIR` another folder,
+and `WARD_NO_MODIFY_PATH=1` leaves your PATH alone. You can also download an archive
+from the [releases](https://github.com/ahmedelraei/wardscript/releases) and check it
+against `SHA256SUMS`. To uninstall, delete `~/.ward` and the PATH line the installer
+added (it's marked "Added by the Wardscript installer").
+
+`ward run` and `ward test` bring their own copy of the Python runtime. To import
+`ward build` output from your own application, install the `wardscript` runtime from
+source for now:
+
+```bash
+pip install maturin && (cd crates/ward_runtime/py && maturin build --release -o dist)
+pip install crates/ward_runtime/py/dist/*.whl
+```
+
+From source, `cargo install --path crates/ward_cli` builds `ward` itself. For real
+models, install a provider's SDK (`pip install anthropic` or `openai`) and set its API
+key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`).
 
 ## A first program
 
