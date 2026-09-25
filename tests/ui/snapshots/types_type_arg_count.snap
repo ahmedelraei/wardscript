@@ -1,30 +1,30 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_type_arg_count.wardscript
+description: tests/ui/types_type_arg_count.ward
 ---
 exit: Some(1)
 --- human ---
 [W0112] Error: `List` takes 1 type argument but 2 were given
-   ╭─[ tests/ui/types_type_arg_count.wardscript:1:10 ]
+   ╭─[ tests/ui/types_type_arg_count.ward:1:10 ]
    │
  1 │ fn f(xs: List<Int, Int>, y: Option) -> Int {
    │          ───────┬──────  
    │                 ╰──────── expected 1 type argument
 ───╯
 [W0112] Error: `Option` takes 1 type argument but 0 were given
-   ╭─[ tests/ui/types_type_arg_count.wardscript:1:29 ]
+   ╭─[ tests/ui/types_type_arg_count.ward:1:29 ]
    │
  1 │ fn f(xs: List<Int, Int>, y: Option) -> Int {
    │                             ───┬──  
    │                                ╰──── expected 1 type argument
 ───╯
-error: could not check `tests/ui/types_type_arg_count.wardscript` due to 2 errors
+error: could not check `tests/ui/types_type_arg_count.ward` due to 2 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0112",
-      "file": "tests/ui/types_type_arg_count.wardscript",
+      "file": "tests/ui/types_type_arg_count.ward",
       "help": null,
       "labels": [
         {
@@ -61,7 +61,7 @@ error: could not check `tests/ui/types_type_arg_count.wardscript` due to 2 error
     },
     {
       "code": "W0112",
-      "file": "tests/ui/types_type_arg_count.wardscript",
+      "file": "tests/ui/types_type_arg_count.ward",
       "help": null,
       "labels": [
         {
@@ -97,5 +97,5 @@ error: could not check `tests/ui/types_type_arg_count.wardscript` due to 2 error
       }
     }
   ],
-  "file": "tests/ui/types_type_arg_count.wardscript"
+  "file": "tests/ui/types_type_arg_count.ward"
 }

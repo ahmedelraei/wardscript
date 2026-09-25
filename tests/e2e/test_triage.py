@@ -1,4 +1,4 @@
-# ward: examples/triage.wardscript
+# ward: examples/triage.ward
 # M3 acceptance: the mock model's answer comes back as a correctly typed `Ticket`.
 import unittest
 

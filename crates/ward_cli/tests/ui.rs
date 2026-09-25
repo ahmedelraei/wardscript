@@ -1,4 +1,4 @@
-//! Runs `ward check` on every `tests/ui/*.wardscript`, and on `tests/ui/<case>/main.wardscript`
+//! Runs `ward check` on every `tests/ui/*.ward`, and on `tests/ui/<case>/main.ward`
 //! for multi-module cases, and snapshots the human and JSON output.
 
 mod common;

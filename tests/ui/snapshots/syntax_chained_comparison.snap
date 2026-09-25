@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_chained_comparison.wardscript
+description: tests/ui/syntax_chained_comparison.ward
 ---
 exit: Some(1)
 --- human ---
 [W0019] Error: comparison operators can't be chained
-   ╭─[ tests/ui/syntax_chained_comparison.wardscript:2:11 ]
+   ╭─[ tests/ui/syntax_chained_comparison.ward:2:11 ]
    │
  2 │     0 < x < 10
    │       ┬   ┬  
@@ -15,13 +15,13 @@ exit: Some(1)
    │ 
    │ Help: split it with `&&`, e.g. `a < b && b < c`
 ───╯
-error: could not check `tests/ui/syntax_chained_comparison.wardscript` due to 1 error
+error: could not check `tests/ui/syntax_chained_comparison.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0019",
-      "file": "tests/ui/syntax_chained_comparison.wardscript",
+      "file": "tests/ui/syntax_chained_comparison.ward",
       "help": "split it with `&&`, e.g. `a < b && b < c`",
       "labels": [
         {
@@ -73,5 +73,5 @@ error: could not check `tests/ui/syntax_chained_comparison.wardscript` due to 1 
       }
     }
   ],
-  "file": "tests/ui/syntax_chained_comparison.wardscript"
+  "file": "tests/ui/syntax_chained_comparison.ward"
 }

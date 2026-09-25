@@ -1,23 +1,23 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_unknown_field.wardscript
+description: tests/ui/types_unknown_field.ward
 ---
 exit: Some(1)
 --- human ---
 [W0111] Error: no field `titel` on type `Ticket`
-    ╭─[ tests/ui/types_unknown_field.wardscript:12:7 ]
+    ╭─[ tests/ui/types_unknown_field.ward:12:7 ]
     │
  12 │     t.titel
     │       ──┬──  
     │         ╰──── unknown field
 ────╯
-error: could not check `tests/ui/types_unknown_field.wardscript` due to 1 error
+error: could not check `tests/ui/types_unknown_field.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0111",
-      "file": "tests/ui/types_unknown_field.wardscript",
+      "file": "tests/ui/types_unknown_field.ward",
       "help": null,
       "labels": [
         {
@@ -53,5 +53,5 @@ error: could not check `tests/ui/types_unknown_field.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/types_unknown_field.wardscript"
+  "file": "tests/ui/types_unknown_field.ward"
 }

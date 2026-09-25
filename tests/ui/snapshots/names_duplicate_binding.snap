@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/names_duplicate_binding.wardscript
+description: tests/ui/names_duplicate_binding.ward
 ---
 exit: Some(1)
 --- human ---
 [W0103] Error: the binding `a` is defined more than once
-   ╭─[ tests/ui/names_duplicate_binding.wardscript:7:21 ]
+   ╭─[ tests/ui/names_duplicate_binding.ward:7:21 ]
    │
  7 │         Pair.Two(a, a) => a,
    │                  ┬  ┬  
@@ -15,13 +15,13 @@ exit: Some(1)
    │ 
    │ Help: each name can be bound only once per pattern
 ───╯
-error: could not check `tests/ui/names_duplicate_binding.wardscript` due to 1 error
+error: could not check `tests/ui/names_duplicate_binding.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0103",
-      "file": "tests/ui/names_duplicate_binding.wardscript",
+      "file": "tests/ui/names_duplicate_binding.ward",
       "help": "each name can be bound only once per pattern",
       "labels": [
         {
@@ -73,5 +73,5 @@ error: could not check `tests/ui/names_duplicate_binding.wardscript` due to 1 er
       }
     }
   ],
-  "file": "tests/ui/names_duplicate_binding.wardscript"
+  "file": "tests/ui/names_duplicate_binding.ward"
 }

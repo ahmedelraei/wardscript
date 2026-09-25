@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/throws_try_cannot_throw.wardscript
+description: tests/ui/throws_try_cannot_throw.ward
 ---
 exit: Some(0)
 --- human ---
 [W0131] Warning: nothing in this `try` block can throw
-   ╭─[ tests/ui/throws_try_cannot_throw.wardscript:2:5 ]
+   ╭─[ tests/ui/throws_try_cannot_throw.ward:2:5 ]
    │
  2 │     try {
    │     ─┬─  
@@ -13,13 +13,13 @@ exit: Some(0)
    │ 
    │ Help: remove the `try`, or mark calls that throw with `?`
 ───╯
-ok: tests/ui/throws_try_cannot_throw.wardscript (1 warning)
+ok: tests/ui/throws_try_cannot_throw.ward (1 warning)
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0131",
-      "file": "tests/ui/throws_try_cannot_throw.wardscript",
+      "file": "tests/ui/throws_try_cannot_throw.ward",
       "help": "remove the `try`, or mark calls that throw with `?`",
       "labels": [
         {
@@ -55,5 +55,5 @@ ok: tests/ui/throws_try_cannot_throw.wardscript (1 warning)
       }
     }
   ],
-  "file": "tests/ui/throws_try_cannot_throw.wardscript"
+  "file": "tests/ui/throws_try_cannot_throw.ward"
 }

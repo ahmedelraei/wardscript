@@ -1,23 +1,23 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_missing_comma_in_call.wardscript
+description: tests/ui/syntax_missing_comma_in_call.ward
 ---
 exit: Some(1)
 --- human ---
 [W0010] Error: expected `,` or `)`, found `2`
-   ╭─[ tests/ui/syntax_missing_comma_in_call.wardscript:2:11 ]
+   ╭─[ tests/ui/syntax_missing_comma_in_call.ward:2:11 ]
    │
  2 │     add(1 2)
    │           ┬  
    │           ╰── expected `,` or `)`
 ───╯
-error: could not check `tests/ui/syntax_missing_comma_in_call.wardscript` due to 1 error
+error: could not check `tests/ui/syntax_missing_comma_in_call.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0010",
-      "file": "tests/ui/syntax_missing_comma_in_call.wardscript",
+      "file": "tests/ui/syntax_missing_comma_in_call.ward",
       "help": null,
       "labels": [
         {
@@ -53,5 +53,5 @@ error: could not check `tests/ui/syntax_missing_comma_in_call.wardscript` due to
       }
     }
   ],
-  "file": "tests/ui/syntax_missing_comma_in_call.wardscript"
+  "file": "tests/ui/syntax_missing_comma_in_call.ward"
 }

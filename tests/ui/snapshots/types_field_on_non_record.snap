@@ -1,23 +1,23 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_field_on_non_record.wardscript
+description: tests/ui/types_field_on_non_record.ward
 ---
 exit: Some(1)
 --- human ---
 [W0111] Error: no field `value` on type `Int`
-   ╭─[ tests/ui/types_field_on_non_record.wardscript:2:7 ]
+   ╭─[ tests/ui/types_field_on_non_record.ward:2:7 ]
    │
  2 │     n.value
    │       ──┬──  
    │         ╰──── unknown field
 ───╯
-error: could not check `tests/ui/types_field_on_non_record.wardscript` due to 1 error
+error: could not check `tests/ui/types_field_on_non_record.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0111",
-      "file": "tests/ui/types_field_on_non_record.wardscript",
+      "file": "tests/ui/types_field_on_non_record.ward",
       "help": null,
       "labels": [
         {
@@ -53,5 +53,5 @@ error: could not check `tests/ui/types_field_on_non_record.wardscript` due to 1 
       }
     }
   ],
-  "file": "tests/ui/types_field_on_non_record.wardscript"
+  "file": "tests/ui/types_field_on_non_record.ward"
 }

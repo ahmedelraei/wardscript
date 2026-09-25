@@ -1,4 +1,4 @@
-# ward: tests/e2e/semantics.wardscript
+# ward: tests/e2e/semantics.ward
 import unittest
 
 import semantics as s

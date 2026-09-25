@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/names_unknown_type.wardscript
+description: tests/ui/names_unknown_type.ward
 ---
 exit: Some(1)
 --- human ---
 [W0101] Error: cannot find type `Tiket`
-   ╭─[ tests/ui/names_unknown_type.wardscript:5:9 ]
+   ╭─[ tests/ui/names_unknown_type.ward:5:9 ]
    │
  5 │ fn f(t: Tiket) -> String {
    │         ──┬──  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: a similar name exists: `Ticket`
 ───╯
-error: could not check `tests/ui/names_unknown_type.wardscript` due to 1 error
+error: could not check `tests/ui/names_unknown_type.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0101",
-      "file": "tests/ui/names_unknown_type.wardscript",
+      "file": "tests/ui/names_unknown_type.ward",
       "help": "a similar name exists: `Ticket`",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/names_unknown_type.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/names_unknown_type.wardscript"
+  "file": "tests/ui/names_unknown_type.ward"
 }

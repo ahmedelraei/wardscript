@@ -10,10 +10,10 @@ is recorded in decisions [006](../decisions/006-python-backend.md),
 ## Building
 
 ```bash
-ward build app.wardscript -o build      # build/app.py, build/app.pyi
-ward build app.wardscript --async       # async def functions, for asyncio hosts
-ward run app.wardscript route '"an email"' --mock answers.json
-ward run app.wardscript route '"an email"' --model anthropic
+ward build app.ward -o build      # build/app.py, build/app.pyi
+ward build app.ward --async       # async def functions, for asyncio hosts
+ward run app.ward route '"an email"' --mock answers.json
+ward run app.ward route '"an email"' --model anthropic
 ward trace show                         # the latest run's trace
 ```
 
@@ -120,9 +120,9 @@ Every record has `run`, `seq`, `time` (Unix nanoseconds) and a `kind`:
 cleared it to where it came from, without the trace holding more than the events:
 
 ```text
-#4   tool   `gmail.send` at support.wardscript:61:9
+#4   tool   `gmail.send` at support.ward:61:9
          arg 1: "ada@example.com" ← argument `to` from the host, vouched for by the host
-         arg 2: "Your refund" ← $.subject of a value approved by a human (#3, support.wardscript:60:24) ← that value: the output of `ai fn draft_reply` (#2), untrusted
+         arg 2: "Your refund" ← $.subject of a value approved by a human (#3, support.ward:60:24) ← that value: the output of `ai fn draft_reply` (#2), untrusted
 ```
 
 A value computed from several sources (a concatenation) has no exact match, and is
@@ -308,7 +308,7 @@ defaults.
   the JSON `schema` of the return type, the `attempt` number and the `errors` of
   earlier attempts; `request.instructions()` combines them into one prompt.
 - **`approver`**: called by `approve(x)` with an `ApprovalRequest(value, site, run)`;
-  `site` is where `approve` was written, e.g. `support.wardscript:60:24`, and `run`
+  `site` is where `approve` was written, e.g. `support.ward:60:24`, and `run`
   the id of the run's trace. Returning `False` raises `ApprovalDenied`. It may be
   `async`: the program waits for the coroutine, on its own event loop (in a worker
   thread if one is already running). A model's `complete` may be `async` too.

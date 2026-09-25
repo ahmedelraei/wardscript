@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_function_as_value.wardscript
+description: tests/ui/types_function_as_value.ward
 ---
 exit: Some(1)
 --- human ---
 [W0124] Error: function `helper` can't be used as a value
-   ╭─[ tests/ui/types_function_as_value.wardscript:6:13 ]
+   ╭─[ tests/ui/types_function_as_value.ward:6:13 ]
    │
  6 │     let g = helper
    │             ───┬──  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: call it: `helper(...)`
 ───╯
-error: could not check `tests/ui/types_function_as_value.wardscript` due to 1 error
+error: could not check `tests/ui/types_function_as_value.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0124",
-      "file": "tests/ui/types_function_as_value.wardscript",
+      "file": "tests/ui/types_function_as_value.ward",
       "help": "call it: `helper(...)`",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/types_function_as_value.wardscript` due to 1 er
       }
     }
   ],
-  "file": "tests/ui/types_function_as_value.wardscript"
+  "file": "tests/ui/types_function_as_value.ward"
 }

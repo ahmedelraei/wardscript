@@ -1,29 +1,29 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/names_duplicate_item.wardscript
+description: tests/ui/names_duplicate_item.ward
 ---
 exit: Some(1)
 --- human ---
 [W0103] Error: the name `helper` is defined more than once
-   ╭─[ tests/ui/names_duplicate_item.wardscript:5:4 ]
+   ╭─[ tests/ui/names_duplicate_item.ward:5:4 ]
    │
  5 │ fn helper() -> Int {
    │    ───┬──  
    │       ╰──── redefined here
    │
-   ├─[ tests/ui/names_duplicate_item.wardscript:5:4 ]
+   ├─[ tests/ui/names_duplicate_item.ward:5:4 ]
    │
  1 │ fn helper() -> Int {
    │    ───┬──  
    │       ╰──── first defined here
 ───╯
-error: could not check `tests/ui/names_duplicate_item.wardscript` due to 1 error
+error: could not check `tests/ui/names_duplicate_item.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0103",
-      "file": "tests/ui/names_duplicate_item.wardscript",
+      "file": "tests/ui/names_duplicate_item.ward",
       "help": null,
       "labels": [
         {
@@ -75,5 +75,5 @@ error: could not check `tests/ui/names_duplicate_item.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/names_duplicate_item.wardscript"
+  "file": "tests/ui/names_duplicate_item.ward"
 }

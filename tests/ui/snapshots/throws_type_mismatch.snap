@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/throws_type_mismatch.wardscript
+description: tests/ui/throws_type_mismatch.ward
 ---
 exit: Some(1)
 --- human ---
 [W0110] Error: this throws `String`, but `f` declares `throws Int`
-   ╭─[ tests/ui/throws_type_mismatch.wardscript:6:5 ]
+   ╭─[ tests/ui/throws_type_mismatch.ward:6:5 ]
    │
  6 │     parse(s)?
    │     ────┬────  
@@ -14,7 +14,7 @@ exit: Some(1)
    │ Help: catch it with `try { ... } catch err { ... }`, or change `f` to `throws String`
 ───╯
 [W0110] Error: this throws `Int`, but the enclosing `try` already catches `String`
-    ╭─[ tests/ui/throws_type_mismatch.wardscript:12:9 ]
+    ╭─[ tests/ui/throws_type_mismatch.ward:12:9 ]
     │
  12 │         throw 42
     │         ────┬───  
@@ -22,13 +22,13 @@ exit: Some(1)
     │ 
     │ Help: one `try` block catches one error type
 ────╯
-error: could not check `tests/ui/throws_type_mismatch.wardscript` due to 2 errors
+error: could not check `tests/ui/throws_type_mismatch.ward` due to 2 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0110",
-      "file": "tests/ui/throws_type_mismatch.wardscript",
+      "file": "tests/ui/throws_type_mismatch.ward",
       "help": "catch it with `try { ... } catch err { ... }`, or change `f` to `throws String`",
       "labels": [
         {
@@ -65,7 +65,7 @@ error: could not check `tests/ui/throws_type_mismatch.wardscript` due to 2 error
     },
     {
       "code": "W0110",
-      "file": "tests/ui/throws_type_mismatch.wardscript",
+      "file": "tests/ui/throws_type_mismatch.ward",
       "help": "one `try` block catches one error type",
       "labels": [
         {
@@ -101,5 +101,5 @@ error: could not check `tests/ui/throws_type_mismatch.wardscript` due to 2 error
       }
     }
   ],
-  "file": "tests/ui/throws_type_mismatch.wardscript"
+  "file": "tests/ui/throws_type_mismatch.ward"
 }

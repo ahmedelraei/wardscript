@@ -1,4 +1,4 @@
-# ward: tests/e2e/modules/main.wardscript
+# ward: tests/e2e/modules/main.ward
 import unittest
 
 import main

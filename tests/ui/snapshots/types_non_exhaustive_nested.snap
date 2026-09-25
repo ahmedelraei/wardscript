@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_non_exhaustive_nested.wardscript
+description: tests/ui/types_non_exhaustive_nested.ward
 ---
 exit: Some(1)
 --- human ---
 [W0117] Error: non-exhaustive match: `Some(Priority.High)` not covered
-    ╭─[ tests/ui/types_non_exhaustive_nested.wardscript:12:11 ]
+    ╭─[ tests/ui/types_non_exhaustive_nested.ward:12:11 ]
     │
  12 │     match p {
     │           ┬  
@@ -13,13 +13,13 @@ exit: Some(1)
     │ 
     │ Help: add an arm for it, or a catch-all arm `_ => ...`
 ────╯
-error: could not check `tests/ui/types_non_exhaustive_nested.wardscript` due to 1 error
+error: could not check `tests/ui/types_non_exhaustive_nested.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0117",
-      "file": "tests/ui/types_non_exhaustive_nested.wardscript",
+      "file": "tests/ui/types_non_exhaustive_nested.ward",
       "help": "add an arm for it, or a catch-all arm `_ => ...`",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/types_non_exhaustive_nested.wardscript` due to 
       }
     }
   ],
-  "file": "tests/ui/types_non_exhaustive_nested.wardscript"
+  "file": "tests/ui/types_non_exhaustive_nested.ward"
 }

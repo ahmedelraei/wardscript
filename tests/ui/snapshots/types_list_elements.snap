@@ -1,23 +1,23 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_list_elements.wardscript
+description: tests/ui/types_list_elements.ward
 ---
 exit: Some(1)
 --- human ---
 [W0110] Error: mismatched types: expected `Int`, found `String`
-   ╭─[ tests/ui/types_list_elements.wardscript:2:12 ]
+   ╭─[ tests/ui/types_list_elements.ward:2:12 ]
    │
  2 │     [1, 2, "three"]
    │            ───┬───  
    │               ╰───── expected `Int`, found `String`
 ───╯
-error: could not check `tests/ui/types_list_elements.wardscript` due to 1 error
+error: could not check `tests/ui/types_list_elements.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0110",
-      "file": "tests/ui/types_list_elements.wardscript",
+      "file": "tests/ui/types_list_elements.ward",
       "help": null,
       "labels": [
         {
@@ -53,5 +53,5 @@ error: could not check `tests/ui/types_list_elements.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/types_list_elements.wardscript"
+  "file": "tests/ui/types_list_elements.ward"
 }

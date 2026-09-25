@@ -1,4 +1,4 @@
-// ward: examples/support.wardscript
+// ward: examples/support.ward
 // Tools, approvals, validation, vouching and the audit trace, from TypeScript.
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, readdirSync } from "node:fs";
@@ -52,7 +52,7 @@ test("urgent tickets need approval", async () => {
   assert.equal(await support.handle("...", ADA), "sent after review: late parcel");
   assert.equal(approvals.length, 1);
   assert.deepEqual(approvals[0]?.value, { subject: "Hi", body: "see https://x" });
-  assert.equal(approvals[0]?.site, "support.wardscript:60:24");
+  assert.equal(approvals[0]?.site, "support.ward:60:24");
 });
 
 test("a denied approval stops the run", async () => {

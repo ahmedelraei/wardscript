@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_ai_missing_return_type.wardscript
+description: tests/ui/syntax_ai_missing_return_type.ward
 ---
 exit: Some(1)
 --- human ---
 [W0017] Error: `ai fn summarize` has no return type
-   ╭─[ tests/ui/syntax_ai_missing_return_type.wardscript:1:7 ]
+   ╭─[ tests/ui/syntax_ai_missing_return_type.ward:1:7 ]
    │
  1 │ ai fn summarize(text: String) {
    │       ────┬────  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: the model's answer is parsed and validated against the return type, e.g. `-> Ticket`
 ───╯
-error: could not check `tests/ui/syntax_ai_missing_return_type.wardscript` due to 1 error
+error: could not check `tests/ui/syntax_ai_missing_return_type.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0017",
-      "file": "tests/ui/syntax_ai_missing_return_type.wardscript",
+      "file": "tests/ui/syntax_ai_missing_return_type.ward",
       "help": "the model's answer is parsed and validated against the return type, e.g. `-> Ticket`",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/syntax_ai_missing_return_type.wardscript` due t
       }
     }
   ],
-  "file": "tests/ui/syntax_ai_missing_return_type.wardscript"
+  "file": "tests/ui/syntax_ai_missing_return_type.ward"
 }

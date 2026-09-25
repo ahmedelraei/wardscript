@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_validate_rule.wardscript
+description: tests/ui/types_validate_rule.ward
 ---
 exit: Some(1)
 --- human ---
 [W0123] Error: `validate` needs a rule: a function `fn(String) -> Bool`
-   ╭─[ tests/ui/types_validate_rule.wardscript:6:20 ]
+   ╭─[ tests/ui/types_validate_rule.ward:6:20 ]
    │
  6 │     validate(text, is_short)?
    │                    ────┬───  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: declare one, e.g. `fn is_valid(x: String) -> Bool { ... }`, and pass its name
 ───╯
-error: could not check `tests/ui/types_validate_rule.wardscript` due to 1 error
+error: could not check `tests/ui/types_validate_rule.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0123",
-      "file": "tests/ui/types_validate_rule.wardscript",
+      "file": "tests/ui/types_validate_rule.ward",
       "help": "declare one, e.g. `fn is_valid(x: String) -> Bool { ... }`, and pass its name",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/types_validate_rule.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/types_validate_rule.wardscript"
+  "file": "tests/ui/types_validate_rule.ward"
 }

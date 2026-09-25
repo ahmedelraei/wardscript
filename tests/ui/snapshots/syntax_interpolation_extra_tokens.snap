@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_interpolation_extra_tokens.wardscript
+description: tests/ui/syntax_interpolation_extra_tokens.ward
 ---
 exit: Some(1)
 --- human ---
 [W0004] Error: unexpected `b` in interpolation
-   ╭─[ tests/ui/syntax_interpolation_extra_tokens.wardscript:2:15 ]
+   ╭─[ tests/ui/syntax_interpolation_extra_tokens.ward:2:15 ]
    │
  2 │     "pair: {a b}"
    │               ┬  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: an interpolation holds a single expression
 ───╯
-error: could not check `tests/ui/syntax_interpolation_extra_tokens.wardscript` due to 1 error
+error: could not check `tests/ui/syntax_interpolation_extra_tokens.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0004",
-      "file": "tests/ui/syntax_interpolation_extra_tokens.wardscript",
+      "file": "tests/ui/syntax_interpolation_extra_tokens.ward",
       "help": "an interpolation holds a single expression",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/syntax_interpolation_extra_tokens.wardscript` d
       }
     }
   ],
-  "file": "tests/ui/syntax_interpolation_extra_tokens.wardscript"
+  "file": "tests/ui/syntax_interpolation_extra_tokens.ward"
 }

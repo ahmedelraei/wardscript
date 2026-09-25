@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_cyclic_alias.wardscript
+description: tests/ui/types_cyclic_alias.ward
 ---
 exit: Some(1)
 --- human ---
 [W0125] Error: type alias `A` refers to itself
-   ╭─[ tests/ui/types_cyclic_alias.wardscript:1:6 ]
+   ╭─[ tests/ui/types_cyclic_alias.ward:1:6 ]
    │
  1 │ type A = List<B>
    │      ┬  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: use a record or enum to define a recursive type
 ───╯
-error: could not check `tests/ui/types_cyclic_alias.wardscript` due to 1 error
+error: could not check `tests/ui/types_cyclic_alias.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0125",
-      "file": "tests/ui/types_cyclic_alias.wardscript",
+      "file": "tests/ui/types_cyclic_alias.ward",
       "help": "use a record or enum to define a recursive type",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/types_cyclic_alias.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/types_cyclic_alias.wardscript"
+  "file": "tests/ui/types_cyclic_alias.ward"
 }

@@ -213,7 +213,7 @@ pub struct Local {
     pub ty: Ty,
 }
 
-/// Where in the source a trust decision is made, e.g. `support.wardscript:58:23`.
+/// Where in the source a trust decision is made, e.g. `support.ward:58:23`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Site {
     pub path: String,

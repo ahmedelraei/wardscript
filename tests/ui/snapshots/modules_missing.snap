@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/modules_missing.wardscript
+description: tests/ui/modules_missing.ward
 ---
 exit: Some(1)
 --- human ---
 [W0102] Error: cannot find module `support.tickets`
-   ╭─[ tests/ui/modules_missing.wardscript:1:8 ]
+   ╭─[ tests/ui/modules_missing.ward:1:8 ]
    │
  1 │ import support.tickets
    │        ───────┬───────  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: looked for `tests/ui/support/tickets.ward` and `tests/ui/support/tickets.wardscript`
 ───╯
-error: could not check `tests/ui/modules_missing.wardscript` due to 1 error
+error: could not check `tests/ui/modules_missing.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0102",
-      "file": "tests/ui/modules_missing.wardscript",
+      "file": "tests/ui/modules_missing.ward",
       "help": "looked for `tests/ui/support/tickets.ward` and `tests/ui/support/tickets.wardscript`",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/modules_missing.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/modules_missing.wardscript"
+  "file": "tests/ui/modules_missing.ward"
 }

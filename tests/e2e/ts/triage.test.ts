@@ -1,4 +1,4 @@
-// ward: examples/triage.wardscript
+// ward: examples/triage.ward
 // A mock model's answer comes back as a typed `Ticket`, from TypeScript.
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";

@@ -1,3 +1,4 @@
 # Temporary: GitHub's Linguist doesn't know Wardscript yet, and Rust's grammar is the
 # closest match. Remove once Wardscript has its own grammar (see PLAN.md, M8).
+*.ward linguist-language=Rust
 *.wardscript linguist-language=Rust

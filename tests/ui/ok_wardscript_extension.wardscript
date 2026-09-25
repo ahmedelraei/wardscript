@@ -1,0 +1,4 @@
+// The legacy `.wardscript` extension still checks, like `.ward`.
+pub fn hello() -> String {
+    "hello"
+}

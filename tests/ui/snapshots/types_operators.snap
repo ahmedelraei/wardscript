@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_operators.wardscript
+description: tests/ui/types_operators.ward
 ---
 exit: Some(1)
 --- human ---
 [W0119] Error: `-` can't be applied to `String`
-   ╭─[ tests/ui/types_operators.wardscript:2:13 ]
+   ╭─[ tests/ui/types_operators.ward:2:13 ]
    │
  2 │     let a = name - 1
    │             ──┬─  
@@ -14,26 +14,26 @@ exit: Some(1)
    │ Help: `-` works on numbers
 ───╯
 [W0110] Error: mismatched types: expected `Int`, found `Float`
-   ╭─[ tests/ui/types_operators.wardscript:3:17 ]
+   ╭─[ tests/ui/types_operators.ward:3:17 ]
    │
  3 │     let b = n + 2.5
    │                 ─┬─  
    │                  ╰─── expected `Int`, found `Float`
 ───╯
 [W0110] Error: mismatched types: expected `Bool`, found `Int`
-   ╭─[ tests/ui/types_operators.wardscript:4:14 ]
+   ╭─[ tests/ui/types_operators.ward:4:14 ]
    │
  4 │     let c = !n
    │              ┬  
    │              ╰── expected `Bool`, found `Int`
 ───╯
-error: could not check `tests/ui/types_operators.wardscript` due to 3 errors
+error: could not check `tests/ui/types_operators.ward` due to 3 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0119",
-      "file": "tests/ui/types_operators.wardscript",
+      "file": "tests/ui/types_operators.ward",
       "help": "`-` works on numbers",
       "labels": [
         {
@@ -70,7 +70,7 @@ error: could not check `tests/ui/types_operators.wardscript` due to 3 errors
     },
     {
       "code": "W0110",
-      "file": "tests/ui/types_operators.wardscript",
+      "file": "tests/ui/types_operators.ward",
       "help": null,
       "labels": [
         {
@@ -107,7 +107,7 @@ error: could not check `tests/ui/types_operators.wardscript` due to 3 errors
     },
     {
       "code": "W0110",
-      "file": "tests/ui/types_operators.wardscript",
+      "file": "tests/ui/types_operators.ward",
       "help": null,
       "labels": [
         {
@@ -143,5 +143,5 @@ error: could not check `tests/ui/types_operators.wardscript` due to 3 errors
       }
     }
   ],
-  "file": "tests/ui/types_operators.wardscript"
+  "file": "tests/ui/types_operators.ward"
 }

@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_invalid_assignment.wardscript
+description: tests/ui/types_invalid_assignment.ward
 ---
 exit: Some(1)
 --- human ---
 [W0126] Error: cannot assign to `helper`
-   ╭─[ tests/ui/types_invalid_assignment.wardscript:6:5 ]
+   ╭─[ tests/ui/types_invalid_assignment.ward:6:5 ]
    │
  6 │     helper = 2
    │     ───┬──  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: only variables, fields and list elements can be assigned to
 ───╯
-error: could not check `tests/ui/types_invalid_assignment.wardscript` due to 1 error
+error: could not check `tests/ui/types_invalid_assignment.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0126",
-      "file": "tests/ui/types_invalid_assignment.wardscript",
+      "file": "tests/ui/types_invalid_assignment.ward",
       "help": "only variables, fields and list elements can be assigned to",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/types_invalid_assignment.wardscript` due to 1 e
       }
     }
   ],
-  "file": "tests/ui/types_invalid_assignment.wardscript"
+  "file": "tests/ui/types_invalid_assignment.ward"
 }

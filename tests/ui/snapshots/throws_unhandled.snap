@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/throws_unhandled.wardscript
+description: tests/ui/throws_unhandled.ward
 ---
 exit: Some(1)
 --- human ---
 [W0129] Error: `String` is thrown here but never caught
-   ╭─[ tests/ui/throws_unhandled.wardscript:6:5 ]
+   ╭─[ tests/ui/throws_unhandled.ward:6:5 ]
    │
  6 │     parse(s)?
    │     ────┬────  
@@ -14,7 +14,7 @@ exit: Some(1)
    │ Help: catch it with `try { ... } catch err { ... }`, or declare it on `f`: `-> T throws String`
 ───╯
 [W0129] Error: `String` is thrown here but never caught
-    ╭─[ tests/ui/throws_unhandled.wardscript:10:5 ]
+    ╭─[ tests/ui/throws_unhandled.ward:10:5 ]
     │
  10 │     throw "boom"
     │     ──────┬─────  
@@ -22,13 +22,13 @@ exit: Some(1)
     │ 
     │ Help: catch it with `try { ... } catch err { ... }`, or declare it on `g`: `-> T throws String`
 ────╯
-error: could not check `tests/ui/throws_unhandled.wardscript` due to 2 errors
+error: could not check `tests/ui/throws_unhandled.ward` due to 2 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0129",
-      "file": "tests/ui/throws_unhandled.wardscript",
+      "file": "tests/ui/throws_unhandled.ward",
       "help": "catch it with `try { ... } catch err { ... }`, or declare it on `f`: `-> T throws String`",
       "labels": [
         {
@@ -65,7 +65,7 @@ error: could not check `tests/ui/throws_unhandled.wardscript` due to 2 errors
     },
     {
       "code": "W0129",
-      "file": "tests/ui/throws_unhandled.wardscript",
+      "file": "tests/ui/throws_unhandled.ward",
       "help": "catch it with `try { ... } catch err { ... }`, or declare it on `g`: `-> T throws String`",
       "labels": [
         {
@@ -101,5 +101,5 @@ error: could not check `tests/ui/throws_unhandled.wardscript` due to 2 errors
       }
     }
   ],
-  "file": "tests/ui/throws_unhandled.wardscript"
+  "file": "tests/ui/throws_unhandled.ward"
 }

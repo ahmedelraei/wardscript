@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_unclosed_block.wardscript
+description: tests/ui/syntax_unclosed_block.ward
 ---
 exit: Some(1)
 --- human ---
 [W0021] Error: unclosed `{`
-   ╭─[ tests/ui/syntax_unclosed_block.wardscript:1:15 ]
+   ╭─[ tests/ui/syntax_unclosed_block.ward:1:15 ]
    │
  1 │ fn f() -> Int {
    │               ┬  
@@ -15,13 +15,13 @@ exit: Some(1)
    │ ─┬  
    │  ╰── expected `}` before `fn`
 ───╯
-error: could not check `tests/ui/syntax_unclosed_block.wardscript` due to 1 error
+error: could not check `tests/ui/syntax_unclosed_block.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0021",
-      "file": "tests/ui/syntax_unclosed_block.wardscript",
+      "file": "tests/ui/syntax_unclosed_block.ward",
       "help": null,
       "labels": [
         {
@@ -73,5 +73,5 @@ error: could not check `tests/ui/syntax_unclosed_block.wardscript` due to 1 erro
       }
     }
   ],
-  "file": "tests/ui/syntax_unclosed_block.wardscript"
+  "file": "tests/ui/syntax_unclosed_block.ward"
 }
