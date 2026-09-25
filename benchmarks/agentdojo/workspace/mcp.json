@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "workspace": {
+      "command": "python3",
+      "args": ["workspace_server.py"]
+    }
+  }
+}

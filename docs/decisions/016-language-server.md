@@ -22,5 +22,5 @@
 ## Not done
 
 - Incremental checking (`salsa`); every change re-checks the file and its imports.
-- Completion, rename, find references, formatting (the printer drops comments).
+- Completion, rename, find references. (Formatting came later with `ward fmt`, which keeps comments.)
 - Publishing to the VS Code Marketplace.

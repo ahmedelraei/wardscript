@@ -163,7 +163,7 @@ BAML defines tests in its files and runs them with `baml-cli test`.
 ## M11: Proof and polish (ongoing)
 - [x] Typed streaming of partial decoded values (`configure(on_partial=...)`, `wardscript.partial`).
 - [x] TypeScript backend (`ward_codegen_ts`, `ward build --target typescript`) with a runtime written in TypeScript (`crates/ward_runtime/ts`) instead of a napi-rs binding; decision 017.
-- AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility). Banking and Slack done (`benchmarks/agentdojo`, decision 018): 16/16 and 21/21 tasks, 0/144 and 0/105 attacks past a careful approver; workspace and travel remain.
+- AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility). Banking, Slack and workspace done (`benchmarks/agentdojo`, decision 018): 77/77 tasks, 0/489 attacks past a careful approver; blind ports by an author who didn't see the attacks: 71/77 tasks, 4/489 (both through a declared `@not_sink` or a format-only check). Travel and a real-model run remain.
 - [x] LSP (`ward lsp`: diagnostics, hover, go to definition) + VS Code extension (`editors/vscode`); decision 016.
 - [x] `ward fmt` (and LSP formatting): the printer keeps comments and blank lines between statements.
 - `salsa` for incremental checking.
