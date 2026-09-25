@@ -1,0 +1,105 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/tools_unlocked/main.ward
+---
+exit: Some(1)
+--- human ---
+[W0221] Error: `@sink` needs the tool's schema
+   ╭─[ tests/ui/tools_unlocked/main.ward:3:2 ]
+   │
+ 3 │ @sink(fetch.url)
+   │  ──┬─  
+   │    ╰─── this tool isn't in `ward.lock`
+   │ 
+   │ Help: add the server to `mcp.json` and run `ward lock`; without a schema every argument is a sink
+───╯
+[W0301] Warning: `web` isn't in `tests/ui/tools_unlocked/ward.lock`, so its calls aren't typed
+   ╭─[ tests/ui/tools_unlocked/main.ward:4:12 ]
+   │
+ 4 │ import mcp "web" as web
+   │            ──┬──  
+   │              ╰──── no schema for this tool
+   │ 
+   │ Help: add a server `web` to `mcp.json` and run `ward lock`
+───╯
+error: could not check `tests/ui/tools_unlocked/main.ward` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0221",
+      "file": "tests/ui/tools_unlocked/main.ward",
+      "help": "add the server to `mcp.json` and run `ward lock`; without a schema every argument is a sink",
+      "labels": [
+        {
+          "message": "this tool isn't in `ward.lock`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 6,
+              "line": 3,
+              "offset": 116
+            },
+            "start": {
+              "column": 2,
+              "line": 3,
+              "offset": 112
+            }
+          }
+        }
+      ],
+      "message": "`@sink` needs the tool's schema",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 3,
+          "offset": 116
+        },
+        "start": {
+          "column": 2,
+          "line": 3,
+          "offset": 112
+        }
+      }
+    },
+    {
+      "code": "W0301",
+      "file": "tests/ui/tools_unlocked/main.ward",
+      "help": "add a server `web` to `mcp.json` and run `ward lock`",
+      "labels": [
+        {
+          "message": "no schema for this tool",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 4,
+              "offset": 144
+            },
+            "start": {
+              "column": 12,
+              "line": 4,
+              "offset": 139
+            }
+          }
+        }
+      ],
+      "message": "`web` isn't in `tests/ui/tools_unlocked/ward.lock`, so its calls aren't typed",
+      "severity": "warning",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 4,
+          "offset": 144
+        },
+        "start": {
+          "column": 12,
+          "line": 4,
+          "offset": 139
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/tools_unlocked/main.ward"
+}

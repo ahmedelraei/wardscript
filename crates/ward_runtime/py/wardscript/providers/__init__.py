@@ -9,9 +9,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
-from typing import Any
+from typing import Any, Iterator
 
+from ..errors import ModelError, ModelUnavailable, RateLimited
 from ..model import Model
 
 PROVIDERS = ("anthropic", "openai")
@@ -49,11 +51,42 @@ def object_schema(schema: dict) -> dict:
     return wrapped
 
 
-def cost(prices: tuple[float, float] | None, input_tokens: int, output_tokens: int) -> float:
-    """Dollars, from prices per million input and output tokens; 0 without prices."""
+def cost(prices: tuple[float, float] | None, input_tokens: int, output_tokens: int) -> float | None:
+    """Dollars, from prices per million input and output tokens; unknown without prices."""
     if prices is None:
-        return 0.0
+        return None
     return (input_tokens * prices[0] + output_tokens * prices[1]) / 1_000_000
+
+
+def model_error(e: Exception) -> ModelError | None:
+    """The runtime's error for an SDK exception, by its HTTP status or its kind (both
+    SDKs name them alike); `None` for anything else, which is raised as it is."""
+    status = getattr(e, "status_code", None)
+    kind = type(e).__name__
+    message = f"{kind}: {e}"
+    if status == 429 or kind == "RateLimitError":
+        return RateLimited(message, status=status)
+    if kind in ("APITimeoutError", "APIConnectionError") or (
+        isinstance(status, int) and status >= 500
+    ):
+        return ModelUnavailable(message, status=status)
+    if isinstance(status, int):
+        return ModelError(message, status=status)
+    return None
+
+
+@contextlib.contextmanager
+def provider_errors() -> Iterator[None]:
+    """Turns SDK exceptions into `ModelError`s, so the runtime can retry or fall back."""
+    try:
+        yield
+    except ModelError:
+        raise
+    except Exception as e:
+        error = model_error(e)
+        if error is None:
+            raise
+        raise error from e
 
 
 def prompt_text(request: Any) -> str:

@@ -11,15 +11,21 @@ from .errors import (
     AiOutputError,
     ApprovalDenied,
     BudgetExceeded,
+    BudgetUnenforceable,
     DecodeError,
+    ModelError,
+    ModelUnavailable,
     NoModelError,
     PanicError,
+    RateLimited,
+    TestFailure,
     Thrown,
     ToolError,
     TrustError,
     WardError,
 )
 from .model import AiRequest, Completion, Model, StreamChunk, StreamingModel
+from .partial import Partial, PartialValue
 from .runtime import ApprovalRequest, configure
 from .schema import decode, encode, json_schema
 from .trust import Trusted
@@ -31,14 +37,21 @@ __all__ = [
     "ApprovalDenied",
     "ApprovalRequest",
     "BudgetExceeded",
+    "BudgetUnenforceable",
     "Completion",
     "DecodeError",
     "Model",
+    "ModelError",
+    "ModelUnavailable",
     "NoModelError",
     "PanicError",
+    "Partial",
+    "PartialValue",
+    "RateLimited",
     "Some",
     "StreamChunk",
     "StreamingModel",
+    "TestFailure",
     "Thrown",
     "ToolError",
     "Trusted",

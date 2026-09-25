@@ -59,8 +59,19 @@ impl Budget {
         over(self.0.charge_call())
     }
 
-    fn charge_usage(&mut self, tokens: f64, cost: f64) -> Over {
+    #[pyo3(signature = (tokens, cost=None))]
+    fn charge_usage(&mut self, tokens: f64, cost: Option<f64>) -> Over {
         over(self.0.charge_usage(tokens, cost))
+    }
+
+    #[getter]
+    fn limits_cost(&self) -> bool {
+        self.0.limits_cost()
+    }
+
+    #[pyo3(signature = (cost=None))]
+    fn unenforceable(&self, cost: Option<f64>) -> bool {
+        self.0.unenforceable(cost)
     }
 
     fn check_time(&self) -> Over {

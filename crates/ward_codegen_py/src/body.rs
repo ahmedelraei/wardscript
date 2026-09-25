@@ -153,7 +153,29 @@ impl<'a, 'p> FnGen<'a, 'p> {
                     self.line("pass");
                 }
             }
-            Body::Ai { prompt } => {
+            Body::Ai { prompt, checks, it } => {
+                // `check {...}` becomes a function of the answer: the first failed
+                // check's reason, or `None`.
+                let check = match (checks.is_empty(), it) {
+                    (false, Some(it)) => {
+                        let name = self.fresh();
+                        let def = if self.asyncio { "async def" } else { "def" };
+                        let it = self.local(*it).to_owned();
+                        self.line(format!("{def} {name}({it}):"));
+                        self.nested(|g| {
+                            for c in checks {
+                                let cond = g.expr(c.cond);
+                                g.line(format!("if not {}:", cond.at(ATOM)));
+                                g.nested(|g| {
+                                    g.line(format!("return {}", names::string(&c.reason)))
+                                });
+                            }
+                            g.line("return None");
+                        });
+                        Some(name)
+                    }
+                    _ => None,
+                };
                 let prompt = self.expr(*prompt);
                 let returns = self.scope.descriptor(&f.ret);
                 let call = if self.asyncio {
@@ -161,8 +183,32 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 } else {
                     "_rt.ai"
                 };
+                let mut policy = String::new();
+                if let Some(m) = &f.model {
+                    if m.models.len() > 1 || m.models.first().is_some_and(Option::is_some) {
+                        let models: Vec<String> = m
+                            .models
+                            .iter()
+                            .map(|a| a.as_deref().map_or("None".to_owned(), names::string))
+                            .collect();
+                        let models = match models.len() {
+                            1 => format!("({},)", models[0]),
+                            _ => format!("({})", models.join(", ")),
+                        };
+                        policy.push_str(&format!(", models={models}"));
+                    }
+                    if let Some(r) = m.retries {
+                        policy.push_str(&format!(", retries={r}"));
+                    }
+                    if let Some(b) = m.backoff {
+                        policy.push_str(&format!(", backoff={b:?}"));
+                    }
+                }
+                if let Some(check) = check {
+                    policy.push_str(&format!(", check={check}"));
+                }
                 self.line(format!(
-                    "return {call}({}, {}, {returns})",
+                    "return {call}({}, {}, {returns}{policy})",
                     names::string(&f.name),
                     prompt.text
                 ));
@@ -407,6 +453,21 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 let value = self.expr(*e);
                 self.line(format!("raise _rt.Thrown({})", value.text));
             }
+            Stmt::Assert {
+                cond,
+                message,
+                site,
+            } => {
+                let c = self.expr(*cond);
+                self.line(format!("if not {}:", c.at(ATOM)));
+                self.nested(|g| {
+                    g.line(format!(
+                        "raise _rt.TestFailure({}, {})",
+                        names::string(message),
+                        names::string(&site.to_string())
+                    ));
+                });
+            }
             Stmt::For { local, iter, body } => {
                 let iter = self.expr(*iter);
                 let name = self.local(*local).to_owned();
@@ -644,6 +705,7 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 name,
                 args,
                 site,
+                schema,
             } => {
                 let source = self
                     .scope
@@ -658,6 +720,29 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 let args = self.args(args);
                 if !args.is_empty() {
                     parts.push(args);
+                }
+                if let Some(s) = schema {
+                    let tuple = |items: Vec<String>| match items.len() {
+                        1 => format!("({},)", items[0]),
+                        _ => format!("({})", items.join(", ")),
+                    };
+                    if s.mcp_name != *name {
+                        parts.push(format!("mcp_name={}", names::string(&s.mcp_name)));
+                    }
+                    parts.push(format!(
+                        "names={}",
+                        tuple(s.params.iter().map(|p| names::string(p)).collect())
+                    ));
+                    parts.push(format!(
+                        "sinks={}",
+                        tuple(
+                            s.sinks
+                                .iter()
+                                .map(|&b| if b { "True" } else { "False" }.to_owned())
+                                .collect()
+                        )
+                    ));
+                    parts.push(format!("returns={}", self.scope.descriptor(&s.returns)));
                 }
                 let call = self.op("call_tool");
                 self.awaited(format!("{call}({})", parts.join(", ")))

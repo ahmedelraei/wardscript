@@ -74,6 +74,67 @@ An `ai fn`'s return type must have a JSON schema (W0120), because the
 model's answer is validated against it: `Int`, `Float`, `String`, `Bool`, `List`,
 `Option`, `Map<String, _>`, and records and enums made of those.
 
+## Refinements
+
+A **refinement** narrows a type with a condition on the value, called `it`:
+
+```ward
+type Subject = String where it.len() <= 80 && !it.contains("\n")
+
+pub type Review {
+    stars: Int where it >= 1 && it <= 5,
+    tags: List<String> where it.len() <= 3,
+}
+
+ai fn tagline(product: String) -> String where it.len() < 60 { "..." }
+```
+
+- The condition must be a `Bool` using only `it`, literals, operators, fields,
+  built-in methods and enum variants: no function calls, `if`, `match` or blocks
+  (W0132). It can't see anything but `it`.
+- Refinements describe decoded data, so they go on record fields, variant
+  payloads, type aliases and `ai fn` return types (W0133 elsewhere). They can't be
+  written inside type arguments, where `>` would be ambiguous; name the refined
+  type with an alias instead (`List<Subject>`).
+- For type checking, `T where ...` is `T`.
+- They are checked when a value is decoded: every model answer (a failed
+  refinement is retried with the reason, like any invalid answer), tool results
+  and `ward run` arguments. Values the program builds itself aren't re-checked.
+- Where the condition's shape allows, it becomes JSON Schema, which structured
+  output can enforce: comparisons of `it.len()` with a number (`minLength`,
+  `maxLength`, `minItems`, `maxItems`) and of a number `it` (`minimum`, `maximum`,
+  `exclusiveMinimum`, `exclusiveMaximum`, `const`), joined with `&&`. Every
+  refinement's text also goes in the schema's `description`.
+
+## Checks on answers
+
+An `ai fn` can check its answer, `it`, with a `check` clause:
+
+```ward
+ai fn reply(name: String, email: Untrusted<String>) -> Reply
+    check {
+        it.body.contains(name) => "greet the customer by name",
+        !it.body.contains("http"),
+        is_polite(it.body) => "be polite",
+    }
+{
+    "..."
+}
+```
+
+Each condition is a `Bool` (W0110) that may use `it`, the parameters and any
+function, including another `ai fn` as a judge. After an answer decodes, the
+conditions run in order; the first that fails rejects the answer, and the reason
+(the string after `=>`, else the condition's text) is sent back to the model with
+the retry. Reasons are plain strings, without interpolation. When the retries run
+out, the call fails with `AiOutputError` (or falls back to the next model, see
+[model policies](runtime.md#model-policies)). Only an `ai fn` has a `check` clause
+(W0134). What the checks call counts as the `ai fn`'s effects and budget, and they
+are analyzed for trust like other code.
+
+**Checks and refinements don't change trust.** An answer that passes them is still
+`Untrusted`; only `validate`, `approve` and `declassify` make data trusted.
+
 ## Trust built-ins (typing only)
 
 | Built-in | Type |

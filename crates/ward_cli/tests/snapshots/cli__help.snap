@@ -10,6 +10,11 @@ Commands:
   check  Type-check a program and report diagnostics
   build  Compile a program to a target language
   run    Build a program and call one of its functions
+  lock   Pin the tool schemas of the MCP servers in `mcp.json` to `ward.lock`
+  test   Run the program's `test` blocks against their recorded model answers
+  fmt    Format files in place, keeping comments
+  init   Start a project: a first program with a test and its recording
+  lsp    Run the language server (LSP over stdio), for editors
   trace  Read the audit traces `ward run` and the runtime write
   help   Print this message or the help of the given subcommand(s)
 

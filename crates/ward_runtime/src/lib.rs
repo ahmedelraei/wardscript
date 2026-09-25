@@ -35,6 +35,7 @@ pub const PYTHON_PACKAGE: &[(&str, &str)] = &[
         "wardscript/errors.py",
         include_str!("../py/wardscript/errors.py"),
     ),
+    ("wardscript/mcp.py", include_str!("../py/wardscript/mcp.py")),
     (
         "wardscript/mock.py",
         include_str!("../py/wardscript/mock.py"),
@@ -42,6 +43,10 @@ pub const PYTHON_PACKAGE: &[(&str, &str)] = &[
     (
         "wardscript/model.py",
         include_str!("../py/wardscript/model.py"),
+    ),
+    (
+        "wardscript/partial.py",
+        include_str!("../py/wardscript/partial.py"),
     ),
     (
         "wardscript/providers/__init__.py",
@@ -66,6 +71,10 @@ pub const PYTHON_PACKAGE: &[(&str, &str)] = &[
     (
         "wardscript/schema.py",
         include_str!("../py/wardscript/schema.py"),
+    ),
+    (
+        "wardscript/testing.py",
+        include_str!("../py/wardscript/testing.py"),
     ),
     (
         "wardscript/trust.py",

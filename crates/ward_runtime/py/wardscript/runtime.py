@@ -7,21 +7,23 @@ import asyncio
 import concurrent.futures
 import inspect
 import json
+import time
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Awaitable, Callable, Iterable, Mapping, Union
+from typing import Any, AsyncIterator, Awaitable, Callable, Generator, Iterable, Mapping, Union
 
-from . import audit, budget
+from . import audit, budget, partial
 from .errors import (
     AiOutputError,
     ApprovalDenied,
     DecodeError,
+    ModelError,
     NoModelError,
     Thrown,
     ToolError,
     TrustError,
 )
 from .model import AiRequest, Completion, Model, StreamChunk, estimate_tokens
-from .schema import Type, decode, json_schema
+from .schema import Type, decode, encode, json_schema
 
 
 @dataclass(frozen=True)
@@ -42,7 +44,15 @@ StreamObserver = Callable[[StreamChunk], None]
 
 @dataclass
 class Config:
+    #: The model an `ai fn` asks when its `model {...}` clause names no `primary`.
     model: Model | None = None
+    #: Models by the aliases `model {primary: fast, fallback: smart}` uses.
+    models: dict[str, Model] = field(default_factory=dict)
+    #: Retries of a request that failed with a retryable `ModelError` (a rate limit,
+    #: a timeout), unless the `ai fn`'s `model {retries: ...}` says otherwise.
+    model_retries: int = 2
+    #: Seconds before the first such retry; each next one waits twice as long.
+    backoff: float = 1.0
     approver: Approver | None = None
     #: Tool implementations by import source: `import mcp "gmail"` looks up `"gmail"`.
     #: Each is a mapping of functions, or an object with a method per tool function.
@@ -59,6 +69,13 @@ class Config:
     check_sinks: bool = True
     #: Streams answers from models that can, passing each piece here.
     on_stream: StreamObserver | None = None
+    #: Streams answers from models that can, passing each version of the partly
+    #: decoded value here (`wardscript.partial`), and the complete one at the end.
+    on_partial: Callable[[Any], None] | None = None
+    #: What to do when a `cost` budget meets a model whose cost is unknown: `"error"`
+    #: raises `BudgetUnenforceable` (before the request when the model has no prices);
+    #: `"warn"` warns once per function and counts the call as free.
+    unpriced: str = "error"
 
 
 _config = Config()
@@ -68,6 +85,9 @@ _UNSET: Any = object()
 def configure(
     *,
     model: Model | None = _UNSET,
+    models: Mapping[str, Model] = _UNSET,
+    model_retries: int = _UNSET,
+    backoff: float = _UNSET,
     approver: Approver | None = _UNSET,
     tools: Mapping[str, Any] = _UNSET,
     retries: int = _UNSET,
@@ -75,10 +95,22 @@ def configure(
     otlp_endpoint: str | None = _UNSET,
     check_sinks: bool = _UNSET,
     on_stream: StreamObserver | None = _UNSET,
+    on_partial: Callable[[Any], None] | None = _UNSET,
+    unpriced: str = _UNSET,
 ) -> None:
     """Sets the runtime's configuration. Arguments left out keep their current value."""
     if model is not _UNSET:
         _config.model = model
+    if models is not _UNSET:
+        _config.models = dict(models)
+    if model_retries is not _UNSET:
+        if model_retries < 0:
+            raise ValueError("model_retries must be at least 0")
+        _config.model_retries = model_retries
+    if backoff is not _UNSET:
+        if backoff < 0:
+            raise ValueError("backoff must be at least 0")
+        _config.backoff = float(backoff)
     if approver is not _UNSET:
         _config.approver = approver
     if tools is not _UNSET:
@@ -95,6 +127,12 @@ def configure(
         _config.check_sinks = bool(check_sinks)
     if on_stream is not _UNSET:
         _config.on_stream = on_stream
+    if on_partial is not _UNSET:
+        _config.on_partial = on_partial
+    if unpriced is not _UNSET:
+        if unpriced not in ("error", "warn"):
+            raise ValueError('unpriced must be "error" or "warn"')
+        _config.unpriced = unpriced
 
 
 def last_run() -> audit.Run | None:
@@ -123,6 +161,7 @@ def reset() -> None:
     """Restores the default configuration."""
     global _config
     _config = Config()
+    budget.reset_warnings()
 
 
 def config() -> Config:
@@ -133,16 +172,40 @@ class _Attempt:
     """One model request of an `ai fn` call: what goes before and after asking the model,
     shared by the sync and async paths."""
 
-    def __init__(self, function: str, prompt: str, returns: Type, errors: list[str]) -> None:
-        model = _config.model
-        if model is None:
-            raise NoModelError(
-                f"`{function}` needs a model; call wardscript.runtime.configure(model=...) first"
-            )
+    def __init__(
+        self,
+        function: str,
+        prompt: str,
+        returns: Type,
+        errors: list[str],
+        alias: str | None = None,
+        number: int | None = None,
+    ) -> None:
+        if alias is None:
+            model = _config.model
+            if model is None:
+                raise NoModelError(
+                    f"`{function}` needs a model; call wardscript.runtime.configure(model=...) first"
+                )
+        else:
+            model = _config.models.get(alias)
+            if model is None:
+                known = ", ".join(f"`{a}`" for a in _config.models) or "none"
+                raise NoModelError(
+                    f"`{function}` asks for the model `{alias}`, but configure(models=...) "
+                    f"doesn't have it (configured: {known})"
+                )
         self.model = model
+        self.alias = alias
         self.returns = returns
         self.request = AiRequest(function, prompt, json_schema(returns), len(errors), tuple(errors))
+        #: This request's place among all of the call's requests, for the trace.
+        self.number = len(errors) if number is None else number
         self.text = ""
+        self.last_partial: Any = partial.MISSING
+        strict = _config.unpriced == "error"
+        # A model that says it has no prices (`prices=None`) can't be counted.
+        budget.before_priced_call(getattr(model, "prices", ()) is not None, strict)
         budget.before_model_call()
         self.started = audit.now()
 
@@ -150,7 +213,9 @@ class _Attempt:
         """Stream when the model can and something wants the pieces: an observer, or a
         token budget that can stop the answer early."""
         return callable(getattr(self.model, "stream", None)) and (
-            _config.on_stream is not None or budget.limits_tokens()
+            _config.on_stream is not None
+            or _config.on_partial is not None
+            or budget.limits_tokens()
         )
 
     def feed(self, chunk: str | Completion) -> Completion | None:
@@ -160,25 +225,46 @@ class _Attempt:
         self.text += chunk
         if _config.on_stream is not None:
             _config.on_stream(StreamChunk(self.request.function, self.request.attempt, chunk, self.text))
+        if _config.on_partial is not None:
+            self.partial()
         so_far = estimate_tokens(self.request.prompt) + estimate_tokens(self.text)
         if budget.tokens_over(so_far):
             # Stop reading; charging what was produced raises `BudgetExceeded`.
             self.finish(Completion(self.text, so_far))
         return None
 
+    def partial(self) -> None:
+        """Passes the answer so far, decoded as far as it goes, to `on_partial` when it
+        has grown."""
+        value = partial.parse_prefix(self.text)
+        if getattr(self.model, "stream_wraps_value", False):
+            # Providers stream `{"value": ...}`: structured output wants an object.
+            value = value.get("value", partial.MISSING) if isinstance(value, dict) else partial.MISSING
+        value = partial.decode_partial(self.returns, value)
+        if value is not partial.MISSING and value != self.last_partial and _config.on_partial is not None:
+            self.last_partial = value
+            _config.on_partial(partial.PartialValue(self.request.function, self.number, value))
+
     def finish(self, answer: str | Completion) -> tuple[bool, Any, str | None]:
         """Charges the answer and decodes it: `(ok, value, error)`."""
+        ok, value, error = self.decode(answer)
+        self.record(ok, value, error)
+        return ok, value, error
+
+    def decode(self, answer: str | Completion) -> tuple[bool, Any, str | None]:
+        """Counts the answer in the run and decodes it (refinements included):
+        `(ok, value, error)`. `record` finishes the attempt."""
         if isinstance(answer, Completion):
             text, tokens, cost = answer.text, answer.tokens, answer.cost
         else:
-            text, tokens, cost = answer, None, 0.0
+            text, tokens, cost = answer, None, None
         if tokens is None:
             tokens = estimate_tokens(self.request.prompt) + estimate_tokens(str(text))
         run = audit.current()
         if run is not None:
             run.calls += 1
             run.tokens += tokens
-            run.cost += cost
+            run.cost += cost or 0.0
         error, value, ok = None, None, False
         try:
             value = decode(self.returns, json.loads(text))
@@ -187,20 +273,49 @@ class _Attempt:
             error = f"the answer is not valid JSON ({e})"
         except DecodeError as e:
             error = str(e)
+        self.answer = (str(text), tokens, cost)
+        return ok, value, error
+
+    def record(self, ok: bool, value: Any, error: str | None) -> None:
+        """Writes the attempt to the trace and charges it to budgets."""
+        text, tokens, cost = self.answer
         audit.record(
             "ai_call",
             started=self.started,
             function=self.request.function,
-            attempt=self.request.attempt,
+            attempt=self.number,
+            model=self.alias,
             prompt=self.request.prompt,
-            answer=str(text),
+            answer=text,
             tokens=float(tokens),
-            cost=float(cost),
+            cost=None if cost is None else float(cost),
             error=error,
             leaves=audit.leaves(value) if ok else [],
         )
-        budget.after_model_call(tokens, cost)
-        return ok, value, error
+        budget.after_model_call(tokens, cost, _config.unpriced == "error")
+        if ok and _config.on_partial is not None:
+            _config.on_partial(partial.PartialValue(self.request.function, self.number, value, done=True))
+
+
+    def failed(self, error: Exception) -> None:
+        """Records a request the provider didn't answer; it counts as a call."""
+        run = audit.current()
+        if run is not None:
+            run.calls += 1
+        audit.record(
+            "ai_call",
+            started=self.started,
+            function=self.request.function,
+            attempt=self.number,
+            model=self.alias,
+            prompt=self.request.prompt,
+            answer=None,
+            tokens=0.0,
+            cost=0.0,
+            error=f"{type(error).__name__}: {error}",
+            leaves=[],
+        )
+        budget.after_model_call(0, 0.0)
 
 
 def _collect(attempt: _Attempt, chunks: Iterable[str | Completion]) -> Completion:
@@ -248,28 +363,156 @@ async def _ask_async(attempt: _Attempt) -> str | Completion:
     return await answer if inspect.isawaitable(answer) else answer
 
 
-def ai(function: str, prompt: str, returns: Type) -> Any:
+Models = Union[tuple[Union[str, None], ...], None]
+
+#: An `ai fn`'s `check {...}` clause: the first failed check's reason, or `None`.
+Check = Callable[[Any], Union[Union[str, None], Awaitable[Union[str, None]]]]
+
+
+@dataclass(frozen=True)
+class _CheckStep:
+    check: Check
+    value: Any
+
+
+def _steps(
+    function: str,
+    prompt: str,
+    returns: Type,
+    models: Models,
+    retries: int | None,
+    backoff: float | None,
+    check: Check | None = None,
+) -> Generator[Union[_Attempt, float, _CheckStep], Any, Any]:
+    """The plan of an `ai fn` call, shared by the sync and async paths. Yields each
+    `_Attempt` to ask (the caller sends back the answer, or throws the `ModelError`),
+    each backoff delay in seconds (the caller sleeps) and each `_CheckStep` (the
+    caller runs the checks on the decoded answer and sends back the result); returns
+    the decoded value.
+
+    An answer that fails a refinement (while decoding) or a check is invalid, like
+    one that doesn't fit the type: it's retried with the reason.
+
+    Each model in turn: provider errors that are `retryable` are retried up to
+    `retries` times with exponential backoff; an answer that doesn't fit the type is
+    retried `config.retries` times with the error. Then the next model is tried. When
+    every model fails, the last one's error is raised."""
+    provider_retries = _config.model_retries if retries is None else retries
+    delay = _config.backoff if backoff is None else backoff
+    number = 0
+    last: Exception | None = None
+    for alias in models or (None,):
+        errors: list[str] = []
+        failure: ModelError | None = None
+        for _ in range(_config.retries + 1):
+            for n in range(provider_retries + 1):
+                attempt = _Attempt(function, prompt, returns, errors, alias, number)
+                number += 1
+                try:
+                    answer = yield attempt
+                except ModelError as e:
+                    attempt.failed(e)
+                    failure = e
+                    if e.retryable and n < provider_retries:
+                        yield delay * 2**n
+                        continue
+                    break
+                failure = None
+                ok, value, error = attempt.decode(answer)
+                if ok and check is not None:
+                    try:
+                        reason = yield _CheckStep(check, value)
+                    except BaseException:
+                        attempt.record(False, None, "the checks failed to run")
+                        raise
+                    if reason is not None:
+                        ok, error = False, f"the answer failed a check: {reason}"
+                attempt.record(ok, value, error)
+                if ok:
+                    return value
+                errors.append(error or "")
+                break
+            if failure is not None:
+                break
+        last = failure if failure is not None else AiOutputError(function, errors)
+    assert last is not None
+    raise last
+
+
+def ai(
+    function: str,
+    prompt: str,
+    returns: Type,
+    models: Models = None,
+    retries: int | None = None,
+    backoff: float | None = None,
+    check: Check | None = None,
+) -> Any:
     """Calls the model for `ai fn function` and decodes its answer as `returns`,
-    retrying with the error when the answer doesn't fit."""
-    errors: list[str] = []
-    for _ in range(_config.retries + 1):
-        attempt = _Attempt(function, prompt, returns, errors)
-        ok, value, error = attempt.finish(_ask(attempt))
-        if ok:
-            return value
-        errors.append(error or "")
-    raise AiOutputError(function, errors)
+    retrying with the error when the answer doesn't fit. `models`, `retries` and
+    `backoff` come from the function's `model {...}` clause, `check` from its
+    `check {...}` clause (see `_steps`)."""
+    steps = _steps(function, prompt, returns, models, retries, backoff, check)
+    try:
+        step = next(steps)
+        while True:
+            if isinstance(step, _Attempt):
+                try:
+                    answer = _ask(step)
+                except ModelError as e:
+                    step = steps.throw(e)
+                    continue
+                step = steps.send(answer)
+            elif isinstance(step, _CheckStep):
+                try:
+                    reason = _resolve(step.check(step.value))
+                except Exception as e:
+                    step = steps.throw(e)
+                    continue
+                step = steps.send(reason)
+            else:
+                budget.check_time()
+                time.sleep(step)
+                step = next(steps)
+    except StopIteration as done:
+        return done.value
 
 
-async def ai_async(function: str, prompt: str, returns: Type) -> Any:
-    errors: list[str] = []
-    for _ in range(_config.retries + 1):
-        attempt = _Attempt(function, prompt, returns, errors)
-        ok, value, error = attempt.finish(await _ask_async(attempt))
-        if ok:
-            return value
-        errors.append(error or "")
-    raise AiOutputError(function, errors)
+async def ai_async(
+    function: str,
+    prompt: str,
+    returns: Type,
+    models: Models = None,
+    retries: int | None = None,
+    backoff: float | None = None,
+    check: Check | None = None,
+) -> Any:
+    steps = _steps(function, prompt, returns, models, retries, backoff, check)
+    try:
+        step = next(steps)
+        while True:
+            if isinstance(step, _Attempt):
+                try:
+                    answer = await _ask_async(step)
+                except ModelError as e:
+                    step = steps.throw(e)
+                    continue
+                step = steps.send(answer)
+            elif isinstance(step, _CheckStep):
+                try:
+                    reason = step.check(step.value)
+                    if inspect.isawaitable(reason):
+                        reason = await reason
+                except Exception as e:
+                    step = steps.throw(e)
+                    continue
+                step = steps.send(reason)
+            else:
+                budget.check_time()
+                await asyncio.sleep(step)
+                step = next(steps)
+    except StopIteration as done:
+        return done.value
 
 
 def _validated(value: Any, passed: bool, rule_name: str, site: str) -> Any:
@@ -345,17 +588,52 @@ def _tool(source: str, name: str) -> Callable[..., Any]:
 
 
 class _ToolCall:
-    def __init__(self, source: str, name: str, site: str, args: tuple[Any, ...]) -> None:
+    """A tool call. With a schema from `ward.lock`, the generated code passes the
+    parameter `names`, which of them are `sinks` and the type the result `returns`; a
+    tool object with a `call_tool(name, arguments)` method (an MCP server) then gets
+    named arguments."""
+
+    def __init__(
+        self,
+        source: str,
+        name: str,
+        site: str,
+        args: tuple[Any, ...],
+        mcp_name: str | None = None,
+        names: tuple[str, ...] | None = None,
+        sinks: tuple[bool, ...] | None = None,
+        returns: Type | None = None,
+    ) -> None:
         budget.check_time()
         self.source, self.name, self.site, self.args = source, name, site, args
-        self.fn = _tool(source, name)
+        self.returns = returns
+        impl = _config.tools.get(source)
+        call_named = getattr(impl, "call_tool", None)
+        if names is not None and callable(call_named):
+            arguments = {n: encode(a) for n, a in zip(names, args) if a is not None}
+            tool_name = mcp_name or name
+            self.fn: Callable[..., Any] = lambda *_: call_named(tool_name, arguments)
+            self.blocking = True
+        else:
+            self.fn = _tool(source, name)
+            self.blocking = False
         self.started = audit.now()
         try:
             for i, arg in enumerate(args):
-                audit.check_sink(f"{source}.{name}", i, arg)
+                if sinks is None or (sinks[i] if i < len(sinks) else True):
+                    audit.check_sink(f"{source}.{name}", i, arg)
         except TrustError as e:
             self.done(None, f"TrustError: {e}")
             raise
+
+    def result(self, value: Any) -> Any:
+        """The result, checked against the schema's type."""
+        if self.returns is None:
+            return value
+        try:
+            return decode(self.returns, value, f"result of `{self.source}.{self.name}`")
+        except DecodeError as e:
+            raise ToolError(f"`{self.source}.{self.name}` returned something its schema doesn't allow: {e}") from e
 
     def done(self, result: Any, error: str | None) -> None:
         audit.record(
@@ -372,10 +650,10 @@ class _ToolCall:
         budget.check_time()
 
 
-def call_tool(source: str, name: str, site: str, *args: Any) -> Any:
-    call = _ToolCall(source, name, site, args)
+def call_tool(source: str, name: str, site: str, *args: Any, **schema: Any) -> Any:
+    call = _ToolCall(source, name, site, args, **schema)
     try:
-        result = _resolve(call.fn(*args))
+        result = call.result(_resolve(call.fn(*args)))
     except Exception as e:
         call.done(None, f"{type(e).__name__}: {e}")
         raise
@@ -383,12 +661,17 @@ def call_tool(source: str, name: str, site: str, *args: Any) -> Any:
     return result
 
 
-async def call_tool_async(source: str, name: str, site: str, *args: Any) -> Any:
-    call = _ToolCall(source, name, site, args)
+async def call_tool_async(source: str, name: str, site: str, *args: Any, **schema: Any) -> Any:
+    call = _ToolCall(source, name, site, args, **schema)
     try:
-        result = call.fn(*args)
+        if call.blocking:
+            # An MCP request blocks; keep the event loop free.
+            result = await asyncio.to_thread(call.fn)
+        else:
+            result = call.fn(*args)
         if inspect.isawaitable(result):
             result = await result
+        result = call.result(result)
     except Exception as e:
         call.done(None, f"{type(e).__name__}: {e}")
         raise

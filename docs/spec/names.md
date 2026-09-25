@@ -20,8 +20,9 @@ fn escalate(ticket: t.Ticket) -> t.Ticket {
 }
 ```
 
-`import mcp "server" as x` declares a tool namespace. Until M7 reads tool schemas,
-calls like `x.send(...)` accept any arguments and return a *dynamic* value that is
+`import mcp "server" as x` declares a tool namespace. With the server's schema in
+`ward.lock`, `x.send(...)` is a typed call ([tools](tools.md)). Without one, calls
+like `x.send(...)` accept any arguments and return a *dynamic* value that is
 accepted anywhere; fields and methods on it are dynamic too.
 
 ## Scopes

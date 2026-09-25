@@ -6,6 +6,7 @@ use ward_syntax::Diagnostic;
 use ward_syntax::ast::{ImportKind, Item};
 use ward_syntax::diag::codes;
 
+use crate::tools::{LOCK_FILE, ToolLock, parse_lock};
 use crate::{ModuleData, ModuleId, Program, ProgramDiagnostic};
 
 /// Source access, so tests can load programs from memory.
@@ -112,7 +113,78 @@ pub fn load(
         }
         next += 1;
     }
-    Ok((Program { modules }, diags))
+    let lock = find_lock(&root, fs);
+    if let Some(lock) = &lock {
+        lock_diagnostics(&modules, lock, &mut diags);
+    }
+    Ok((Program { modules, lock }, diags))
+}
+
+/// `ward.lock` in `dir` or the nearest parent that has one.
+fn find_lock(dir: &Path, fs: &dyn FileSystem) -> Option<ToolLock> {
+    let mut dir = Some(dir);
+    while let Some(d) = dir {
+        let path = d.join(LOCK_FILE);
+        if let Ok(text) = fs.read(&path) {
+            let path = path.display().to_string();
+            return Some(match parse_lock(&text) {
+                Ok(servers) => ToolLock {
+                    path,
+                    servers,
+                    error: None,
+                },
+                Err(e) => ToolLock {
+                    path,
+                    servers: Default::default(),
+                    error: Some(e),
+                },
+            });
+        }
+        dir = d.parent();
+    }
+    None
+}
+
+fn lock_diagnostics(modules: &[ModuleData], lock: &ToolLock, diags: &mut Vec<ProgramDiagnostic>) {
+    for (m, module) in modules.iter().enumerate() {
+        for item in &module.ast.items {
+            let Item::Import(imp) = item else { continue };
+            let ImportKind::Tool {
+                source,
+                source_span,
+                ..
+            } = &imp.kind
+            else {
+                continue;
+            };
+            let d = match &lock.error {
+                Some(e) => Diagnostic::error(
+                    codes::INVALID_LOCK,
+                    format!("cannot read `{}`: {e}", lock.path),
+                    *source_span,
+                )
+                .with_label("this tool's schema would come from there")
+                .with_help("run `ward lock` to write it again"),
+                None if !lock.servers.contains_key(source) => Diagnostic::warning(
+                    codes::TOOL_NOT_LOCKED,
+                    format!(
+                        "`{source}` isn't in `{}`, so its calls aren't typed",
+                        lock.path
+                    ),
+                    *source_span,
+                )
+                .with_label("no schema for this tool")
+                .with_help(format!(
+                    "add a server `{source}` to `mcp.json` and run `ward lock`"
+                )),
+                None => continue,
+            };
+            diags.push(ProgramDiagnostic {
+                module: ModuleId(m as u32),
+                diagnostic: d,
+            });
+        }
+    }
 }
 
 fn add_module(

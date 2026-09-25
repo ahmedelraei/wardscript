@@ -2,7 +2,7 @@
 
 Work through one milestone at a time. Each milestone lists its tasks, the checks it must pass before moving on ("Done when") Read `AGENTS.md` and `docs/spec/` first.
 
-Status: M0–M6 done, including M6 additions (runtime sink checks, OTLP collectors, async code, text streaming; decision 010). Next: M6.1, then M7.
+Status: M0–M7 done, including M6 additions (runtime sink checks, OTLP collectors, async code, text streaming; decision 010), unknown model cost failing closed (decision 011) MCP imports with `ward.lock` (decision 012) model fallbacks and retry policies (decision 013), refinements and output checks (decision 014), and tests with recorded responses (decision 015). M11 in progress: language server and VS Code extension (016), partial streaming, `ward fmt`, the TypeScript backend (017) are done; the AgentDojo port, `salsa` and the WASM backend remain.
 
 ---
 
@@ -161,10 +161,11 @@ BAML defines tests in its files and runs them with `baml-cli test`.
 ---
 
 ## M11: Proof and polish (ongoing)
-- Typed streaming of partial decoded values (BAML has it; text streaming already exists, see decision 010).
-- TypeScript backend (`ward_codegen_ts`) + napi-rs runtime binding.
+- [x] Typed streaming of partial decoded values (`configure(on_partial=...)`, `wardscript.partial`).
+- [x] TypeScript backend (`ward_codegen_ts`, `ward build --target typescript`) with a runtime written in TypeScript (`crates/ward_runtime/ts`) instead of a napi-rs binding; decision 017.
 - AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility).
-- LSP (`tower-lsp`) + VS Code extension (syntax highlighting for `.ward`).
+- [x] LSP (`ward lsp`: diagnostics, hover, go to definition) + VS Code extension (`editors/vscode`); decision 016.
+- [x] `ward fmt` (and LSP formatting): the printer keeps comments and blank lines between statements.
 - `salsa` for incremental checking.
 - WASM backend via `wasm-encoder` (sandboxed execution).
 

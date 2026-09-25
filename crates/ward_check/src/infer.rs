@@ -59,6 +59,77 @@ pub(crate) fn check_fn(c: &mut Checker, def: DefId, f: &FnDecl, out: &mut Module
             cx.check(*prompt, &Ty::String);
         }
     }
+    // `check {...}`: conditions on the answer, called `it`, next to the parameters.
+    if let (Some(checks), Some(&it)) = (&f.checks, mres.check_its.get(&def.item)) {
+        cx.locals.insert(it, ret.clone());
+        for e in &checks.entries {
+            cx.check(e.cond, &Ty::Bool);
+        }
+    }
+    cx.finish(out);
+}
+
+/// A test body: like a function that returns nothing and may throw anything, since a
+/// thrown error just fails the test.
+pub(crate) fn check_test(c: &mut Checker, m: ModuleId, t: &TestDecl, out: &mut ModuleTypes) {
+    let program = c.program;
+    let mres = c.res.module(m);
+    let mut cx = Cx {
+        c,
+        m,
+        ast: &program.module(m).ast,
+        src: &program.module(m).src,
+        mres,
+        u: Unifier::default(),
+        locals: ArenaMap::default(),
+        exprs: Vec::new(),
+        ret: Ty::Unit,
+        fn_name: format!("test \"{}\"", t.name),
+        generics: Vec::new(),
+        lets: Vec::new(),
+        throws: Some(Ty::Dynamic),
+        handlers: Vec::new(),
+        propagating: None,
+        thrown: ArenaMap::default(),
+    };
+    cx.block(&t.body, Some(&Ty::Unit));
+    cx.finish(out);
+}
+
+/// A refinement's condition, with `it` of type `base`.
+pub(crate) fn check_refinement(
+    c: &mut Checker,
+    m: ModuleId,
+    ty: TypeId,
+    cond: ExprId,
+    base: Ty,
+    out: &mut ModuleTypes,
+) {
+    let program = c.program;
+    let mres = c.res.module(m);
+    let Some(&it) = mres.refinement_its.get(ty) else {
+        return;
+    };
+    let mut cx = Cx {
+        c,
+        m,
+        ast: &program.module(m).ast,
+        src: &program.module(m).src,
+        mres,
+        u: Unifier::default(),
+        locals: ArenaMap::default(),
+        exprs: Vec::new(),
+        ret: Ty::Unit,
+        fn_name: "a refinement".to_owned(),
+        generics: Vec::new(),
+        lets: Vec::new(),
+        throws: None,
+        handlers: Vec::new(),
+        propagating: None,
+        thrown: ArenaMap::default(),
+    };
+    cx.locals.insert(it, base);
+    cx.check(cond, &Ty::Bool);
     cx.finish(out);
 }
 
@@ -152,30 +223,7 @@ impl Cx<'_, '_> {
     }
 
     fn show(&self, t: &Ty) -> String {
-        match self.u.resolve(t) {
-            Ty::Int => "Int".into(),
-            Ty::Float => "Float".into(),
-            Ty::String => "String".into(),
-            Ty::Bool => "Bool".into(),
-            Ty::Unit => "()".into(),
-            Ty::Never => "never".into(),
-            Ty::List(t) => format!("List<{}>", self.show(&t)),
-            Ty::Option(t) => format!("Option<{}>", self.show(&t)),
-            Ty::Map(k, v) => format!("Map<{}, {}>", self.show(&k), self.show(&v)),
-            Ty::Adt(d, args) => {
-                let name = item_name(self.c.program.item(d));
-                if args.is_empty() {
-                    name.to_owned()
-                } else {
-                    let args: Vec<String> = args.iter().map(|a| self.show(a)).collect();
-                    format!("{name}<{}>", args.join(", "))
-                }
-            }
-            Ty::Param(i) => self.generics.get(i).cloned().unwrap_or_else(|| "?".into()),
-            Ty::Var(_) => "_".into(),
-            Ty::Dynamic => "dynamic".into(),
-            Ty::Error => "{unknown}".into(),
-        }
+        self.u.resolve(t).display(self.c.program, &self.generics)
     }
 
     fn coerce(&mut self, found: &Ty, expected: &Ty, span: Span) -> bool {
@@ -557,9 +605,48 @@ impl Cx<'_, '_> {
                 t
             }
             ValueRes::Builtin(b) => self.builtin_call(b, args, span, callee_span),
-            ValueRes::ToolMember(_) => {
-                self.infer_all(args);
-                Ty::Dynamic
+            ValueRes::ToolMember(d) => {
+                let program = self.c.program;
+                let func = match &ast.exprs[callee].kind {
+                    ExprKind::Field { name, .. } => {
+                        program.tool_schema(d).and_then(|s| s.function(&name.name))
+                    }
+                    _ => None,
+                };
+                let Some(func) = func else {
+                    self.infer_all(args);
+                    return Ty::Dynamic;
+                };
+                let params: Vec<Ty> = func.params.iter().map(Ty::tool_param).collect();
+                let required = func.params.iter().filter(|p| p.required).count();
+                let what = format!("tool function `{callee_text}`");
+                if (required..=params.len()).contains(&args.len()) {
+                    // Optional parameters at the end may be left out.
+                    self.args(args, &params[..args.len()], &what, span);
+                } else if args.len() < required && required < params.len() {
+                    self.err(
+                        Diagnostic::error(
+                            codes::WRONG_ARG_COUNT,
+                            format!(
+                                "{what} takes {required} to {} arguments but {} {} given",
+                                params.len(),
+                                args.len(),
+                                if args.len() == 1 { "was" } else { "were" }
+                            ),
+                            span,
+                        )
+                        .with_label(format!(
+                            "expected at least {}",
+                            plural(required, "argument")
+                        )),
+                    );
+                    self.infer_all(args);
+                } else {
+                    self.args(args, &params, &what, span);
+                }
+                // A tool reports failure with a message (MCP's `isError`).
+                self.call_throws(e, Ty::String, &callee_text, span);
+                Ty::from_tool(&func.result)
             }
             ValueRes::Local(id) => {
                 self.infer_all(args);
@@ -1109,6 +1196,10 @@ impl Cx<'_, '_> {
                 self.assign(*target, *value);
                 false
             }
+            StmtKind::Assert { cond, .. } => {
+                self.check(*cond, &Ty::Bool);
+                false
+            }
             StmtKind::Expr { expr, .. } => {
                 let t = self.infer(*expr);
                 matches!(self.u.shallow(&t), Ty::Never)
@@ -1420,5 +1511,6 @@ fn item_name(item: &Item) -> &str {
         Item::Alias(a) => &a.name.name,
         Item::Enum(e) => &e.name.name,
         Item::Import(_) => "import",
+        Item::Test(t) => &t.name,
     }
 }

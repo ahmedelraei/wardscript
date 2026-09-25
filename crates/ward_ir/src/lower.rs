@@ -37,7 +37,9 @@ pub fn lower(analysis: &Analysis) -> Result<Program, LowerError> {
             let types = checked.types.get(m.0 as usize);
             let res = analysis.resolution.modules.get(m.0 as usize);
             match (types, res) {
-                (Some(types), Some(res)) => lower_module(m, data, res, types, checked),
+                (Some(types), Some(res)) => {
+                    lower_module(&analysis.program, m, data, res, types, checked)
+                }
                 _ => Err(LowerError::Internal {
                     module: data.name.clone(),
                     message: "module was not checked".into(),
@@ -48,7 +50,34 @@ pub fn lower(analysis: &Analysis) -> Result<Program, LowerError> {
     Ok(Program { modules })
 }
 
+fn model_policy(clause: &ast::ModelClause) -> ModelPolicy {
+    let mut primary = None;
+    let mut fallback = Vec::new();
+    let mut policy = ModelPolicy::default();
+    for e in &clause.entries {
+        let number = match &e.value {
+            ast::ModelValue::Number(text, _) => Some(text.replace('_', "")),
+            _ => None,
+        };
+        match (e.name.name.as_str(), &e.value) {
+            ("primary", ast::ModelValue::Name(n)) => primary = Some(n.name.clone()),
+            ("fallback", ast::ModelValue::Name(n)) => fallback = vec![n.name.clone()],
+            ("fallback", ast::ModelValue::Names(ns, _)) => {
+                fallback = ns.iter().map(|n| n.name.clone()).collect();
+            }
+            ("retries", _) => policy.retries = number.and_then(|n| n.parse().ok()),
+            ("backoff", _) => policy.backoff = number.and_then(|n| n.parse().ok()),
+            _ => {}
+        }
+    }
+    policy.models = std::iter::once(primary)
+        .chain(fallback.into_iter().map(Some))
+        .collect();
+    policy
+}
+
 fn lower_module(
+    program: &ward_resolve::Program,
     m: ModuleId,
     data: &ModuleData,
     res: &ModuleRes,
@@ -68,6 +97,8 @@ fn lower_module(
         enums: Vec::new(),
         fns: Vec::new(),
         tools: Vec::new(),
+        refinements: Vec::new(),
+        tests: Vec::new(),
     };
     for (item, it) in data.ast.items.iter().enumerate() {
         let def = DefId { module: m, item };
@@ -126,6 +157,8 @@ fn lower_module(
                     internal(format!("function `{}` has no signature", f.name.name))
                 })?;
                 let mut cx = FnLower {
+                    program,
+                    src: &data.src,
                     ast: &data.ast,
                     res,
                     types,
@@ -149,9 +182,26 @@ fn lower_module(
                     .collect::<Result<_, _>>()?;
                 let body = match &f.body {
                     FnBody::Block(b) => Body::Block(cx.block(b)?),
-                    FnBody::Ai { prompt } => Body::Ai {
-                        prompt: cx.expr(*prompt)?,
-                    },
+                    FnBody::Ai { prompt } => {
+                        let prompt = cx.expr(*prompt)?;
+                        let it = res.check_its.get(&item).map(|&l| cx.local(l)).transpose()?;
+                        let checks = f
+                            .checks
+                            .iter()
+                            .flat_map(|c| &c.entries)
+                            .map(|e| {
+                                let reason = match &e.reason {
+                                    Some((r, _)) => r.clone(),
+                                    None => source(data, data.ast.exprs[e.cond].span),
+                                };
+                                Ok(Check {
+                                    cond: cx.expr(e.cond)?,
+                                    reason,
+                                })
+                            })
+                            .collect::<R<Vec<_>>>()?;
+                        Body::Ai { prompt, checks, it }
+                    }
                 };
                 let budget = f
                     .budget
@@ -169,8 +219,10 @@ fn lower_module(
                         Ok((e.name.name.clone(), value))
                     })
                     .collect::<Result<_, LowerError>>()?;
+                let model = f.model.as_ref().map(model_policy);
                 module.fns.push(Fn {
                     budget,
+                    model,
                     def,
                     name: f.name.name.clone(),
                     is_pub: f.is_pub,
@@ -190,10 +242,113 @@ fn lower_module(
                     body,
                 });
             }
+            Item::Test(t) => {
+                let name = format!("_test_{item}");
+                let mut cx = FnLower {
+                    program,
+                    src: &data.src,
+                    ast: &data.ast,
+                    res,
+                    types,
+                    checked,
+                    lines: &lines,
+                    file: &file,
+                    module: &data.name,
+                    fn_name: &name,
+                    locals: Arena::default(),
+                    local_map: HashMap::new(),
+                    exprs: Arena::default(),
+                    stmts: Arena::default(),
+                    pats: Arena::default(),
+                };
+                let body = Body::Block(cx.block(&t.body)?);
+                let site = cx.site(t.name_span);
+                module.tests.push(Test {
+                    name: t.name.clone(),
+                    site,
+                    func: Fn {
+                        def,
+                        name: name.clone(),
+                        is_pub: false,
+                        generics: Vec::new(),
+                        params: Vec::new(),
+                        trusted: Vec::new(),
+                        budget: Vec::new(),
+                        model: None,
+                        ret: Ty::Unit,
+                        throws: None,
+                        locals: cx.locals,
+                        exprs: cx.exprs,
+                        stmts: cx.stmts,
+                        pats: cx.pats,
+                        body,
+                    },
+                });
+            }
             Item::Alias(_) | Item::Import(_) => {}
         }
     }
+    for (id, t) in data.ast.types.iter() {
+        let (Some(cond), Some(&it)) = (t.refinement, res.refinement_its.get(id)) else {
+            continue;
+        };
+        let name = format!("_refine_{}", id.into_raw().into_u32());
+        let mut cx = FnLower {
+            program,
+            src: &data.src,
+            ast: &data.ast,
+            res,
+            types,
+            checked,
+            lines: &lines,
+            file: &file,
+            module: &data.name,
+            fn_name: &name,
+            locals: Arena::default(),
+            local_map: HashMap::new(),
+            exprs: Arena::default(),
+            stmts: Arena::default(),
+            pats: Arena::default(),
+        };
+        let param = cx.local(it)?;
+        let base = cx.locals[param].ty.clone();
+        let tail = cx.expr(cond)?;
+        module.refinements.push(RefinementFn {
+            key: ward_check::ty::Refinement { module: m, ty: id },
+            text: source(data, data.ast.exprs[cond].span),
+            schema: crate::refine::schema(&data.ast, res, cond, &base),
+            func: Fn {
+                def: DefId {
+                    module: m,
+                    item: usize::MAX,
+                },
+                name: name.clone(),
+                is_pub: false,
+                generics: Vec::new(),
+                params: vec![param],
+                trusted: vec![false],
+                budget: Vec::new(),
+                model: None,
+                ret: Ty::Bool,
+                throws: None,
+                locals: cx.locals,
+                exprs: cx.exprs,
+                stmts: cx.stmts,
+                pats: cx.pats,
+                body: Body::Block(Block {
+                    stmts: Vec::new(),
+                    tail: Some(tail),
+                }),
+            },
+            name,
+        });
+    }
     Ok(module)
+}
+
+/// The source text at `span`.
+fn source(data: &ModuleData, span: Span) -> String {
+    data.src.get(span.range()).unwrap_or("?").to_owned()
 }
 
 /// `support/tickets.wardscript`: stable no matter where `ward` was run from.
@@ -205,6 +360,8 @@ fn site_path(data: &ModuleData) -> String {
 }
 
 struct FnLower<'a> {
+    program: &'a ward_resolve::Program,
+    src: &'a str,
     ast: &'a ast::Module,
     res: &'a ModuleRes,
     types: &'a ModuleTypes,
@@ -310,6 +467,18 @@ impl FnLower<'_> {
                 cond: self.expr(*cond)?,
                 body: self.block(body)?,
             },
+            ast::StmtKind::Assert { cond, message } => {
+                let span = ast.exprs[*cond].span;
+                let message = match message {
+                    Some((m, _)) => m.clone(),
+                    None => format!("`{}`", self.src.get(span.range()).unwrap_or("?")),
+                };
+                Stmt::Assert {
+                    cond: self.expr(*cond)?,
+                    message,
+                    site: self.site(ast.stmts[id].span),
+                }
+            }
         };
         Ok(self.stmts.alloc(stmt))
     }
@@ -523,11 +692,23 @@ impl FnLower<'_> {
                 let ast::ExprKind::Field { name, .. } = &ast.exprs[callee].kind else {
                     return Err(self.bug("tool member without a name"));
                 };
+                let schema = self
+                    .program
+                    .tool_schema(tool)
+                    .and_then(|s| s.function(&name.name))
+                    .map(|f| ToolSchema {
+                        mcp_name: f.mcp_name.clone(),
+                        params: f.params.iter().map(|p| p.name.clone()).collect(),
+                        sinks: ward_check::tools::tool_sinks(self.program, tool, &name.name)
+                            .unwrap_or_default(),
+                        returns: Ty::from_tool(&f.result),
+                    });
                 ExprKind::ToolCall {
                     tool,
                     name: name.name.clone(),
                     args: self.exprs(args)?,
                     site: self.site(span),
+                    schema,
                 }
             }
             _ => return Err(self.bug("call of something that isn't a function")),

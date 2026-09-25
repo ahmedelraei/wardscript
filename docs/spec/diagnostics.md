@@ -73,6 +73,9 @@ without a span in this file, such as W0107 path steps in another module) (progra
 | W0129 | thrown error is neither caught by a `try` nor declared with `throws` |
 | W0130 | `ai fn` declares `throws` |
 | W0131 | *warning*: nothing in a `try` block can throw |
+| W0132 | a refinement uses something other than `it`, literals, operators, fields, methods and enum variants |
+| W0133 | a refinement where it isn't allowed: only record fields, variant payloads, type aliases and `ai fn` return types |
+| W0134 | `check` clause on a function that isn't an `ai fn` |
 
 ## W02xx: effects, budgets, Rule of Two
 
@@ -89,6 +92,17 @@ See [effects](effects.md).
 | W0220 | Rule of Two: untrusted input, private reads and external changes in one function |
 | W0221 | invalid annotation, or `@allow` without a reason |
 | W0222 | *warning*: `@allow(rule_of_two)` on a function that doesn't need it |
+| W0230 | invalid `model` clause: unknown setting, wrong kind of value, a setting or model listed twice |
+| W0231 | `model` clause on a function that isn't an `ai fn` |
+
+## W03xx: tools
+
+See [tools](tools.md).
+
+| Code | Meaning |
+|---|---|
+| W0300 | `ward.lock` can't be read: invalid JSON, an unknown version, or a malformed tool |
+| W0301 | *warning*: a tool import's source isn't in `ward.lock`, so its calls aren't typed |
 
 ## Error recovery
 

@@ -1,0 +1,54 @@
+{
+  "name": "wardscript",
+  "displayName": "Wardscript",
+  "description": "Wardscript language support: highlighting, and diagnostics, hover and go to definition from `ward lsp`.",
+  "version": "0.0.1",
+  "publisher": "wardscript",
+  "license": "MIT OR Apache-2.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Programming Languages", "Linters"],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "languages": [
+      {
+        "id": "ward",
+        "aliases": ["Wardscript", "ward"],
+        "extensions": [".ward", ".wardscript"],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "ward-lock",
+        "aliases": ["Wardscript lock"],
+        "filenames": ["ward.lock"]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ward",
+        "scopeName": "source.ward",
+        "path": "./syntaxes/ward.tmLanguage.json"
+      },
+      {
+        "language": "ward-lock",
+        "scopeName": "source.json.ward-lock",
+        "path": "./syntaxes/ward-lock.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Wardscript",
+      "properties": {
+        "wardscript.path": {
+          "type": "string",
+          "default": "ward",
+          "description": "The `ward` executable that runs the language server (`ward lsp`)."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}

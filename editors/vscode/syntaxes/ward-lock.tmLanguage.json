@@ -1,0 +1,5 @@
+{
+  "name": "Wardscript lock",
+  "scopeName": "source.json.ward-lock",
+  "patterns": [{ "include": "source.json" }]
+}

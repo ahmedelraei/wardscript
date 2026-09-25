@@ -41,19 +41,42 @@ the path it took. The host calling `answer` has to vouch for `to`
 
 ## Status
 
-Early development. Done: the parser, name resolution and type checker
-(`ward check`), the Python backend with its runtime (`ward build`, `ward run`), and
-trust labels, effects, budgets and the Rule of Two, and the runtime's Rust core,
-audit trace, model providers, runtime sink checks, OTLP export, async code and
-streaming (`ward trace`, `ward run --model`, `ward build --async`). Next: typed MCP
-tool imports (M7). See [PLAN.md](PLAN.md) for the milestones and
-[docs/spec](docs/spec/README.md) for the language specification.
+Early development, but usable end to end. Done:
+
+- the checker (`ward check`): types, trust labels, effects, budgets and the Rule of Two;
+- the Python backend and runtime (`ward build`, `ward run`, `ward build --async`),
+  with a Rust core, an audit trace (`ward trace`), OTLP export, runtime sink checks
+  and streaming;
+- a TypeScript backend and runtime for Node (`ward build --target typescript`);
+- model providers (`ward run --model`), with fallbacks and retry policies
+  (`model {primary: fast, fallback: smart}`);
+- typed MCP tool imports pinned in `ward.lock` (`ward lock`; see
+  [examples/inbox](examples/inbox));
+- refinement types (`String where it.len() <= 80`) and `check {...}` clauses on
+  model answers, retried with the reason when they fail;
+- `test` blocks, run by `ward test` from recorded model answers and tool results
+  (`ward test --record` records them).
+
+Next: proof and polish (M11): typed streaming, the TypeScript backend, an LSP. See [PLAN.md](PLAN.md) for the milestones
+and [docs/spec](docs/spec/README.md) for the language specification.
+
+[docs/guide.md](docs/guide.md) gets you started: install, `ward init`, and a tour.
+[docs/demo.md](docs/demo.md) shows a vulnerable agent that doesn't compile.
 
 ```bash
+cargo run -p ward_cli -- init hello                         # a first project
 cargo run -p ward_cli -- check examples/support.wardscript
 cargo run -p ward_cli -- build examples/triage.wardscript -o build
 cargo run -p ward_cli -- run examples/triage.wardscript route '"My order never came"' --mock answers.json
+cargo run -p ward_cli -- lock examples/inbox/mcp.json       # pin the MCP servers' tool schemas
+cargo run -p ward_cli -- test examples/triage.wardscript      # replay the recorded tests
 ```
+
+## Editor support
+
+`ward lsp` is a language server: diagnostics as you type, types on hover, and go to
+definition. [editors/vscode](editors/vscode) is a VS Code extension with
+highlighting that starts it; other editors can run `ward lsp` over stdio.
 
 ## License
 

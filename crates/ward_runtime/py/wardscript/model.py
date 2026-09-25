@@ -34,12 +34,13 @@ class AiRequest:
 
 @dataclass(frozen=True)
 class Completion:
-    """A model's answer with what it cost, for budgets. A model may return plain text
-    instead; then tokens are estimated from the text's length and cost is 0."""
+    """A model's answer with what it cost, for budgets. `cost` is `None` when unknown
+    (a provider without prices). A model may return plain text instead; then tokens are
+    estimated from the text's length and the cost is unknown."""
 
     text: str
     tokens: int | None = None
-    cost: float = 0.0
+    cost: float | None = None
 
 
 @dataclass(frozen=True)

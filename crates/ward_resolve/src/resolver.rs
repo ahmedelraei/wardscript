@@ -82,9 +82,21 @@ fn collect_items(
 ) -> ModuleScope {
     let module = program.module(m);
     let mut scope = ModuleScope::default();
+    let mut tests: HashMap<&str, Span> = HashMap::new();
     for (item, it) in module.ast.items.iter().enumerate() {
         let def = DefId { module: m, item };
         let (name, res, is_pub) = match it {
+            // Tests have no name in scope, but two with the same name would be confusing.
+            Item::Test(t) => {
+                if let Some(&first) = tests.get(t.name.as_str()) {
+                    diags.push(ProgramDiagnostic {
+                        module: m,
+                        diagnostic: duplicate(&t.name, t.name_span, first, "the test"),
+                    });
+                }
+                tests.insert(&t.name, t.name_span);
+                continue;
+            }
             Item::Fn(f) => (&f.name, ItemRes::Fn(def), f.is_pub),
             Item::Record(r) => (&r.name, ItemRes::Type(def), r.is_pub),
             Item::Alias(a) => (&a.name, ItemRes::Type(def), a.is_pub),
@@ -195,6 +207,10 @@ impl BodyResolver<'_> {
                     }
                 }
                 Item::Import(_) => {}
+                Item::Test(t) => {
+                    self.set_generics(&[]);
+                    self.block(&t.body);
+                }
             }
         }
     }
@@ -224,6 +240,18 @@ impl BodyResolver<'_> {
         }
         for entry in f.budget.iter().flatten() {
             self.expr(entry.value);
+        }
+        if let Some(checks) = &f.checks {
+            self.locals.push(HashMap::new());
+            let it = self.bind(&Ident {
+                name: "it".to_owned(),
+                span: checks.span,
+            });
+            self.res.check_its.insert(item, it);
+            for e in &checks.entries {
+                self.expr(e.cond);
+            }
+            self.locals.pop();
         }
         match &f.body {
             FnBody::Block(b) => self.block(b),
@@ -364,7 +392,24 @@ impl BodyResolver<'_> {
                     ItemRes::Module(_) | ItemRes::Tool(_) => None,
                 }
             }
-            ValueRes::Tool(def) | ValueRes::ToolMember(def) => Some(ValueRes::ToolMember(def)),
+            ValueRes::Tool(def) => {
+                if let Some(server) = self.program.tool_schema(def) {
+                    if server.function(&name.name).is_none() {
+                        let d = Diagnostic::error(
+                            codes::NO_SUCH_MEMBER,
+                            format!("tool `{}` has no function `{}`", server.source, name.name),
+                            name.span,
+                        )
+                        .with_label("unknown tool function");
+                        let names = server.functions.iter().map(|f| f.name.as_str()).collect();
+                        let d = Self::with_suggestion(d, &name.name, names);
+                        self.error(d);
+                        return None;
+                    }
+                }
+                Some(ValueRes::ToolMember(def))
+            }
+            ValueRes::ToolMember(def) => Some(ValueRes::ToolMember(def)),
             ValueRes::Local(_) | ValueRes::Fn(_) | ValueRes::Variant(..) | ValueRes::Builtin(_) => {
                 None
             }
@@ -452,6 +497,7 @@ impl BodyResolver<'_> {
                 self.expr(*cond);
                 self.block(body);
             }
+            StmtKind::Assert { cond, .. } => self.expr(*cond),
         }
     }
 
@@ -680,6 +726,18 @@ impl BodyResolver<'_> {
         }
         if let Some(res) = self.type_path(path) {
             self.res.types.insert(id, res);
+        }
+        if let Some(cond) = ast.types[id].refinement {
+            // Only `it` is in scope: a refinement is about the value alone.
+            let saved = std::mem::take(&mut self.locals);
+            self.locals.push(HashMap::new());
+            let it = self.bind(&Ident {
+                name: "it".to_owned(),
+                span: ast.types[id].span,
+            });
+            self.res.refinement_its.insert(id, it);
+            self.expr(cond);
+            self.locals = saved;
         }
     }
 

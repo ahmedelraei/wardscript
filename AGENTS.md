@@ -3,9 +3,9 @@
 Wardscript is a small, typed language for trustworthy AI functions and agents. What sets it apart is that the **compiler proves untrusted data can't reach sensitive actions** without an explicit `validate`, `approve` or `declassify` step.
 
 - Source files use `.ward` (canonical) or `.wardscript`; the compiler treats both identically. Use `.ward` in all docs, examples and tests.
-- CLI command: `ward` (`ward check | build | run | trace`)
+- CLI command: `ward` (`ward init | check | build | run | test | lock | trace | lsp`)
 - The compiler and runtime core are written in Rust (a Cargo workspace)
-- First backend: Python. Then TypeScript, then WASM through `wasm-encoder`. **No LLVM or Cranelift.**
+- Backends: Python and TypeScript. Then WASM through `wasm-encoder`. **No LLVM or Cranelift.**
 
 ## Guiding principle
 The checker is the product; backends are plumbing. When in doubt, spend effort on `ward_check` and on diagnostics.
@@ -18,7 +18,9 @@ crates/
   ward_check       # types + trust labels + effects + budgets
   ward_ir          # WIR: fully typed IR with explicit labels + provenance metadata
   ward_codegen_py  # WIR -> Python (+ .pyi stubs)
-  ward_runtime     # runtime core (Rust) + bindings: py/ (PyO3/maturin), node/ (napi-rs, later)
+  ward_codegen_ts  # WIR -> TypeScript
+  ward_runtime     # runtime core (Rust) + py/ (the Python package, PyO3/maturin) + ts/ (the npm package)
+  ward_lsp         # language server (`ward lsp`)
   ward_cli         # `ward` binary
 tests/
   ui/            # .ward programs + expected diagnostics (insta snapshots)
@@ -26,6 +28,7 @@ tests/
   e2e/           # build to Python, run with a mocked LLM, check the output
 examples/
 docs/spec/       # language spec, kept up to date with the implementation
+editors/vscode/  # VS Code extension: grammar + `ward lsp` client
 ```
 
 ## Rules

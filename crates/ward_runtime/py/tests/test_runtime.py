@@ -12,6 +12,7 @@ from wardscript import (
     AiOutputError,
     ApprovalDenied,
     BudgetExceeded,
+    BudgetUnenforceable,
     Completion,
     DecodeError,
     PanicError,
@@ -543,10 +544,15 @@ class Cores(unittest.TestCase):
             self.assertEqual(json.dumps(rust), json.dumps(py))
 
     def test_otlp(self):
-        runtime.configure(model=MockModel({"f": Usage(1, tokens=10, cost=0.5)}), approver=lambda r: False)
+        runtime.configure(
+            model=MockModel({"f": Usage(1, tokens=10, cost=0.5)}),
+            models={"fast": MockModel({"f": Usage(2, tokens=5, cost=None)})},
+            approver=lambda r: False,
+        )
         try:
             with _rt.call("f", [("x", 1)]):
                 _rt.ai("f", "p", _rt.Int)
+                _rt.ai("f", "p", _rt.Int, models=("fast",))
                 _rt.approve(1, "a.ward:1:1")
         except ApprovalDenied:
             pass
@@ -561,6 +567,95 @@ class Cores(unittest.TestCase):
             b = core.Budget("f", calls=1)
             self.assertIsNone(b.charge_call())
             self.assertEqual(b.charge_call(), ("calls", 1.0, 2.0))
+
+    def test_unknown_cost(self):
+        for core in self.cores:
+            b = core.Budget("f", cost=0.01)
+            self.assertTrue(b.limits_cost)
+            self.assertTrue(b.unenforceable(None))
+            self.assertFalse(b.unenforceable(0.0))
+            self.assertIsNone(b.charge_usage(5, None))
+            self.assertEqual(b.used, (5.0, 0.0, 0.0))
+            self.assertEqual(b.charge_usage(5, 0.02), ("cost", 0.01, 0.02))
+            self.assertFalse(core.Budget("g").unenforceable(None))
+
+
+class UnknownCost(unittest.TestCase):
+    """M6.1: a `cost` budget fails closed when the model's cost is unknown."""
+
+    class Model:
+        def __init__(self, prices, answer):
+            self.prices, self.answer, self.requests = prices, answer, 0
+
+        def complete(self, request):
+            self.requests += 1
+            return self.answer
+
+    def tearDown(self):
+        runtime.reset()
+
+    def test_priced_model_is_unchanged(self):
+        runtime.configure(model=self.Model((3.0, 15.0), Completion("1", 10, 0.001)))
+        with _rt.budget("f", cost=1) as b:
+            self.assertEqual(_rt.ai("f", "p", _rt.Int), 1)
+        self.assertEqual(b.used, (10.0, 1.0, 0.001))
+
+    def test_unpriced_model_is_refused_before_the_request(self):
+        model = self.Model(None, Completion("1", 10, None))
+        runtime.configure(model=model)
+        with _rt.call("g", []):
+            with self.assertRaises(BudgetUnenforceable) as e:
+                with _rt.budget("f", cost=1):
+                    _rt.ai("f", "p", _rt.Int)
+        self.assertEqual((e.exception.function, e.exception.when), ("f", "before"))
+        self.assertEqual(model.requests, 0)
+        kinds = [r["kind"] for r in runtime.last_run().records]
+        self.assertIn("budget_unenforceable", kinds)
+        self.assertNotIn("ai_call", kinds)
+
+    def test_unpriced_model_without_a_cost_budget_runs(self):
+        runtime.configure(model=self.Model(None, Completion("1", 10, None)))
+        with _rt.budget("f", tokens=100, calls=2) as b:
+            self.assertEqual(_rt.ai("f", "p", _rt.Int), 1)
+        self.assertEqual(b.used, (10.0, 1.0, 0.0))
+        self.assertEqual(_rt.ai("f", "p", _rt.Int), 1)
+
+    def test_answer_without_a_cost_fails_after(self):
+        # A model that doesn't say whether it has prices, answering with plain text.
+        class Plain:
+            def complete(self, request):
+                return "1"
+
+        runtime.configure(model=Plain())
+        with _rt.call("g", []):
+            with self.assertRaises(BudgetUnenforceable) as e:
+                with _rt.budget("f", cost=1):
+                    _rt.ai("f", "p", _rt.Int)
+        self.assertEqual(e.exception.when, "after")
+        ai = [r for r in runtime.last_run().records if r["kind"] == "ai_call"]
+        self.assertIsNone(ai[0]["cost"])
+
+    def test_warn_downgrades_to_one_warning(self):
+        model = self.Model(None, Completion("1", 10, None))
+        runtime.configure(model=model, unpriced="warn")
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            with _rt.budget("f", cost=1) as b:
+                for _ in range(3):
+                    self.assertEqual(_rt.ai("f", "p", _rt.Int), 1)
+        self.assertEqual(model.requests, 3)
+        self.assertEqual(b.used, (30.0, 3.0, 0.0))
+        self.assertEqual(len([w for w in caught if "cost budget" in str(w.message)]), 1)
+
+    def test_bad_setting(self):
+        with self.assertRaises(ValueError):
+            runtime.configure(unpriced="ignore")
+
+    def test_mock_is_free(self):
+        runtime.configure(model=MockModel({"f": 1}))
+        with _rt.budget("f", cost=0.01) as b:
+            self.assertEqual(_rt.ai("f", "p", _rt.Int), 1)
+        self.assertEqual(b.used[2], 0.0)
 
 
 if __name__ == "__main__":

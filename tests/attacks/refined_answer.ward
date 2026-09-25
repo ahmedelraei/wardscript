@@ -1,0 +1,12 @@
+// A refined return type constrains the answer's shape, not its trust.
+import mcp "shell" as sh
+
+ai fn pick_command(task: String) -> String where it.len() < 40 && !it.contains(";") {
+    "Which shell command does this: {task}"
+}
+
+pub fn run(task: String)
+    uses {llm, sh.run}
+{
+    sh.run(pick_command(task))
+}

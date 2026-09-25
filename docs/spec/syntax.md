@@ -10,7 +10,10 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
   (see [Statements](#statements-and-line-breaks)).
 - **Identifiers**: `[A-Za-z_][A-Za-z0-9_]*`. A lone `_` is the wildcard pattern.
 - **Keywords** (reserved; can't be used as names):
-  `ai fn pub let type enum match if else for in while return throw throws try catch import as uses budget true false`
+  `ai fn pub let type enum match if else for in while return throw throws try catch import as uses budget true false`.
+  `model` and `check` are keywords only where a clause can start (`model {`, `check {`),
+  `where` only after a type, `test` only before a string at the top level, and
+  `assert` only at the start of a statement in a test; elsewhere they're names.
 - **Integers**: `[0-9][0-9_]*`, 64-bit signed. `_` separators are ignored (`1_000`).
 - **Floats**: `[0-9][0-9_]*.[0-9][0-9_]*`. No exponent form; a leading digit is required.
 - **Strings**: `"..."`, may span lines. Escapes: `\n \r \t \0 \\ \"`.
@@ -24,29 +27,35 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
 
 ```ebnf
 module      = item* ;
-item        = annotation* (import | ["pub"] (fn | ai_fn)) | ["pub"] (type | enum) ;
+item        = annotation* (import | ["pub"] (fn | ai_fn)) | ["pub"] (type | enum) | test ;
+test        = "test" STRING block ;                       (* run by `ward test` *)
 annotation  = "@" IDENT ["(" [annotation_arg ("," annotation_arg)* [","]] ")"] ;
-annotation_arg = IDENT ["=" STRING] ;                        (* rule_of_two, reason = "..." *)
+annotation_arg = IDENT ("." IDENT)* ["=" STRING] ;                     (* rule_of_two, reason = "..." *)
 
 import      = "import" path ["as" IDENT]                 (* module import *)
             | "import" IDENT STRING "as" IDENT ;         (* tool import: import mcp "gmail" as mail *)
 
 fn          = "fn" IDENT signature block ;
 ai_fn       = "ai" "fn" IDENT signature "{" STRING "}" ;   (* the body is only the prompt *)
-signature   = [generics] "(" [param ("," param)* [","]] ")" ["->" type] ["throws" type] clause* ;
-param       = IDENT ":" type ;
+signature   = [generics] "(" [param ("," param)* [","]] ")" ["->" rtype] ["throws" type] clause* ;
+param       = IDENT ":" rtype ;
 clause      = "uses" "{" [effect ("," effect)* [","]] "}"
-            | "budget" "{" [IDENT ":" expr ("," IDENT ":" expr)* [","]] "}" ;
+            | "budget" "{" [IDENT ":" expr ("," IDENT ":" expr)* [","]] "}"
+            | "model" "{" [model_entry ("," model_entry)* [","]] "}"
+            | "check" "{" [check_entry ("," check_entry)* [","]] "}" ;
+check_entry = expr ["=>" STRING] ;                       (* a condition on `it`, and why *)
+model_entry = IDENT ":" (IDENT | INT | FLOAT | "[" [IDENT ("," IDENT)* [","]] "]") ;
 effect      = IDENT ("." IDENT)* ;                       (* llm, mail, mail.send *)
 
 type_decl   = "type" IDENT [generics] "{" [field ("," field)* [","]] "}"   (* record *)
-            | "type" IDENT [generics] "=" type ;                           (* alias *)
-field       = IDENT ":" type ;
+            | "type" IDENT [generics] "=" rtype ;                          (* alias *)
+field       = IDENT ":" rtype ;
 enum        = "enum" IDENT [generics] "{" [variant ("," variant)* [","]] "}" ;
-variant     = IDENT ["(" type ("," type)* [","] ")"] ;
+variant     = IDENT ["(" rtype ("," rtype)* [","] ")"] ;
 generics    = "<" IDENT ("," IDENT)* [","] ">" ;
 
 type        = path ["<" type ("," type)* [","] ">"] ;    (* String, List<T>, Untrusted<Ticket> *)
+rtype       = type ["where" expr_ns] ;                  (* String where it.len() <= 80 *)
 path        = IDENT ("." IDENT)* ;
 
 block       = "{" stmt* [expr] "}" ;                     (* the trailing expr is the block's value *)
@@ -55,6 +64,7 @@ stmt        = ( "let" IDENT [":" type] "=" expr
               | "throw" expr
               | "for" IDENT "in" expr_ns block
               | "while" expr_ns block
+              | "assert" expr ["=>" STRING]              (* only in tests *)
               | expr "=" expr                            (* target: name, field or index *)
               | expr ) end ;
 end         = ";" | line break | before "}" ;
@@ -129,11 +139,13 @@ An `ai fn` is answered by a model. Its body is exactly one prompt string (error
 W0016 otherwise), which may interpolate parameters. It must declare a return type
 (error W0017), because the model's answer is parsed and validated against it.
 `ai fn` implies the `llm` effect; other effects and a `budget` go between the
-signature and the body, as for any function.
+signature and the body, as for any function. A `model` clause picks the models an
+`ai fn` asks, and how it retries them ([runtime](runtime.md#model-policies)).
 
 ```wardscript
 ai fn triage(email: Untrusted<String>) -> Ticket
     budget {tokens: 2000, calls: 3}
+    model {primary: fast, fallback: smart, retries: 2}
 {
     "Fill in a ticket for this email:\n{email}"
 }

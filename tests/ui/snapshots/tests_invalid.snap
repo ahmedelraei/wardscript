@@ -1,0 +1,167 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/tests_invalid.ward
+---
+exit: Some(1)
+--- human ---
+[W0110] Error: mismatched types: expected `Bool`, found `Int`
+   ╭─[ tests/ui/tests_invalid.ward:7:12 ]
+   │
+ 7 │     assert one()
+   │            ──┬──  
+   │              ╰──── expected `Bool`, found `Int`
+───╯
+[W0103] Error: the test `one` is defined more than once
+    ╭─[ tests/ui/tests_invalid.ward:10:6 ]
+    │
+ 10 │ test "one" {
+    │      ──┬──  
+    │        ╰──── redefined here
+    │
+    ├─[ tests/ui/tests_invalid.ward:10:6 ]
+    │
+  6 │ test "one" {
+    │      ──┬──  
+    │        ╰──── first defined here
+────╯
+[W0110] Error: mismatched types: expected `Int`, found `String`
+    ╭─[ tests/ui/tests_invalid.ward:11:21 ]
+    │
+ 11 │     assert one() == "1"
+    │                     ─┬─  
+    │                      ╰─── expected `Int`, found `String`
+────╯
+error: could not check `tests/ui/tests_invalid.ward` due to 3 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0110",
+      "file": "tests/ui/tests_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Bool`, found `Int`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 7,
+              "offset": 139
+            },
+            "start": {
+              "column": 12,
+              "line": 7,
+              "offset": 134
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Bool`, found `Int`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 7,
+          "offset": 139
+        },
+        "start": {
+          "column": 12,
+          "line": 7,
+          "offset": 134
+        }
+      }
+    },
+    {
+      "code": "W0103",
+      "file": "tests/ui/tests_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "redefined here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 11,
+              "line": 10,
+              "offset": 153
+            },
+            "start": {
+              "column": 6,
+              "line": 10,
+              "offset": 148
+            }
+          }
+        },
+        {
+          "message": "first defined here",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 11,
+              "line": 6,
+              "offset": 120
+            },
+            "start": {
+              "column": 6,
+              "line": 6,
+              "offset": 115
+            }
+          }
+        }
+      ],
+      "message": "the test `one` is defined more than once",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 11,
+          "line": 10,
+          "offset": 153
+        },
+        "start": {
+          "column": 6,
+          "line": 10,
+          "offset": 148
+        }
+      }
+    },
+    {
+      "code": "W0110",
+      "file": "tests/ui/tests_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `Int`, found `String`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 24,
+              "line": 11,
+              "offset": 179
+            },
+            "start": {
+              "column": 21,
+              "line": 11,
+              "offset": 176
+            }
+          }
+        }
+      ],
+      "message": "mismatched types: expected `Int`, found `String`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 24,
+          "line": 11,
+          "offset": 179
+        },
+        "start": {
+          "column": 21,
+          "line": 11,
+          "offset": 176
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/tests_invalid.ward"
+}

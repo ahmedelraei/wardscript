@@ -3,9 +3,11 @@
 //! A program is a set of modules, one per file. [`load`] parses the entry file and
 //! everything it imports; [`resolve`] maps every name in every module to its definition.
 
+pub mod json;
 mod loader;
 mod resolver;
 mod suggest;
+pub mod tools;
 
 use std::collections::HashMap;
 
@@ -30,6 +32,8 @@ pub struct DefId {
 pub struct Program {
     /// `modules[0]` is the entry module.
     pub modules: Vec<ModuleData>,
+    /// Tool schemas from `ward.lock`, if there is one.
+    pub lock: Option<tools::ToolLock>,
 }
 
 impl Program {
@@ -39,6 +43,22 @@ impl Program {
 
     pub fn item(&self, def: DefId) -> &ward_syntax::ast::Item {
         &self.module(def.module).ast.items[def.item]
+    }
+
+    /// The schema of the tool imported from `source`, if the lock has it.
+    pub fn tool_server(&self, source: &str) -> Option<&tools::ToolServer> {
+        self.lock.as_ref()?.servers.get(source)
+    }
+
+    /// The schema of an `import mcp` item, if the lock has it.
+    pub fn tool_schema(&self, def: DefId) -> Option<&tools::ToolServer> {
+        match self.item(def) {
+            ward_syntax::ast::Item::Import(ward_syntax::ast::Import {
+                kind: ward_syntax::ast::ImportKind::Tool { source, .. },
+                ..
+            }) => self.tool_server(source),
+            _ => None,
+        }
     }
 
     pub fn module_ids(&self) -> impl Iterator<Item = ModuleId> + use<> {
@@ -174,6 +194,10 @@ pub struct ModuleRes {
     pub stmt_locals: ArenaMap<StmtId, LocalId>,
     /// The error variable of each `try ... catch err`.
     pub catch_locals: ArenaMap<ExprId, LocalId>,
+    /// The `it` of each refined type (`String where it.len() < 80`).
+    pub refinement_its: ArenaMap<TypeId, LocalId>,
+    /// The `it` (the answer) of each `ai fn`'s `check {...}` clause, by item index.
+    pub check_its: HashMap<usize, LocalId>,
 }
 
 pub struct Resolution {

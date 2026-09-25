@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use ward_syntax::ast::{ExprId, ExprKind, FnBody, Item, Lit, TemplatePart};
+use ward_syntax::ast::{ExprId, ExprKind, FnBody, Item, Lit, ModelValue, TemplatePart};
 use ward_syntax::lexer::{TokenKind as T, lex};
 use ward_syntax::printer::{print, print_expr_parenthesized};
 use ward_syntax::{Parse, parse};
@@ -379,9 +379,113 @@ fn annotations() {
         Some("why")
     );
 
+    let parse = parse_ok("@not_sink(send.body, reason = \"why\")\nimport mcp \"gmail\" as mail\n");
+    let Some(Item::Import(i)) = parse.module.items.first() else {
+        panic!("expected an import");
+    };
+    assert_eq!(i.annotations[0].args[0].name.name, "send.body");
+    assert_eq!(codes("@sink(send.)\nimport mcp \"g\" as g\n"), ["W0010"]);
+
     assert_eq!(codes("@x\ntype T = Int\n"), ["W0024"]);
     assert_eq!(codes("@x\nenum E { A }\n"), ["W0024"]);
     assert_eq!(codes("@allow(a = b)\nfn f() {}\n"), ["W0010"]);
     assert_eq!(codes("@allow(a = \"{x}\")\nfn f() {}\n"), ["W0022"]);
     assert_eq!(codes("@\nfn f() {}\n"), ["W0010"]);
+}
+
+#[test]
+fn model_clause() {
+    let src = "ai fn f(x: String) -> String\n    budget {calls: 4}\n    model {primary: fast, fallback: [smart, backup], retries: 2, backoff: 0.5}\n{\n    \"{x}\"\n}\n";
+    let parse = parse_ok(src);
+    let Some(Item::Fn(f)) = parse.module.items.first() else {
+        panic!("expected a function");
+    };
+    let Some(model) = &f.model else {
+        panic!("expected a model clause");
+    };
+    let names: Vec<&str> = model.entries.iter().map(|e| e.name.name.as_str()).collect();
+    assert_eq!(names, ["primary", "fallback", "retries", "backoff"]);
+    assert!(matches!(&model.entries[1].value, ModelValue::Names(v, _) if v.len() == 2));
+    assert!(matches!(&model.entries[3].value, ModelValue::Number(n, _) if n == "0.5"));
+    assert_eq!(assert_round_trips(src), src);
+
+    // `model` is still a name everywhere else.
+    parse_ok("fn model(model: Int) -> Int {\n    let model = model\n    model\n}\n");
+    assert_eq!(
+        codes(
+            "ai fn f() -> Int\n    model {primary: fast}\n    model {retries: 1}\n{\n    \"x\"\n}\n"
+        ),
+        ["W0018"]
+    );
+    assert_eq!(
+        codes("ai fn f() -> Int\n    model {primary: \"fast\"}\n{\n    \"x\"\n}\n"),
+        ["W0010"]
+    );
+    assert_eq!(
+        codes("ai fn f() -> Int\n    model {primary fast}\n{\n    \"x\"\n}\n"),
+        ["W0010"]
+    );
+}
+
+#[test]
+fn refinements() {
+    let src = "type Subject = String where it.len() <= 80 && !it.contains(\"\\n\")\n\ntype Reply {\n    subject: Subject,\n    score: Int where it >= 1 && it <= 5,\n}\n\nai fn f(x: String) -> String where it.len() < 200 {\n    \"{x}\"\n}\n";
+    let parse = parse_ok(src);
+    let refined = parse
+        .module
+        .types
+        .iter()
+        .filter(|(_, t)| t.refinement.is_some())
+        .count();
+    assert_eq!(refined, 3);
+    assert_eq!(assert_round_trips(src), src);
+    // `where` is still a name elsewhere.
+    parse_ok("fn f(where: Int) -> Int {\n    where\n}\n");
+    // A record literal can't start in a refinement: the `{` is the body.
+    parse_ok("fn f() -> Int where it == 1 {\n    1\n}\n");
+    assert_eq!(codes("type T = String where\n"), ["W0012"]);
+}
+
+#[test]
+fn check_clause() {
+    let src = "ai fn f(x: String) -> String\n    check {\n        it.len() < 200 => \"keep it short\",\n        !it.contains(x),\n    }\n{\n    \"{x}\"\n}\n";
+    let parse = parse_ok(src);
+    let Some(Item::Fn(f)) = parse.module.items.first() else {
+        panic!("expected a function");
+    };
+    let Some(checks) = &f.checks else {
+        panic!("expected a check clause");
+    };
+    assert_eq!(checks.entries.len(), 2);
+    assert_eq!(
+        checks.entries[0].reason.as_ref().map(|(r, _)| r.as_str()),
+        Some("keep it short")
+    );
+    assert!(checks.entries[1].reason.is_none());
+    assert_eq!(assert_round_trips(src), src);
+    parse_ok("fn check(check: Int) -> Int {\n    check\n}\n");
+    assert_eq!(
+        codes("ai fn f() -> Int\n    check {it > 1 => 2}\n{\n    \"x\"\n}\n"),
+        ["W0010"]
+    );
+    assert_eq!(
+        codes("ai fn f() -> Int\n    check {it > 1 => \"{it}\"}\n{\n    \"x\"\n}\n"),
+        ["W0022"]
+    );
+}
+
+#[test]
+fn test_blocks() {
+    let src = "fn f() -> Int {\n    1\n}\n\ntest \"f is one\" {\n    let x = f()\n    assert x == 1 => \"one\"\n    assert x > 0\n}\n";
+    let parse = parse_ok(src);
+    let Some(Item::Test(t)) = parse.module.items.get(1) else {
+        panic!("expected a test");
+    };
+    assert_eq!(t.name, "f is one");
+    assert_eq!(t.body.stmts.len(), 3);
+    assert_eq!(assert_round_trips(src), src);
+    // `test` and `assert` are names elsewhere.
+    parse_ok("fn test(assert: Int) -> Int {\n    let test = assert\n    test\n}\n");
+    assert_eq!(codes("@x\ntest \"t\" {}\n"), ["W0024"]);
+    assert_eq!(codes("test \"{x}\" {}\n"), ["W0022"]);
 }

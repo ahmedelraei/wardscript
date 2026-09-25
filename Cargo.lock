@@ -800,7 +800,9 @@ dependencies = [
  "ureq",
  "ward_check",
  "ward_codegen_py",
+ "ward_codegen_ts",
  "ward_ir",
+ "ward_lsp",
  "ward_resolve",
  "ward_runtime",
  "ward_syntax",
@@ -810,6 +812,15 @@ dependencies = [
 name = "ward_codegen_py"
 version = "0.0.1"
 dependencies = [
+ "ward_ir",
+]
+
+[[package]]
+name = "ward_codegen_ts"
+version = "0.0.1"
+dependencies = [
+ "insta",
+ "serde_json",
  "ward_ir",
 ]
 
@@ -825,10 +836,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ward_lsp"
+version = "0.0.1"
+dependencies = [
+ "serde_json",
+ "ward_check",
+ "ward_resolve",
+ "ward_syntax",
+]
+
+[[package]]
 name = "ward_resolve"
 version = "0.0.1"
 dependencies = [
  "la-arena",
+ "serde",
+ "serde_json",
  "ward_syntax",
 ]
 

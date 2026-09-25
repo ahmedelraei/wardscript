@@ -43,8 +43,9 @@ Untrusted data comes from:
 
 ## Sinks
 
-- every argument of a tool call, until MCP imports (M7) say which parameters are
-  sensitive;
+- tool parameters: every argument of a tool without a schema; with one, the
+  parameters of any tool that isn't read-only and closed-world, adjusted with
+  `@sink` and `@not_sink` ([tools](tools.md#trust));
 - parameters, return types, `let` variables and record fields declared `Trusted<T>`;
 - a parameter that reaches a sink inside its function (this is inferred), so calling
   a helper that sends its argument to a tool needs trusted data too. Callers outside
@@ -88,6 +89,10 @@ Each returns its argument, now `Trusted`, and each is recorded in the audit trac
 | `validate(x, rule)?` | a Wardscript function `rule(x) -> Bool` accepts the value; otherwise it throws. The rule sees the unchecked value, so its parameter mustn't reach a sink |
 | `approve(x)` | a human approves the value at runtime (`ApprovalDenied` otherwise) |
 | `declassify(x, reason)` | the programmer vouches for the value; `reason` is recorded |
+
+A model's answer that passed its `check` clause and its type's refinements is still
+`Untrusted` ([types](types.md#checks-on-answers)): checks say what shape an answer
+has, not who shaped it.
 
 ## W0107
 

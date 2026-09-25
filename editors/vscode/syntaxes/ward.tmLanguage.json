@@ -1,0 +1,139 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Wardscript",
+  "scopeName": "source.ward",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#annotation" },
+    { "include": "#test" },
+    { "include": "#declaration" },
+    { "include": "#clause" },
+    { "include": "#keyword" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#trust" },
+    { "include": "#type" },
+    { "include": "#call" },
+    { "include": "#operator" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.double-slash.ward",
+      "match": "//.*$"
+    },
+    "annotation": {
+      "name": "meta.annotation.ward",
+      "match": "(@)([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": { "name": "punctuation.definition.annotation.ward" },
+        "2": { "name": "storage.type.annotation.ward" }
+      }
+    },
+    "test": {
+      "match": "^\\s*(test)(?=\\s*\")",
+      "captures": { "1": { "name": "keyword.other.test.ward" } }
+    },
+    "declaration": {
+      "patterns": [
+        {
+          "match": "\\b(fn)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.type.function.ward" },
+            "2": { "name": "entity.name.function.ward" }
+          }
+        },
+        {
+          "match": "\\b(type|enum)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.type.ward" },
+            "2": { "name": "entity.name.type.ward" }
+          }
+        },
+        {
+          "match": "\\b(import)\\s+(mcp)\\b",
+          "captures": {
+            "1": { "name": "keyword.control.import.ward" },
+            "2": { "name": "support.other.provider.ward" }
+          }
+        }
+      ]
+    },
+    "clause": {
+      "match": "\\b(uses|budget|model|check)(?=\\s*\\{)|\\b(where)\\b|^\\s*(assert)\\b",
+      "captures": {
+        "1": { "name": "keyword.other.clause.ward" },
+        "2": { "name": "keyword.other.where.ward" },
+        "3": { "name": "keyword.other.assert.ward" }
+      }
+    },
+    "keyword": {
+      "patterns": [
+        {
+          "name": "keyword.control.ward",
+          "match": "\\b(if|else|match|for|in|while|return|throw|throws|try|catch)\\b"
+        },
+        {
+          "name": "keyword.other.ward",
+          "match": "\\b(ai|fn|pub|let|type|enum|import|as|uses|budget)\\b"
+        },
+        {
+          "name": "constant.language.ward",
+          "match": "\\b(true|false|None)\\b"
+        }
+      ]
+    },
+    "trust": {
+      "name": "support.function.trust.ward",
+      "match": "\\b(validate|approve|declassify)\\b(?=\\s*\\()"
+    },
+    "string": {
+      "name": "string.quoted.double.ward",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "name": "constant.character.escape.ward", "match": "\\\\[nrt0\\\\\"]" },
+        { "name": "constant.character.escape.ward", "match": "\\{\\{|\\}\\}" },
+        {
+          "name": "meta.interpolation.ward",
+          "begin": "\\{",
+          "end": "\\}",
+          "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.ward" } },
+          "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.ward" } },
+          "patterns": [
+            { "include": "#number" },
+            { "include": "#call" },
+            { "include": "#operator" }
+          ]
+        }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.ward",
+      "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?\\b"
+    },
+    "type": {
+      "patterns": [
+        {
+          "name": "support.type.trust.ward",
+          "match": "\\b(Untrusted|Trusted)\\b"
+        },
+        {
+          "name": "support.type.primitive.ward",
+          "match": "\\b(Int|Float|String|Bool|List|Map|Option)\\b"
+        },
+        {
+          "name": "entity.name.type.ward",
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+    "call": {
+      "match": "\\b([a-z_][A-Za-z0-9_]*)(?=\\s*\\()",
+      "captures": { "1": { "name": "entity.name.function.call.ward" } }
+    },
+    "operator": {
+      "name": "keyword.operator.ward",
+      "match": "->|=>|==|!=|<=|>=|&&|\\|\\||[+\\-*/%<>=!?]"
+    }
+  }
+}

@@ -17,6 +17,7 @@ use ward_syntax::diag::codes;
 use ward_syntax::{Diagnostic, Span};
 
 use crate::trust::declares_untrusted;
+use ward_resolve::tools::ToolServer;
 
 const MAX_ITERATIONS: usize = 64;
 /// Minimum call counts stop growing here, so recursion can't make them diverge.
@@ -154,6 +155,117 @@ fn names(annotation: &Annotation) -> impl Iterator<Item = &str> {
         .map(|a| a.name.name.as_str())
 }
 
+fn unknown_import_annotation(a: &Annotation) -> Diagnostic {
+    Diagnostic::error(
+        codes::INVALID_ANNOTATION,
+        format!("unknown annotation `{}` on an import", a.name.name),
+        a.name.span,
+    )
+    .with_label("not recognized here")
+    .with_help(
+        "tool imports take `@private(f, ...)`, `@readonly(f, ...)`, `@sink(f.param, ...)` \
+         and `@not_sink(f.param, ..., reason = \"...\")`",
+    )
+}
+
+fn invalid(span: Span, message: String, label: &str) -> Diagnostic {
+    Diagnostic::error(codes::INVALID_ANNOTATION, message, span).with_label(label.to_owned())
+}
+
+/// Checks an annotation on a tool import against the tool's schema, if it has one.
+fn import_annotation_error(a: &Annotation, schema: Option<&ToolServer>) -> Option<Diagnostic> {
+    let kind = a.name.name.as_str();
+    let params = matches!(kind, "sink" | "not_sink");
+    if !params && !matches!(kind, "private" | "readonly") {
+        return Some(unknown_import_annotation(a));
+    }
+    if params && schema.is_none() {
+        return Some(
+            invalid(
+                a.name.span,
+                format!("`@{kind}` needs the tool's schema"),
+                "this tool isn't in `ward.lock`",
+            )
+            .with_help("add the server to `mcp.json` and run `ward lock`; without a schema every argument is a sink"),
+        );
+    }
+    let mut reason = None;
+    for arg in &a.args {
+        match &arg.value {
+            Some((text, _)) if kind == "not_sink" && arg.name.name == "reason" => {
+                reason = Some(text.trim());
+            }
+            Some(_) => {
+                return Some(invalid(
+                    arg.span,
+                    format!("`@{kind}` doesn't take `{}`", arg.name.name),
+                    if params {
+                        "expected a parameter, like `send.body`"
+                    } else {
+                        "expected a name, like `read_file`"
+                    },
+                ));
+            }
+            None => {
+                let (func, param) = match arg.name.name.split_once('.') {
+                    Some((f, p)) if params => (f, Some(p)),
+                    None if !params => (arg.name.name.as_str(), None),
+                    _ => {
+                        return Some(invalid(
+                            arg.span,
+                            if params {
+                                format!("`@{kind}` takes tool parameters, like `send.body`")
+                            } else {
+                                format!("`@{kind}` takes tool function names")
+                            },
+                            "not a valid argument here",
+                        ));
+                    }
+                };
+                let Some(schema) = schema else { continue };
+                let Some(f) = schema.function(func) else {
+                    let d = invalid(
+                        arg.name.span,
+                        format!("tool `{}` has no function `{func}`", schema.source),
+                        "unknown tool function",
+                    );
+                    let names: Vec<&str> =
+                        schema.functions.iter().map(|f| f.name.as_str()).collect();
+                    return Some(match ward_resolve::did_you_mean(func, names) {
+                        Some(s) => d.with_help(format!("a similar name exists: `{s}`")),
+                        None => d,
+                    });
+                };
+                if let Some(p) = param {
+                    if !f.params.iter().any(|x| x.name == p) {
+                        let names: Vec<String> =
+                            f.params.iter().map(|x| format!("`{}`", x.name)).collect();
+                        return Some(
+                            invalid(
+                                arg.name.span,
+                                format!("`{}.{func}` has no parameter `{p}`", schema.source),
+                                "unknown parameter",
+                            )
+                            .with_help(format!("its parameters are {}", names.join(", "))),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    if kind == "not_sink" && reason.is_none_or(str::is_empty) {
+        return Some(
+            invalid(
+                a.name.span,
+                "`@not_sink` needs a reason".to_owned(),
+                "say why untrusted data may reach these parameters",
+            )
+            .with_help("add `reason = \"...\"`; it's what a reviewer reads"),
+        );
+    }
+    None
+}
+
 impl<'p> Cx<'p> {
     fn err(&mut self, module: ModuleId, d: Diagnostic) {
         self.diags.push(ProgramDiagnostic {
@@ -176,6 +288,12 @@ impl<'p> Cx<'p> {
         let Item::Import(i) = self.program.item(def) else {
             return ToolClass::External;
         };
+        // The schema's hint, unless an annotation says otherwise.
+        let hinted = self
+            .program
+            .tool_schema(def)
+            .and_then(|s| s.function(func))
+            .is_some_and(|f| f.read_only);
         for a in &i.annotations {
             if names(a).any(|n| n == func) {
                 match a.name.name.as_str() {
@@ -185,7 +303,11 @@ impl<'p> Cx<'p> {
                 }
             }
         }
-        ToolClass::External
+        if hinted {
+            ToolClass::Readonly
+        } else {
+            ToolClass::External
+        }
     }
 
     /// The name a module imports tool `source` by.
@@ -221,30 +343,14 @@ impl<'p> Cx<'p> {
         for m in program.module_ids() {
             for it in &program.module(m).ast.items {
                 let Item::Import(i) = it else { continue };
-                let is_tool = matches!(i.kind, ImportKind::Tool { .. });
+                let schema = match &i.kind {
+                    ImportKind::Tool { source, .. } => Some(program.tool_server(source)),
+                    ImportKind::Module(_) => None,
+                };
                 for a in &i.annotations {
-                    let known = matches!(a.name.name.as_str(), "private" | "readonly");
-                    let d = if !known || !is_tool {
-                        Some(
-                            Diagnostic::error(
-                                codes::INVALID_ANNOTATION,
-                                format!("unknown annotation `{}` on an import", a.name.name),
-                                a.name.span,
-                            )
-                            .with_label("not recognized here")
-                            .with_help(
-                                "tool imports take `@private(f, ...)` and `@readonly(f, ...)`",
-                            ),
-                        )
-                    } else {
-                        a.args.iter().find(|x| x.value.is_some()).map(|arg| {
-                            Diagnostic::error(
-                                codes::INVALID_ANNOTATION,
-                                format!("`@{}` takes tool function names", a.name.name),
-                                arg.span,
-                            )
-                            .with_label("expected a name, like `read_file`")
-                        })
+                    let d = match schema {
+                        Some(schema) => import_annotation_error(a, schema),
+                        None => Some(unknown_import_annotation(a)),
                     };
                     if let Some(d) = d {
                         self.err(m, d);
@@ -276,6 +382,10 @@ impl<'p> Cx<'p> {
                 f.name.span,
                 "an `ai fn` calls the model".to_owned(),
             )),
+        }
+        // Checks run with the call: what they use, the `ai fn` uses.
+        for e in f.checks.iter().flat_map(|c| &c.entries) {
+            w.expr(e.cond, true);
         }
         w.out
     }
@@ -857,6 +967,7 @@ impl Walker<'_, '_> {
                     self.expr(*cond, true);
                     self.block(body, false);
                 }
+                StmtKind::Assert { cond, .. } => self.expr(*cond, true),
             }
         }
         if let Some(t) = b.tail {
@@ -1002,6 +1113,7 @@ impl MinCalls<'_, '_> {
                 // The body may run zero times.
                 StmtKind::For { iter, .. } => n += self.expr(*iter),
                 StmtKind::While { cond, .. } => n += self.expr(*cond),
+                StmtKind::Assert { cond, .. } => n += self.expr(*cond),
             }
         }
         (n + b.tail.map_or(0, |t| self.expr(t))).min(CALLS_CAP)

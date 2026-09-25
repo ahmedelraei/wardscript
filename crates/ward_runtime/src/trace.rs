@@ -68,11 +68,17 @@ pub enum Event {
         /// Unix time in nanoseconds when the request was sent; `time` is when it ended.
         started: u64,
         function: String,
+        /// Counts every request of the call: retries and fallbacks too.
         attempt: u32,
+        /// The alias of the model asked (`model {primary: fast}`); `None` for the
+        /// default model.
+        #[serde(default)]
+        model: Option<String>,
         prompt: String,
         answer: Option<String>,
         tokens: f64,
-        cost: f64,
+        /// `None` when unknown: a model without prices, or one returning plain text.
+        cost: Option<f64>,
         /// Why the answer was rejected, or why the call failed.
         error: Option<String>,
         /// Of the decoded output, when the answer was accepted.
@@ -110,6 +116,12 @@ pub enum Event {
         resource: String,
         limit: f64,
         used: f64,
+    },
+    /// A `cost` budget can't be enforced because the model's cost is unknown; `when` is
+    /// `before` (a model without prices) or `after` (an answer without a cost).
+    BudgetUnenforceable {
+        function: String,
+        when: String,
     },
 }
 

@@ -86,6 +86,8 @@ catches:
 | `NoModelError` | an `ai fn` is called with no model configured |
 | `AiOutputError` | the model's answers didn't match the return type on every attempt; `.errors` says why, per attempt |
 | `BudgetExceeded` | a function went over its `budget`; `.function`, `.resource`, `.limit`, `.used` |
+| `BudgetUnenforceable` | a function has a `cost` budget but the model's cost is unknown; `.function`, `.when` (`before` or `after`); see [unknown cost](#unknown-cost) |
+| `ModelError` | a provider failed to answer after its retries and every fallback; `RateLimited` and `ModelUnavailable` (timeouts, 5xx) are retryable, `.status` has the HTTP status |
 | `ApprovalDenied` | `approve` was refused, or no approver is configured |
 | `ToolError` | a tool or tool function isn't configured |
 | `TrustError` | the host passed a parameter that must be trusted without vouching for it |
@@ -103,12 +105,13 @@ Every record has `run`, `seq`, `time` (Unix nanoseconds) and a `kind`:
 | `kind` | Fields |
 |---|---|
 | `run_start` | `function`; `args`, each with `name`, `value`, `vouched` and `leaves` |
-| `ai_call` | `started`, `function`, `attempt`, `prompt`, `answer`, `tokens`, `cost`, `error` (why it was rejected), `leaves` of the decoded output |
+| `ai_call` | `started`, `function`, `attempt` (counting every request of the call), `model` (the alias asked, or `null` for the default model), `prompt`, `answer`, `tokens`, `cost` (`null` when unknown), `error` (why it was rejected), `leaves` of the decoded output |
 | `tool_call` | `started`, `tool`, `function`, `site`, `args`, `digests` of the args, `error`, `leaves` of the result |
 | `validate` | `rule`, `site`, `passed`, `leaves` of the checked value |
 | `approve` | `site`, `approved`, `leaves` |
 | `declassify` | `site`, `reason`, `leaves` |
 | `budget_exceeded` | `function`, `resource`, `limit`, `used` |
+| `budget_unenforceable` | `function`, `when` (`before` or `after`) |
 | `run_end` | `status` (`ok`, `threw`, `error`), `error`, and the run's `tokens`, `calls`, `cost` |
 
 `leaves` are `{path, digest}` for a value and each of its parts (`$`, `$.subject`,
@@ -155,8 +158,9 @@ runtime.configure(model=OpenAI("<model>", prices=(..., ...)))
 - `Anthropic` gives the return type's schema as a tool the model must call; `OpenAI`
   gives it as a JSON-schema response format. Either way the answer is still decoded
   and retried as usual.
-- `prices` are dollars per million input and output tokens. Without them, calls
-  cost 0 and `cost` budgets never run out.
+- `prices` are dollars per million input and output tokens. Without them the cost
+  is unknown (`Completion.cost` is `None`), and a `cost` budget refuses the call
+  ([unknown cost](#unknown-cost)).
 - They need the SDK (`pip install wardscript[anthropic]` or `[openai]`) and read
   `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`; `client=` takes a configured client.
 - `providers.load("anthropic:claude-sonnet-5")` is what `ward run --model` uses.
@@ -170,6 +174,77 @@ runs the triage and support examples (`tests/live`) with `WARD_LIVE_MODEL`, defa
 A function with a `budget` runs inside `wardscript._rt.budget(...)`, which charges
 every model call made while it runs, in callees too. Going over raises
 `BudgetExceeded`; see [effects](effects.md#budgets) for when each resource is checked.
+
+## Model policies
+
+An `ai fn` can say which models it asks and how it retries them:
+
+```ward
+ai fn triage(email: Untrusted<String>) -> Ticket
+    model {primary: fast, fallback: [smart, backup], retries: 2, backoff: 0.5}
+{
+    "..."
+}
+```
+
+| Setting | Value | Default |
+|---|---|---|
+| `primary` | the alias of the model asked first | the configured `model` |
+| `fallback` | an alias, or a list of them, tried in order | none |
+| `retries` | retries of a request that failed with a retryable `ModelError` | `configure(model_retries=...)`, 2 |
+| `backoff` | seconds before the first such retry; each next one waits twice as long | `configure(backoff=...)`, 1.0 |
+
+Aliases are bound at run time: `configure(models={"fast": ..., "smart": ...})`
+(`ward run --model fast=anthropic:<model>`; aliases left out use the plain
+`--model`, and `--mock` answers for all of them). An alias that isn't configured
+raises `NoModelError`. Mistakes in the clause itself are W0230 and W0231.
+
+Each model in turn:
+
+1. A request that fails with a retryable `ModelError` (`RateLimited`,
+   `ModelUnavailable`) is sent again after the backoff, up to `retries` times.
+2. An answer that doesn't fit the return type is retried with the error, as always
+   (`configure(retries=...)`).
+3. When the model keeps failing, or its answers stay invalid, the next one is
+   tried. A `ModelError` that isn't retryable (a rejected request) moves on at
+   once.
+
+An answer that doesn't satisfy a [refinement](types.md#refinements) (while it is
+decoded) or fails a [check](types.md#checks-on-answers) counts as invalid: it is
+retried with the reason, and its `ai_call` record has the reason as its `error`
+(`the answer failed a check: ...`). Generated code passes the checks as a
+function of the answer that returns the first failed reason, or `None`
+(`_rt.ai(..., check=...)`); in `--async` code it is awaited. Refined types are
+`_rt.Refined(base, condition, text, schema)` descriptors.
+
+When every model fails, the last one's error is raised: its `ModelError`, or
+`AiOutputError`. Other exceptions from a model aren't retried. The providers turn
+their SDK's errors into `ModelError`s by HTTP status, and turn off the SDK's own
+retries so the policy decides.
+
+Every request counts against budgets: `calls` before it is sent, so a retry over
+the limit is never sent; `tokens` and `cost` from the model that answered (a failed
+request costs nothing); and the [unknown cost](#unknown-cost) check applies to each
+model. Backoff sleeps count against `time`. Each request is an `ai_call` in the
+trace, with its `model` and, for a failed one, its error. The mock model raises
+exceptions given as answers, e.g. `Seq(RateLimited("429"), answer)`.
+
+### Unknown cost
+
+A `cost` budget fails closed when the cost can't be counted:
+
+- **Before a request**, if a `cost` budget is active and the model has
+  `prices=None` (a provider built without prices), the runtime raises
+  `BudgetUnenforceable` with `when="before"` and sends nothing.
+- **After an answer**, if its cost is unknown (`Completion.cost` is `None`, or the
+  model returned plain text) and a `cost` budget is active, it raises
+  `BudgetUnenforceable` with `when="after"`.
+
+Either way a `budget_unenforceable` record goes into the trace. Without a `cost`
+budget, unknown costs are fine and count as 0. `configure(unpriced="warn")` turns
+the error into a `RuntimeWarning`, once per function, and counts those calls as
+free. The mock model's answers cost 0 unless a `Usage` says otherwise. Both runtime
+cores make the same decision (`Budget.unenforceable(cost)`).
 
 ## Trust at the host boundary
 
@@ -204,7 +279,8 @@ This catches what a checker bug or edited generated code would let through
 directly. It doesn't catch values built from untrusted ones, such as
 `"Re: " + subject`: exact matches are all the trace has. That's the checker's job.
 Strings shorter than 8 characters, numbers and booleans are skipped, since they
-match by chance. `configure(check_sinks=False)` turns the check off.
+match by chance. `configure(check_sinks=False)` turns the check off. For a tool
+with a schema, only its sink parameters are checked ([tools](tools.md#trust)).
 
 ## The runtime
 
@@ -226,7 +302,9 @@ defaults.
 - **`model`**: anything with `complete(request: AiRequest) -> str | Completion`
   (and optionally `stream`, [below](#streaming)),
   returning JSON text, or a `Completion(text, tokens, cost)` that also says what the
-  answer cost, for [budgets](effects.md#budgets). `AiRequest` has the `function` name, the `prompt` with arguments filled in,
+  answer cost, for [budgets](effects.md#budgets) (`cost=None`, the default, means
+  unknown; plain text has an unknown cost too). A model with a `prices` attribute
+  set to `None` is known to be unpriced. `AiRequest` has the `function` name, the `prompt` with arguments filled in,
   the JSON `schema` of the return type, the `attempt` number and the `errors` of
   earlier attempts; `request.instructions()` combines them into one prompt.
 - **`approver`**: called by `approve(x)` with an `ApprovalRequest(value, site, run)`;
@@ -236,7 +314,10 @@ defaults.
   thread if one is already running). A model's `complete` may be `async` too.
 - **`tools`**: implementations for `import mcp "source" as x`, keyed by `source`.
   Each is a mapping of functions or an object with a method per tool function;
-  `x.send(a, b)` calls `tools["source"].send(a, b)`.
+  `x.send(a, b)` calls `tools["source"].send(a, b)`. An object with a
+  `call_tool(name, arguments)` method, like an MCP server from
+  `wardscript.mcp.load_config("mcp.json")`, gets named arguments instead when the
+  tool has a schema ([tools](tools.md#at-run-time)).
 - **`retries`**: extra attempts after an invalid model answer (default 2).
 - **`trace_dir`**: where each run's audit trace is written; else `WARD_TRACE_DIR`,
   else nowhere. `runtime.last_run()` has the last run's `id`, `path` and `records`
@@ -262,11 +343,20 @@ its stubs declare `async def`.
 A model can also have `stream(request)`, yielding the answer's text in pieces
 (sync or async). It may end with a `Completion` that gives the usage, and, if its
 text isn't empty, the final answer. The runtime streams instead of calling
-`complete` when `on_stream` is set or a `tokens` budget is active. After each
+`complete` when `on_stream` or `on_partial` is set or a `tokens` budget is active. After each
 piece, the tokens so far are estimated. If that goes over a `tokens` budget, the
 stream is closed and the call raises `BudgetExceeded`, without waiting for the
 rest of the answer. Both providers stream. Their pieces are the raw
-`{"value": ...}` JSON the API returns.
+`{"value": ...}` JSON the API returns (they say so with `stream_wraps_value`).
+
+**Partial values.** `configure(on_partial=f)` calls `f` with a
+`PartialValue(function, attempt, value, done)` each time the answer decodes further:
+a record the model is still writing is a `Partial(cls, fields)` with the fields
+that have started (read them as attributes); a string grows as it's written;
+numbers, booleans and enum variants appear once complete; lists hold their
+elements so far. Refinements and checks are only judged on the whole answer: the
+last call, with `done=True`, has the complete value after it passed them. A retry
+starts again from nothing, with the next `attempt`.
 
 ### `ai fn` calls
 

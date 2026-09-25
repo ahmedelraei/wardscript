@@ -13,6 +13,7 @@ pub use ward_resolve::{DefId, ModuleId};
 pub use ward_syntax::ast::{BinOp, UnOp};
 
 pub use lower::{LowerError, lower};
+mod refine;
 
 pub type ExprId = Idx<Expr>;
 pub type StmtId = Idx<Stmt>;
@@ -44,6 +45,13 @@ impl Program {
         self.module(def.module).fns.iter().find(|f| f.def == def)
     }
 
+    pub fn refinement(&self, key: ward_check::ty::Refinement) -> Option<&RefinementFn> {
+        self.module(key.module)
+            .refinements
+            .iter()
+            .find(|r| r.key == key)
+    }
+
     pub fn tool(&self, def: DefId) -> Option<&Tool> {
         self.module(def.module).tools.iter().find(|t| t.def == def)
     }
@@ -66,6 +74,17 @@ pub struct Module {
     pub enums: Vec<Enum>,
     pub fns: Vec<Fn>,
     pub tools: Vec<Tool>,
+    /// Not in `fns`: they aren't Wardscript functions and have no `DefId` of their own.
+    pub refinements: Vec<RefinementFn>,
+    /// `test "..." { ... }`, run by `ward test`.
+    pub tests: Vec<Test>,
+}
+
+pub struct Test {
+    pub name: String,
+    pub site: Site,
+    /// A function with no parameters; its `name` is the generated Python name.
+    pub func: Fn,
 }
 
 pub struct Record {
@@ -109,6 +128,28 @@ pub struct Tool {
     pub source: String,
 }
 
+/// Which models an `ai fn` asks, in order, and how it retries provider errors. `None`
+/// in `models` is the runtime's default model.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ModelPolicy {
+    pub models: Vec<Option<String>>,
+    pub retries: Option<u32>,
+    pub backoff: Option<f64>,
+}
+
+/// A tool function's schema, as the runtime needs it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ToolSchema {
+    /// The name the server knows the function by.
+    pub mcp_name: String,
+    /// Parameter names, in call order.
+    pub params: Vec<String>,
+    /// Which parameters are sinks.
+    pub sinks: Vec<bool>,
+    /// The result is decoded as this type.
+    pub returns: Ty,
+}
+
 pub struct Fn {
     pub def: DefId,
     pub name: String,
@@ -119,6 +160,8 @@ pub struct Fn {
     pub trusted: Vec<bool>,
     /// `budget {...}` limits, checked by the runtime: `tokens`, `calls`, `cost`, `time`.
     pub budget: Vec<(String, BudgetValue)>,
+    /// An `ai fn`'s `model {...}` clause.
+    pub model: Option<ModelPolicy>,
     pub ret: Ty,
     pub throws: Option<Ty>,
     pub locals: Arena<Local>,
@@ -139,7 +182,30 @@ pub enum Body {
     /// `ai fn`: the model answers `prompt` with a value of the return type.
     Ai {
         prompt: ExprId,
+        /// `check {...}`: conditions on the answer, bound to `it`.
+        checks: Vec<Check>,
+        it: Option<LocalId>,
     },
+}
+
+pub struct Check {
+    pub cond: ExprId,
+    /// Told to the model when the answer fails: the written reason, or the condition.
+    pub reason: String,
+}
+
+/// A refinement's condition as a function of `it`, and what the runtime needs to
+/// describe it.
+pub struct RefinementFn {
+    pub key: ward_check::ty::Refinement,
+    /// The generated function's name.
+    pub name: String,
+    /// The condition as written, for error messages.
+    pub text: String,
+    /// JSON Schema keywords it implies, with JSON values.
+    pub schema: Vec<(String, String)>,
+    /// `fn(it) -> Bool`.
+    pub func: Fn,
 }
 
 pub struct Local {
@@ -192,6 +258,12 @@ pub enum Stmt {
         cond: ExprId,
         body: Block,
     },
+    /// `assert cond => "message"` in a test. `message` defaults to the condition.
+    Assert {
+        cond: ExprId,
+        message: String,
+        site: Site,
+    },
 }
 
 pub enum Place {
@@ -236,6 +308,8 @@ pub enum ExprKind {
         name: String,
         args: Vec<ExprId>,
         site: Site,
+        /// From `ward.lock`; `None` for a tool without a schema.
+        schema: Option<ToolSchema>,
     },
     /// A built-in method; the receiver's type is `recv`'s type.
     Method {

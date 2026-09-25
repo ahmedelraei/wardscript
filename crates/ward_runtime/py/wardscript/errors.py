@@ -37,6 +37,31 @@ class AiOutputError(WardError):
         self.errors = errors
 
 
+class ModelError(WardError):
+    """A model provider failed to answer: a rate limit, a timeout, an outage, or a
+    request it refused. `retryable` errors are retried with backoff (see `model {...}`
+    and `configure(model_retries=..., backoff=...)`); after that, or right away for
+    the others, the call falls back to the next model."""
+
+    retryable = False
+
+    def __init__(self, message: str, *, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
+
+
+class RateLimited(ModelError):
+    """The provider asked to slow down (HTTP 429)."""
+
+    retryable = True
+
+
+class ModelUnavailable(ModelError):
+    """A timeout, a lost connection, or a server error (HTTP 5xx, 529 overloaded)."""
+
+    retryable = True
+
+
 class BudgetExceeded(WardError):
     """A function used more of a resource than its `budget` allows; the run stops."""
 
@@ -50,6 +75,23 @@ class BudgetExceeded(WardError):
         self.resource = resource
         self.limit = limit
         self.used = used
+
+
+class BudgetUnenforceable(WardError):
+    """A function has a `cost` budget, but the model's cost is unknown (a provider
+    without `prices`), so the budget can't be enforced. `when` is `"before"` when the
+    request was refused unsent, `"after"` when an answer came back without a cost.
+    `configure(unpriced="warn")` turns this into a warning."""
+
+    def __init__(self, function: str, when: str) -> None:
+        why = (
+            "the model has no prices; give the provider `prices=(input, output)`"
+            if when == "before"
+            else "the model's answer didn't say what it cost"
+        )
+        super().__init__(f"`{function}` has a cost budget, but {why}")
+        self.function = function
+        self.when = when
 
 
 class ApprovalDenied(WardError):
@@ -67,6 +109,15 @@ class DecodeError(WardError):
         super().__init__(f"{path}: {message}")
         self.path = path
         self.message = message
+
+
+class TestFailure(WardError):
+    """An `assert` in a `test` block didn't hold."""
+
+    def __init__(self, message: str, site: str) -> None:
+        super().__init__(f"assertion failed at {site}: {message}")
+        self.message = message
+        self.site = site
 
 
 class PanicError(WardError):

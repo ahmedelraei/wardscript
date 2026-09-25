@@ -1,0 +1,325 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/model_clause_invalid.ward
+---
+exit: Some(1)
+--- human ---
+[W0230] Error: `fast` is listed twice
+   ╭─[ tests/ui/model_clause_invalid.ward:4:45 ]
+   │
+ 4 │     model {primary: fast, fallback: [smart, fast], retries: 1.5, backof: 1}
+   │                                             ──┬─  
+   │                                               ╰─── listed again here
+───╯
+[W0230] Error: `retries` must be a whole number, not `1.5`
+   ╭─[ tests/ui/model_clause_invalid.ward:4:61 ]
+   │
+ 4 │     model {primary: fast, fallback: [smart, fast], retries: 1.5, backof: 1}
+   │                                                             ─┬─  
+   │                                                              ╰─── expected e.g. `2`
+───╯
+[W0230] Error: unknown `model` setting `backof`
+   ╭─[ tests/ui/model_clause_invalid.ward:4:66 ]
+   │
+ 4 │     model {primary: fast, fallback: [smart, fast], retries: 1.5, backof: 1}
+   │                                                                  ───┬──  
+   │                                                                     ╰──── not a model setting
+   │ 
+   │ Help: did you mean `backoff`?
+───╯
+[W0230] Error: `primary` takes a model alias, like `fast`
+    ╭─[ tests/ui/model_clause_invalid.ward:10:21 ]
+    │
+ 10 │     model {primary: [fast], fallback: fast, retries: fast, backoff: 1, backoff: 2}
+    │                     ───┬──  
+    │                        ╰──── expected a model alias
+────╯
+[W0230] Error: `retries` takes a number
+    ╭─[ tests/ui/model_clause_invalid.ward:10:54 ]
+    │
+ 10 │     model {primary: [fast], fallback: fast, retries: fast, backoff: 1, backoff: 2}
+    │                                                      ──┬─  
+    │                                                        ╰─── expected a number
+────╯
+[W0230] Error: `backoff` is set twice
+    ╭─[ tests/ui/model_clause_invalid.ward:10:72 ]
+    │
+ 10 │     model {primary: [fast], fallback: fast, retries: fast, backoff: 1, backoff: 2}
+    │                                                                        ───┬───  
+    │                                                                           ╰───── set again here
+────╯
+[W0231] Error: `c` isn't an `ai fn`, so it doesn't call a model
+    ╭─[ tests/ui/model_clause_invalid.ward:16:5 ]
+    │
+ 16 │     model {primary: fast}
+    │     ──┬──  
+    │       ╰──── a `model` clause only goes on an `ai fn`
+    │ 
+    │ Help: move it to the `ai fn`s this function calls
+────╯
+error: could not check `tests/ui/model_clause_invalid.ward` due to 7 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0230",
+      "file": "tests/ui/model_clause_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "listed again here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 49,
+              "line": 4,
+              "offset": 203
+            },
+            "start": {
+              "column": 45,
+              "line": 4,
+              "offset": 199
+            }
+          }
+        }
+      ],
+      "message": "`fast` is listed twice",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 49,
+          "line": 4,
+          "offset": 203
+        },
+        "start": {
+          "column": 45,
+          "line": 4,
+          "offset": 199
+        }
+      }
+    },
+    {
+      "code": "W0230",
+      "file": "tests/ui/model_clause_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected e.g. `2`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 64,
+              "line": 4,
+              "offset": 218
+            },
+            "start": {
+              "column": 61,
+              "line": 4,
+              "offset": 215
+            }
+          }
+        }
+      ],
+      "message": "`retries` must be a whole number, not `1.5`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 64,
+          "line": 4,
+          "offset": 218
+        },
+        "start": {
+          "column": 61,
+          "line": 4,
+          "offset": 215
+        }
+      }
+    },
+    {
+      "code": "W0230",
+      "file": "tests/ui/model_clause_invalid.ward",
+      "help": "did you mean `backoff`?",
+      "labels": [
+        {
+          "message": "not a model setting",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 72,
+              "line": 4,
+              "offset": 226
+            },
+            "start": {
+              "column": 66,
+              "line": 4,
+              "offset": 220
+            }
+          }
+        }
+      ],
+      "message": "unknown `model` setting `backof`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 72,
+          "line": 4,
+          "offset": 226
+        },
+        "start": {
+          "column": 66,
+          "line": 4,
+          "offset": 220
+        }
+      }
+    },
+    {
+      "code": "W0230",
+      "file": "tests/ui/model_clause_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected a model alias",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 27,
+              "line": 10,
+              "offset": 301
+            },
+            "start": {
+              "column": 21,
+              "line": 10,
+              "offset": 295
+            }
+          }
+        }
+      ],
+      "message": "`primary` takes a model alias, like `fast`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 27,
+          "line": 10,
+          "offset": 301
+        },
+        "start": {
+          "column": 21,
+          "line": 10,
+          "offset": 295
+        }
+      }
+    },
+    {
+      "code": "W0230",
+      "file": "tests/ui/model_clause_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected a number",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 58,
+              "line": 10,
+              "offset": 332
+            },
+            "start": {
+              "column": 54,
+              "line": 10,
+              "offset": 328
+            }
+          }
+        }
+      ],
+      "message": "`retries` takes a number",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 58,
+          "line": 10,
+          "offset": 332
+        },
+        "start": {
+          "column": 54,
+          "line": 10,
+          "offset": 328
+        }
+      }
+    },
+    {
+      "code": "W0230",
+      "file": "tests/ui/model_clause_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "set again here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 79,
+              "line": 10,
+              "offset": 353
+            },
+            "start": {
+              "column": 72,
+              "line": 10,
+              "offset": 346
+            }
+          }
+        }
+      ],
+      "message": "`backoff` is set twice",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 79,
+          "line": 10,
+          "offset": 353
+        },
+        "start": {
+          "column": 72,
+          "line": 10,
+          "offset": 346
+        }
+      }
+    },
+    {
+      "code": "W0231",
+      "file": "tests/ui/model_clause_invalid.ward",
+      "help": "move it to the `ai fn`s this function calls",
+      "labels": [
+        {
+          "message": "a `model` clause only goes on an `ai fn`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 10,
+              "line": 16,
+              "offset": 396
+            },
+            "start": {
+              "column": 5,
+              "line": 16,
+              "offset": 391
+            }
+          }
+        }
+      ],
+      "message": "`c` isn't an `ai fn`, so it doesn't call a model",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 10,
+          "line": 16,
+          "offset": 396
+        },
+        "start": {
+          "column": 5,
+          "line": 16,
+          "offset": 391
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/model_clause_invalid.ward"
+}

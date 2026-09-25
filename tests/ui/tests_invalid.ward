@@ -1,0 +1,12 @@
+// Test names are unique, assertions are `Bool`s, and tests are checked like code.
+fn one() -> Int {
+    1
+}
+
+test "one" {
+    assert one()
+}
+
+test "one" {
+    assert one() == "1"
+}

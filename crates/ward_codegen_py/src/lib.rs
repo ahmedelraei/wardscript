@@ -26,6 +26,8 @@ pub struct OutputFile {
 pub struct Options {
     /// Functions become `async def`s, and models, approvers and tools are awaited.
     pub asyncio: bool,
+    /// Also generate the `test` blocks, for `ward test`.
+    pub tests: bool,
 }
 
 pub fn generate(program: &Program) -> Vec<OutputFile> {
@@ -70,6 +72,12 @@ fn top_level_names(program: &Program, module: &Module) -> HashSet<String> {
     }
     for f in &module.fns {
         out.insert(names::ident(&f.name));
+    }
+    for r in &module.refinements {
+        out.insert(r.name.clone());
+    }
+    for t in &module.tests {
+        out.insert(t.func.name.clone());
     }
     for m in &program.modules {
         out.insert(names::module_alias(&m.name));
@@ -154,6 +162,44 @@ fn python(program: &Program, id: ModuleId, module: &Module, options: Options) ->
         }
     }
 
+    // Tests: each is its own run in the audit trace; `__ward_tests__` lists them.
+    let mut tests = Vec::new();
+    if options.tests {
+        for t in &module.tests {
+            let f = &t.func;
+            let mut g = FnGen::new(f, &mut scope, &top);
+            g.asyncio = options.asyncio;
+            g.body();
+            let _ = writeln!(body, "\n\n{} {}() -> None:", def(options), f.name);
+            let _ = writeln!(
+                body,
+                "    with _rt.call({}, []):",
+                names::string(&format!("test {}", t.name))
+            );
+            for line in g.lines {
+                let _ = writeln!(body, "    {line}");
+            }
+            tests.push(format!(
+                "    ({}, {}, {}),",
+                names::string(&t.name),
+                names::string(&t.site.to_string()),
+                f.name
+            ));
+        }
+    }
+
+    // Refinements: plain functions of `it`, outside the audit trace.
+    for r in &module.refinements {
+        let f = &r.func;
+        let mut g = FnGen::new(f, &mut scope, &top);
+        g.body();
+        let param = g.local(f.params[0]).to_owned();
+        let _ = writeln!(body, "\n\ndef {}({param}) -> bool:", r.name);
+        for line in g.lines {
+            let _ = writeln!(body, "{line}");
+        }
+    }
+
     // Descriptions for the runtime, after every class exists.
     let mut registry = String::new();
     for r in &module.records {
@@ -235,6 +281,9 @@ fn python(program: &Program, id: ModuleId, module: &Module, options: Options) ->
         .collect();
     let _ = writeln!(out, "\n__all__ = [{}]", bracketed(&exported));
     out.push_str(&body);
+    if options.tests {
+        let _ = writeln!(registry, "__ward_tests__ = [{}]", bracketed(&tests));
+    }
     if !registry.is_empty() {
         out.push_str("\n\n");
         out.push_str(&registry);
@@ -458,22 +507,117 @@ pub fn runner(program: &Program, function: &str) -> Option<Runner> {
         .iter()
         .map(|&t| if t { "True" } else { "False" })
         .collect();
+    // Every model alias the program's `model {...}` clauses use.
+    let mut aliases: Vec<&str> = program
+        .modules
+        .iter()
+        .flat_map(|m| &m.fns)
+        .filter_map(|f| f.model.as_ref())
+        .flat_map(|p| p.models.iter().flatten())
+        .map(String::as_str)
+        .collect();
+    aliases.sort_unstable();
+    aliases.dedup();
+    let aliases: Vec<String> = aliases.into_iter().map(names::string).collect();
     let mut script = String::from(RUNNER_PRELUDE);
     for line in scope.import_lines() {
         let _ = writeln!(script, "{line}");
     }
     let _ = write!(
         script,
-        "\nsys.exit(main({}, {target}, [{}], [{}]))\n",
+        "\nsys.exit(main({}, {target}, [{}], [{}], [{}]))\n",
         names::string(function),
         params.join(", "),
-        trusted.join(", ")
+        trusted.join(", "),
+        aliases.join(", ")
     );
     Some(Runner {
         script,
         arity: f.params.len(),
     })
 }
+
+/// The script `ward test` runs: the entry module's tests, replayed from (or recorded
+/// to) the recordings file. Settings come from the environment.
+pub fn test_runner(program: &Program) -> Option<String> {
+    let entry = program.modules.first()?;
+    let mut aliases: Vec<&str> = program
+        .modules
+        .iter()
+        .flat_map(|m| &m.fns)
+        .filter_map(|f| f.model.as_ref())
+        .flat_map(|p| p.models.iter().flatten())
+        .map(String::as_str)
+        .collect();
+    aliases.sort_unstable();
+    aliases.dedup();
+    let mut sources: Vec<&str> = program
+        .modules
+        .iter()
+        .flat_map(|m| &m.tools)
+        .map(|t| t.source.as_str())
+        .collect();
+    sources.sort_unstable();
+    sources.dedup();
+    let list = |xs: Vec<&str>| {
+        xs.into_iter()
+            .map(names::string)
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    Some(format!(
+        "{TEST_RUNNER}\nimport {} as _module\n\nsys.exit(main(_module, [{}], [{}]))\n",
+        entry.name,
+        list(aliases),
+        list(sources)
+    ))
+}
+
+const TEST_RUNNER: &str = r#"import json
+import os
+import sys
+
+from wardscript import runtime, testing
+from wardscript.mock import MockModel
+
+
+def main(module, aliases, sources):
+    record = os.environ.get("WARD_RECORD") == "1"
+    model, models, tools = None, {}, None
+    if record:
+        mock = os.environ.get("WARD_MOCK")
+        specs = json.loads(os.environ.get("WARD_MODEL") or "{}")
+        if mock:
+            with open(mock, encoding="utf-8") as f:
+                model = MockModel.from_json(f.read())
+        else:
+            from wardscript.providers import load
+
+            try:
+                loaded = {alias: load(spec) for alias, spec in specs.items()}
+            except (ImportError, ValueError) as e:
+                print(f"error: {e}", file=sys.stderr)
+                return 2
+            model = loaded.pop("", None)
+            models = loaded
+        config = os.environ.get("WARD_MCP_CONFIG")
+        if config:
+            from wardscript import mcp
+
+            tools = mcp.load_config(config)
+    ok = testing.run(
+        getattr(module, "__ward_tests__", []),
+        recordings=os.environ["WARD_RECORDINGS"],
+        record=record,
+        filters=json.loads(os.environ.get("WARD_FILTERS") or "[]"),
+        aliases=aliases,
+        sources=sources,
+        model=model,
+        models=models,
+        tools=tools,
+    )
+    return 0 if ok else 4
+"#;
 
 const RUNNER_PRELUDE: &str = r#"import json
 import os
@@ -484,20 +628,39 @@ from wardscript.mock import MockModel
 
 
 # Arguments on the command line come from whoever runs it, so they're vouched for.
-def main(name, fn, params, trusted):
+def main(name, fn, params, trusted, aliases):
     mock = os.environ.get("WARD_MOCK")
-    model = os.environ.get("WARD_MODEL")
+    specs = json.loads(os.environ.get("WARD_MODEL") or "{}")
+    mcp_config = os.environ.get("WARD_MCP_CONFIG")
+    if mcp_config:
+        from wardscript import mcp
+
+        runtime.configure(tools=mcp.load_config(mcp_config))
     if mock:
         with open(mock, encoding="utf-8") as f:
-            runtime.configure(model=MockModel.from_json(f.read()))
-    elif model:
+            model = MockModel.from_json(f.read())
+        # The mock answers for every alias.
+        runtime.configure(model=model, models={a: model for a in aliases})
+    elif specs:
         from wardscript.providers import load
 
+        for alias in specs:
+            if alias and alias not in aliases:
+                print(f"error: no `model {{...}}` clause uses the alias `{alias}`", file=sys.stderr)
+                return 2
+        loaded = {}
         try:
-            runtime.configure(model=load(model))
+            for alias in ["", *aliases]:
+                spec = specs.get(alias) or specs.get("")
+                if spec and spec not in loaded:
+                    loaded[spec] = load(spec)
         except (ImportError, ValueError) as e:
-            print(f"error: model `{model}`: {e}", file=sys.stderr)
+            print(f"error: model `{spec}`: {e}", file=sys.stderr)
             return 2
+        runtime.configure(
+            model=loaded.get(specs.get("")),
+            models={a: loaded[s] for a in aliases if (s := specs.get(a) or specs.get(""))},
+        )
     try:
         return call(name, fn, params, trusted)
     finally:

@@ -74,10 +74,23 @@ impl Budget {
         self.check()
     }
 
-    pub fn charge_usage(&mut self, tokens: f64, cost: f64) -> Option<Exceeded> {
+    /// Whether this budget limits `cost`, so an answer of unknown cost can't be counted.
+    pub fn limits_cost(&self) -> bool {
+        self.limits.cost.is_some()
+    }
+
+    /// Charges an answer's usage. `cost` is `None` when unknown (a model without
+    /// prices); it counts as 0, and the host decides from `unenforceable` whether that
+    /// may go on.
+    pub fn charge_usage(&mut self, tokens: f64, cost: Option<f64>) -> Option<Exceeded> {
         self.used.tokens += tokens;
-        self.used.cost += cost;
+        self.used.cost += cost.unwrap_or(0.0);
         self.check()
+    }
+
+    /// Whether an answer of this cost leaves the `cost` limit unenforceable.
+    pub fn unenforceable(&self, cost: Option<f64>) -> bool {
+        cost.is_none() && self.limits_cost()
     }
 
     pub fn check_time(&self) -> Option<Exceeded> {
@@ -100,12 +113,31 @@ mod tests {
             },
         );
         assert_eq!(b.charge_call(), None);
-        assert_eq!(b.charge_usage(60.0, 0.0), None);
+        assert_eq!(b.charge_usage(60.0, Some(0.0)), None);
         assert_eq!(b.charge_call(), None);
-        let e = b.charge_usage(60.0, 0.0);
+        let e = b.charge_usage(60.0, Some(0.0));
         assert_eq!(e.map(|e| (e.resource, e.used)), Some(("tokens", 120.0)));
         let e = b.charge_call();
         assert_eq!(e.map(|e| e.resource), Some("tokens"));
+    }
+
+    #[test]
+    fn unknown_cost() {
+        let mut priced = Budget::new(
+            "f",
+            Limits {
+                cost: Some(0.01),
+                ..Limits::default()
+            },
+        );
+        assert!(priced.limits_cost());
+        assert!(priced.unenforceable(None));
+        assert!(!priced.unenforceable(Some(0.0)));
+        assert_eq!(priced.charge_usage(10.0, None), None);
+        let e = priced.charge_usage(10.0, Some(0.02));
+        assert_eq!(e.map(|e| e.resource), Some("cost"));
+        let other = Budget::new("g", Limits::default());
+        assert!(!other.unenforceable(None));
     }
 
     #[test]

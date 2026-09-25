@@ -28,6 +28,7 @@ pub fn parse(src: &str) -> Parse {
         in_interpolation: false,
         newlines: false,
         lex_errors,
+        in_test: false,
     };
     p.items();
     let mut diagnostics = p.diags;
@@ -77,6 +78,8 @@ struct Parser<'s> {
     newlines: bool,
     /// Start offsets of characters the lexer rejected.
     lex_errors: Vec<u32>,
+    /// Inside a `test` body, where `assert` starts a statement.
+    in_test: bool,
 }
 
 impl Parser<'_> {
@@ -131,7 +134,14 @@ impl Parser<'_> {
         matches!(
             self.peek(),
             T::Fn | T::Ai | T::Pub | T::Type | T::Enum | T::Import | T::At
-        )
+        ) || self.at_test_start()
+    }
+
+    /// `test "name"`: `test` is only a keyword here.
+    fn at_test_start(&self) -> bool {
+        self.at(T::Ident)
+            && self.text(self.tok().span) == "test"
+            && matches!(self.nth_tok(1).kind, T::Str | T::UnterminatedStr)
     }
 
     fn found(&self, t: Token) -> String {
@@ -465,6 +475,7 @@ impl Parser<'_> {
             other => {
                 let what = match other {
                     Item::Record(_) | Item::Alias(_) => "types",
+                    Item::Test(_) => "tests",
                     _ => "enums",
                 };
                 for a in attrs {
@@ -505,7 +516,15 @@ impl Parser<'_> {
     }
 
     fn annotation_arg(&mut self) -> PResult<AnnotationArg> {
-        let name = self.ident()?;
+        let mut name = self.ident()?;
+        // `send.body`: a dotted path, kept as one name.
+        while self.eat(T::Dot).is_some() {
+            let part = self.ident()?;
+            name = Ident {
+                name: format!("{}.{}", name.name, part.name),
+                span: name.span.to(part.span),
+            };
+        }
         let value = match self.eat(T::Eq) {
             Some(_) => {
                 if !matches!(self.peek(), T::Str | T::UnterminatedStr) {
@@ -521,6 +540,9 @@ impl Parser<'_> {
     }
 
     fn item_after_annotations(&mut self, start: Span) -> PResult<Item> {
+        if self.at_test_start() {
+            return self.test_decl(start).map(Item::Test);
+        }
         let pub_tok = self.eat(T::Pub);
         let is_pub = pub_tok.is_some();
         match self.peek() {
@@ -573,7 +595,7 @@ impl Parser<'_> {
         let generics = self.generic_params()?;
         let (params, _) = self.comma_list(T::LParen, T::RParen, |p| p.param())?;
         let ret = match self.eat(T::Arrow) {
-            Some(_) => Some(self.ty()?),
+            Some(_) => Some(self.ty_top()?),
             None => None,
         };
         let throws = match self.eat(T::Throws) {
@@ -600,8 +622,46 @@ impl Parser<'_> {
 
         let mut uses: Option<(Span, Vec<Path>)> = None;
         let mut budget: Option<(Span, Vec<BudgetEntry>)> = None;
+        let mut model: Option<ModelClause> = None;
+        let mut checks: Option<CheckClause> = None;
         loop {
             match self.peek() {
+                T::Ident
+                    if self.text(self.tok().span) == "check"
+                        && self.nth_tok(1).kind == T::LBrace =>
+                {
+                    let kw = self.bump();
+                    let (entries, _) = self.with_newlines(false, |p| {
+                        p.comma_list(T::LBrace, T::RBrace, |p| p.check_entry())
+                    })?;
+                    match &checks {
+                        Some(first) => self.duplicate_clause("check", kw.span, first.span),
+                        None => {
+                            checks = Some(CheckClause {
+                                entries,
+                                span: kw.span,
+                            });
+                        }
+                    }
+                }
+                // `model` is only a keyword here, so it stays usable as a name elsewhere.
+                T::Ident
+                    if self.text(self.tok().span) == "model"
+                        && self.nth_tok(1).kind == T::LBrace =>
+                {
+                    let kw = self.bump();
+                    let (entries, _) =
+                        self.comma_list(T::LBrace, T::RBrace, |p| p.model_entry())?;
+                    match &model {
+                        Some(first) => self.duplicate_clause("model", kw.span, first.span),
+                        None => {
+                            model = Some(ModelClause {
+                                entries,
+                                span: kw.span,
+                            });
+                        }
+                    }
+                }
                 T::Uses => {
                     let kw = self.bump();
                     let (effects, _) = self.comma_list(T::LBrace, T::RBrace, |p| p.effect())?;
@@ -658,7 +718,24 @@ impl Parser<'_> {
             throws,
             uses: uses.map(|(_, u)| u),
             budget: budget.map(|(_, b)| b),
+            model,
+            checks,
             body,
+            span: start.to(self.prev_span()),
+        })
+    }
+
+    fn test_decl(&mut self, start: Span) -> PResult<TestDecl> {
+        self.bump();
+        let t = self.bump();
+        let name = self.plain_string(t, "a test name");
+        let saved = std::mem::replace(&mut self.in_test, true);
+        let body = self.block();
+        self.in_test = saved;
+        Ok(TestDecl {
+            name,
+            name_span: t.span,
+            body: body?,
             span: start.to(self.prev_span()),
         })
     }
@@ -679,7 +756,7 @@ impl Parser<'_> {
     fn param(&mut self) -> PResult<Param> {
         let name = self.ident()?;
         self.expect_with_help(T::Colon, "parameters need a type: `name: Type`")?;
-        let ty = self.ty()?;
+        let ty = self.ty_top()?;
         let span = name.span.to(self.module.types[ty].span);
         Ok(Param { name, ty, span })
     }
@@ -697,6 +774,49 @@ impl Parser<'_> {
         )?;
         let value = self.expr()?;
         Ok(BudgetEntry { name, value })
+    }
+
+    fn check_entry(&mut self) -> PResult<CheckEntry> {
+        let cond = self.expr()?;
+        let reason = match self.eat(T::FatArrow) {
+            Some(_) => {
+                if !matches!(self.peek(), T::Str | T::UnterminatedStr) {
+                    return Err(self.expected("a reason string, like `\"keep it short\"`"));
+                }
+                let t = self.bump();
+                Some((self.plain_string(t, "a check's reason"), t.span))
+            }
+            None => None,
+        };
+        let start = self.module.exprs[cond].span;
+        let span = reason.as_ref().map_or(start, |(_, s)| start.to(*s));
+        Ok(CheckEntry { cond, reason, span })
+    }
+
+    fn model_entry(&mut self) -> PResult<ModelEntry> {
+        let name = self.ident()?;
+        self.expect_with_help(
+            T::Colon,
+            "model entries are written `name: value`, e.g. `primary: fast`",
+        )?;
+        let value = match self.peek() {
+            T::Ident => ModelValue::Name(self.ident()?),
+            T::Int | T::Float => {
+                let t = self.bump();
+                ModelValue::Number(self.text(t.span).to_owned(), t.span)
+            }
+            T::LBracket => {
+                let (names, span) = self.comma_list(T::LBracket, T::RBracket, |p| p.ident())?;
+                ModelValue::Names(names, span)
+            }
+            _ => {
+                return Err(self.expected(
+                    "a model alias like `fast`, a list like `[fast, smart]`, or a number",
+                ));
+            }
+        };
+        let span = name.span.to(value.span());
+        Ok(ModelEntry { name, value, span })
     }
 
     /// `{ "prompt" }`: exactly one string literal. A malformed body still yields a function,
@@ -759,7 +879,7 @@ impl Parser<'_> {
                 span: start.to(self.prev_span()),
             }))
         } else if self.eat(T::Eq).is_some() {
-            let ty = self.ty()?;
+            let ty = self.ty_top()?;
             Ok(Item::Alias(AliasDecl {
                 is_pub,
                 name,
@@ -775,7 +895,7 @@ impl Parser<'_> {
     fn field_decl(&mut self) -> PResult<FieldDecl> {
         let name = self.ident()?;
         self.expect_with_help(T::Colon, "fields need a type: `name: Type`")?;
-        let ty = self.ty()?;
+        let ty = self.ty_top()?;
         let span = name.span.to(self.module.types[ty].span);
         Ok(FieldDecl { name, ty, span })
     }
@@ -787,7 +907,7 @@ impl Parser<'_> {
         let (variants, _) = self.comma_list(T::LBrace, T::RBrace, |p| {
             let name = p.ident()?;
             let (fields, span) = if p.at(T::LParen) {
-                let (fields, s) = p.comma_list(T::LParen, T::RParen, |p| p.ty())?;
+                let (fields, s) = p.comma_list(T::LParen, T::RParen, |p| p.ty_top())?;
                 (fields, name.span.to(s))
             } else {
                 (Vec::new(), name.span)
@@ -863,8 +983,24 @@ impl Parser<'_> {
         };
         Ok(self.module.types.alloc(TypeExpr {
             kind: TypeKind::Named { path, args },
+            refinement: None,
             span,
         }))
+    }
+
+    /// A type that may be refined: `String where it.len() < 200`. Not inside type
+    /// arguments, where `>` would be ambiguous; an alias names a refined type there.
+    fn ty_top(&mut self) -> PResult<TypeId> {
+        let ty = self.ty()?;
+        if self.at(T::Ident) && self.text(self.tok().span) == "where" {
+            self.bump();
+            let cond = self.expr_bp(0, NO_STRUCT)?;
+            let end = self.module.exprs[cond].span;
+            let t = &mut self.module.types[ty];
+            t.refinement = Some(cond);
+            t.span = t.span.to(end);
+        }
+        Ok(ty)
     }
 
     fn block(&mut self) -> PResult<Block> {
@@ -919,11 +1055,27 @@ impl Parser<'_> {
     fn stmt(&mut self) -> PResult<StmtOut> {
         let start = self.tok().span;
         let kind = match self.peek() {
+            T::Ident if self.in_test && self.text(self.tok().span) == "assert" => {
+                self.bump();
+                let cond = self.expr()?;
+                let message = match self.eat(T::FatArrow) {
+                    Some(_) => {
+                        if !matches!(self.peek(), T::Str | T::UnterminatedStr) {
+                            return Err(self.expected("a message string"));
+                        }
+                        let t = self.bump();
+                        Some((self.plain_string(t, "an assertion message"), t.span))
+                    }
+                    None => None,
+                };
+                self.stmt_end();
+                StmtKind::Assert { cond, message }
+            }
             T::Let => {
                 self.bump();
                 let name = self.ident()?;
                 let ty = match self.eat(T::Colon) {
-                    Some(_) => Some(self.ty()?),
+                    Some(_) => Some(self.ty_top()?),
                     None => None,
                 };
                 self.expect(T::Eq)?;

@@ -37,6 +37,7 @@ pub enum Item {
     Alias(AliasDecl),
     Enum(EnumDecl),
     Import(Import),
+    Test(TestDecl),
 }
 
 impl Item {
@@ -47,8 +48,18 @@ impl Item {
             Item::Alias(d) => d.span,
             Item::Enum(d) => d.span,
             Item::Import(d) => d.span,
+            Item::Test(d) => d.span,
         }
     }
+}
+
+/// `test "triage finds refunds" { ... }`: run by `ward test`, not part of the program.
+#[derive(Debug, PartialEq)]
+pub struct TestDecl {
+    pub name: String,
+    pub name_span: Span,
+    pub body: Block,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq)]
@@ -65,6 +76,11 @@ pub struct FnDecl {
     pub throws: Option<TypeId>,
     pub uses: Option<Vec<Path>>,
     pub budget: Option<Vec<BudgetEntry>>,
+    /// `model {primary: fast, fallback: [smart], retries: 2, backoff: 0.5}`
+    pub model: Option<ModelClause>,
+    /// `check {it.body.len() < 2000 => "keep it short"}`: conditions on an `ai fn`'s
+    /// answer, called `it`.
+    pub checks: Option<CheckClause>,
     pub body: FnBody,
     pub span: Span,
 }
@@ -89,6 +105,56 @@ pub struct Param {
 pub struct BudgetEntry {
     pub name: Ident,
     pub value: ExprId,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct CheckClause {
+    pub entries: Vec<CheckEntry>,
+    /// The `check` keyword.
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct CheckEntry {
+    pub cond: ExprId,
+    /// `=> "why"`: told to the model when the answer fails this check.
+    pub reason: Option<(String, Span)>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ModelClause {
+    pub entries: Vec<ModelEntry>,
+    /// The `model` keyword.
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ModelEntry {
+    pub name: Ident,
+    pub value: ModelValue,
+    pub span: Span,
+}
+
+/// Values in a `model {...}` clause are model aliases or numbers, not expressions:
+/// aliases name models configured in the runtime, not Wardscript values.
+#[derive(Debug, PartialEq)]
+pub enum ModelValue {
+    /// `fast`
+    Name(Ident),
+    /// `[fast, smart]`
+    Names(Vec<Ident>, Span),
+    /// `2`, `0.5`: the literal's text.
+    Number(String, Span),
+}
+
+impl ModelValue {
+    pub fn span(&self) -> Span {
+        match self {
+            ModelValue::Name(i) => i.span,
+            ModelValue::Names(_, s) | ModelValue::Number(_, s) => *s,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -172,6 +238,8 @@ pub enum ImportKind {
 #[derive(Debug, PartialEq)]
 pub struct TypeExpr {
     pub kind: TypeKind,
+    /// `String where it.len() < 200`: a condition on the value, called `it`.
+    pub refinement: Option<ExprId>,
     pub span: Span,
 }
 
@@ -227,6 +295,11 @@ pub enum StmtKind {
     While {
         cond: ExprId,
         body: Block,
+    },
+    /// `assert cond => "why"`, only in tests.
+    Assert {
+        cond: ExprId,
+        message: Option<(String, Span)>,
     },
 }
 

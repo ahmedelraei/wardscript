@@ -1,0 +1,4 @@
+// A lock this `ward` can't read is an error at every tool import.
+import mcp "gmail" as mail
+
+pub fn f() {}

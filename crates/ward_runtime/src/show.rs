@@ -138,6 +138,7 @@ pub fn render(records: &[Record]) -> String {
             Event::AiCall {
                 function,
                 attempt,
+                model,
                 tokens,
                 cost,
                 error,
@@ -147,9 +148,13 @@ pub fn render(records: &[Record]) -> String {
                     Some(e) => format!("rejected: {e}"),
                     None => "ok".to_owned(),
                 };
+                let cost = cost.map_or("$?".to_owned(), |c| format!("${c:.4}"));
+                let asked = model
+                    .as_ref()
+                    .map_or_else(String::new, |m| format!(" ({m})"));
                 let _ = writeln!(
                     out,
-                    "#{n:<3} model  `ai fn {function}` attempt {}, {tokens} tokens, ${cost:.4}: {outcome}",
+                    "#{n:<3} model  `ai fn {function}` attempt {}{asked}, {tokens} tokens, {cost}: {outcome}",
                     attempt + 1
                 );
             }
@@ -198,6 +203,17 @@ pub fn render(records: &[Record]) -> String {
                 let _ = writeln!(
                     out,
                     "#{n:<3} budget `{function}` went over {resource}: {used} of {limit}"
+                );
+            }
+            Event::BudgetUnenforceable { function, when } => {
+                let why = if when == "before" {
+                    "the model has no prices"
+                } else {
+                    "the model's answer has no cost"
+                };
+                let _ = writeln!(
+                    out,
+                    "#{n:<3} budget `{function}` has a cost limit, but {why}"
                 );
             }
             Event::RunEnd {

@@ -6,6 +6,9 @@ mod exhaust;
 mod infer;
 mod lower;
 mod methods;
+mod models;
+mod refine;
+pub mod tools;
 mod trust;
 pub mod ty;
 
@@ -89,6 +92,7 @@ pub fn analyze(entry: &Path, fs: &dyn FileSystem) -> Result<Analysis, LoadError>
     }
     let (resolution, resolve_diags) = ward_resolve::resolve(&program);
     diags.extend(resolve_diags);
+    diags.extend(models::check(&program));
     let mut checked = check(&program, &resolution);
     diags.append(&mut checked.diagnostics);
     // Labels are only meaningful for a program that type-checks.
@@ -122,18 +126,23 @@ pub fn check(program: &Program, resolution: &Resolution) -> Checked {
         expanding: Vec::new(),
     };
     c.collect_signatures();
-    let types = program
+    let mut types: Vec<ModuleTypes> = program
         .module_ids()
         .map(|m| {
             let mut types = ModuleTypes::default();
             for (item, it) in program.module(m).ast.items.iter().enumerate() {
-                if let Item::Fn(f) = it {
-                    infer::check_fn(&mut c, DefId { module: m, item }, f, &mut types);
+                match it {
+                    Item::Fn(f) => {
+                        infer::check_fn(&mut c, DefId { module: m, item }, f, &mut types)
+                    }
+                    Item::Test(t) => infer::check_test(&mut c, m, t, &mut types),
+                    _ => {}
                 }
             }
             types
         })
         .collect();
+    refine::check(&mut c, &mut types);
     Checked {
         diagnostics: c.diags,
         types,
@@ -158,6 +167,14 @@ pub(crate) struct Checker<'p> {
 }
 
 impl Checker<'_> {
+    /// Runs `f`, dropping the diagnostics it reports (they were reported before).
+    pub fn quietly<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
+        let n = self.diags.len();
+        let out = f(self);
+        self.diags.truncate(n);
+        out
+    }
+
     pub fn error(&mut self, module: ModuleId, diagnostic: ward_syntax::Diagnostic) {
         self.diags.push(ProgramDiagnostic { module, diagnostic });
     }

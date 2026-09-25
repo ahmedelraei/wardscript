@@ -7,12 +7,15 @@ import json
 from typing import Any, Iterator
 
 from ..model import AiRequest, Completion
-from . import cost, object_schema, prompt_text
+from . import cost, object_schema, prompt_text, provider_errors
 
 DEFAULT_MODEL = "claude-sonnet-5"
 
 
 class Anthropic:
+    #: `stream` yields the tool input, `{"value": ...}`.
+    stream_wraps_value = True
+
     def __init__(
         self,
         model: str | None = None,
@@ -22,12 +25,13 @@ class Anthropic:
         client: Any = None,
     ) -> None:
         """`prices` are dollars per million input and output tokens, for `cost` budgets;
-        without them every call costs 0. `client` defaults to `anthropic.Anthropic()`,
-        which reads `ANTHROPIC_API_KEY`."""
+        without them the cost is unknown, and a `cost` budget refuses the call. `client` defaults to `anthropic.Anthropic()`,
+        which reads `ANTHROPIC_API_KEY`, without the SDK's own retries: the runtime
+        retries by the `ai fn`'s model policy."""
         if client is None:
             import anthropic
 
-            client = anthropic.Anthropic()
+            client = anthropic.Anthropic(max_retries=0)
         self.client = client
         self.model = model or DEFAULT_MODEL
         self.max_tokens = max_tokens
@@ -59,7 +63,8 @@ class Anthropic:
         )
 
     def complete(self, request: AiRequest) -> Completion:
-        message = self.client.messages.create(**self._request(request))
+        with provider_errors():
+            message = self.client.messages.create(**self._request(request))
         answer = next((b for b in message.content if getattr(b, "type", None) == "tool_use"), None)
         text = "".join(getattr(b, "text", "") for b in message.content)
         usage = message.usage
@@ -69,6 +74,10 @@ class Anthropic:
 
     def stream(self, request: AiRequest) -> Iterator[str | Completion]:
         """Yields the tool call's JSON (`{"value": ...}`) as it arrives, then the answer."""
+        with provider_errors():
+            yield from self._stream(request)
+
+    def _stream(self, request: AiRequest) -> Iterator[str | Completion]:
         events = self.client.messages.create(**self._request(request), stream=True)
         tool_json, text, input_tokens, output_tokens = "", "", 0, 0
         for event in events:

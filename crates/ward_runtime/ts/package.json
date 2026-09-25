@@ -1,0 +1,32 @@
+{
+  "name": "wardscript",
+  "version": "0.0.1",
+  "description": "Runtime for TypeScript and JavaScript modules compiled from Wardscript (ward build --target typescript).",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "ward-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./rt": {
+      "ward-source": "./src/rt.ts",
+      "types": "./dist/rt.d.ts",
+      "default": "./dist/rt.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "tsc -p .",
+    "check": "tsc -p . --noEmit",
+    "test": "node --experimental-strip-types --no-warnings --test test/runtime.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

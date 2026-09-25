@@ -61,11 +61,24 @@ pub fn export(records: &[Record]) -> Value {
                 started,
                 function,
                 attempt,
+                model,
                 tokens,
                 cost,
                 error,
                 ..
-            } => spans.push(json!({
+            } => {
+                let attributes: Vec<Value> = [
+                    Some(attr("ward.attempt", json!(attempt))),
+                    Some(attr("gen_ai.usage.total_tokens", json!(tokens))),
+                    model
+                        .as_ref()
+                        .map(|m| attr("gen_ai.request.model", json!(m))),
+                    cost.map(|c| attr("ward.cost", json!(c))),
+                ]
+                .into_iter()
+                .flatten()
+                .collect();
+                spans.push(json!({
                 "traceId": trace_id,
                 "spanId": span_id(run, r.seq),
                 "parentSpanId": root,
@@ -73,16 +86,13 @@ pub fn export(records: &[Record]) -> Value {
                 "kind": 3,
                 "startTimeUnixNano": started.to_string(),
                 "endTimeUnixNano": time,
-                "attributes": [
-                    attr("ward.attempt", json!(attempt)),
-                    attr("gen_ai.usage.total_tokens", json!(tokens)),
-                    attr("ward.cost", json!(cost)),
-                ],
+                "attributes": attributes,
                 "status": match error {
                     Some(e) => json!({ "code": 2, "message": e }),
                     None => json!({ "code": 1 }),
                 },
-            })),
+            }))
+            }
             Event::ToolCall {
                 started,
                 tool,
@@ -138,6 +148,14 @@ pub fn export(records: &[Record]) -> Value {
                     attr("ward.resource", json!(resource)),
                     attr("ward.limit", json!(limit)),
                     attr("ward.used", json!(used)),
+                ],
+            })),
+            Event::BudgetUnenforceable { function, when } => root_events.push(json!({
+                "timeUnixNano": time,
+                "name": "budget_unenforceable",
+                "attributes": [
+                    attr("ward.function", json!(function)),
+                    attr("ward.when", json!(when)),
                 ],
             })),
         }

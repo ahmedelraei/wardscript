@@ -15,7 +15,7 @@ use ward_resolve::{
 };
 use ward_syntax::ast::{
     BinOp, Block, ExprId, ExprKind, FnBody, FnDecl, Item, Module, PatId, PatKind, StmtKind,
-    TemplatePart, TypeId, TypeKind,
+    TemplatePart, TestDecl, TypeId, TypeKind,
 };
 use ward_syntax::diag::codes;
 use ward_syntax::{Diagnostic, LineIndex, Span};
@@ -205,6 +205,13 @@ pub(crate) fn check(
     for &(def, f) in &fns {
         t.function(def, f, true);
     }
+    for m in program.module_ids() {
+        for (item, it) in program.module(m).ast.items.iter().enumerate() {
+            if let Item::Test(test) = it {
+                t.test(DefId { module: m, item }, test);
+            }
+        }
+    }
     let trusted = fns
         .iter()
         .map(|&(def, f)| {
@@ -297,7 +304,8 @@ impl<'p> Trust<'p> {
             ast: &program.module(module).ast,
             mres,
             types: types.get(module.0 as usize),
-            f,
+            f_ret: f.ret,
+            f_name: &f.name.name,
             env: HashMap::new(),
             pc: Label::default(),
             tries: Vec::new(),
@@ -342,6 +350,19 @@ impl<'p> Trust<'p> {
                 cx.ret(v, b.tail.map_or(b.span, |e| cx.span(e)));
             }
             FnBody::Ai { .. } => {
+                // `check {...}` reads the answer, which is untrusted like any model
+                // output; passing it doesn't make it trusted.
+                if let (Some(checks), Some(&it)) = (&f.checks, mres.check_its.get(&def.item)) {
+                    let answer = Label::untrusted(source(
+                        module,
+                        checks.span,
+                        format!("the answer of `ai fn {}`", f.name.name),
+                    ));
+                    cx.env.insert(it, answer);
+                    for e in &checks.entries {
+                        cx.expr(e.cond);
+                    }
+                }
                 if let Some(ret) = f.ret {
                     if cx.t.declared(module, ret) == Declared::Trusted {
                         let span = cx.ast.types[ret].span;
@@ -365,6 +386,27 @@ impl<'p> Trust<'p> {
         }
         cx.out
     }
+
+    /// A test body: its sinks are checked like a function's.
+    fn test(&mut self, def: DefId, t: &'p TestDecl) {
+        let module = def.module;
+        let (program, res, types) = (self.program, self.res, self.types);
+        let mut cx = FnCx {
+            t: self,
+            module,
+            ast: &program.module(module).ast,
+            mres: res.module(module),
+            types: types.get(module.0 as usize),
+            f_ret: None,
+            f_name: &t.name,
+            env: HashMap::new(),
+            pc: Label::default(),
+            tries: Vec::new(),
+            out: Summary::default(),
+            report: true,
+        };
+        cx.block(&t.body);
+    }
 }
 
 struct TryFrame {
@@ -380,7 +422,9 @@ struct FnCx<'a, 'p> {
     ast: &'p Module,
     mres: &'p ModuleRes,
     types: Option<&'p ModuleTypes>,
-    f: &'p FnDecl,
+    /// The function's declared return type (none for a test) and its name.
+    f_ret: Option<TypeId>,
+    f_name: &'p str,
     env: HashMap<LocalId, Label>,
     pc: Label,
     tries: Vec<TryFrame>,
@@ -418,7 +462,7 @@ impl FnCx<'_, '_> {
 
     fn ret(&mut self, v: Label, span: Span) {
         let v = v.joined(&self.pc());
-        if let Some(ret) = self.f.ret {
+        if let Some(ret) = self.f_ret {
             if self.t.declared(self.module, ret) == Declared::Trusted {
                 self.meet(
                     &v,
@@ -426,7 +470,7 @@ impl FnCx<'_, '_> {
                     "returned here",
                     &SinkPath {
                         steps: Vec::new(),
-                        sink: format!("the `Trusted` return value of `{}`", self.f.name.name),
+                        sink: format!("the `Trusted` return value of `{}`", self.f_name),
                     },
                 );
             }
@@ -606,6 +650,10 @@ impl FnCx<'_, '_> {
                     },
                     body,
                 );
+            }
+            // A failed assertion ends the test; nothing flows from it.
+            StmtKind::Assert { cond, .. } => {
+                self.expr(*cond);
             }
         }
     }
@@ -934,14 +982,39 @@ impl FnCx<'_, '_> {
                 let ls = self.exprs(args);
                 self.call_fn(d, span, args, &ls)
             }
-            ValueRes::ToolMember(_) => {
+            ValueRes::ToolMember(d) => {
                 let name = self.src_text(self.span(callee));
+                let program = self.t.program;
+                let func = match &ast.exprs[callee].kind {
+                    ExprKind::Field { name, .. } => program
+                        .tool_schema(d)
+                        .and_then(|s| s.function(&name.name))
+                        .map(|f| (f, crate::tools::tool_sinks(program, d, &name.name))),
+                    _ => None,
+                };
                 let ls = self.exprs(args);
-                for (&a, l) in args.iter().zip(&ls) {
+                for (i, (&a, l)) in args.iter().zip(&ls).enumerate() {
+                    let what = match &func {
+                        Some((f, sinks)) => {
+                            if !sinks
+                                .as_ref()
+                                .and_then(|s| s.get(i))
+                                .copied()
+                                .unwrap_or(true)
+                            {
+                                continue;
+                            }
+                            match f.params.get(i) {
+                                Some(p) => format!("passed to `{name}` as `{}` here", p.name),
+                                None => format!("passed to `{name}` here"),
+                            }
+                        }
+                        None => format!("passed to `{name}` here"),
+                    };
                     self.meet(
                         l,
                         self.span(a),
-                        &format!("passed to `{name}` here"),
+                        &what,
                         &SinkPath {
                             steps: Vec::new(),
                             sink: format!("the tool call `{name}`"),
