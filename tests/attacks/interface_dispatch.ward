@@ -1,0 +1,29 @@
+// A call through an interface may run any class that implements it; one of them
+// sends its argument to a tool.
+import mcp "gmail" as mail
+
+interface Sink {
+    fn accept(text: String)
+}
+
+class Discard: Sink {
+    pub init() {}
+
+    pub override fn accept(text: String) {}
+}
+
+class Mailer: Sink {
+    pub init() {}
+
+    pub override fn accept(text: String)
+        uses {mail.send}
+    {
+        mail.send("ops@example.com", text)
+    }
+}
+
+pub fn forward(to: Sink, email: Untrusted<String>)
+    uses {mail.send}
+{
+    to.accept(email)
+}

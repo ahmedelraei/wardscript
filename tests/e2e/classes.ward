@@ -1,0 +1,127 @@
+// Objects end to end: shared state, `init`, inheritance, virtual and `super` calls,
+// `ai fn` methods and methods that throw.
+
+type Stats {
+    calls: Int,
+    last: String,
+}
+
+pub open class Agent {
+    pub name: String
+    stats: Stats
+    notes: Untrusted<List<String>>
+
+    pub init(name: String) {
+        self.name = name
+        self.stats = Stats { calls: 0, last: "" }
+        self.notes = []
+    }
+
+    pub open fn handle(text: Untrusted<String>) -> String {
+        self.stats.calls = self.stats.calls + 1
+        self.notes = self.notes.push(text)
+        "{self.name} saw {self.notes.len()}"
+    }
+
+    pub fn calls() -> Int {
+        self.stats.calls
+    }
+
+    pub ai fn summarize() -> String {
+        "Summarize these notes:\n{self.notes}"
+    }
+
+    pub fn checked(limit: Int) -> Int throws String {
+        if self.stats.calls > limit {
+            throw "too many calls"
+        }
+        self.stats.calls
+    }
+}
+
+pub class Shouter: Agent {
+    loud: Bool
+
+    pub init(name: String, loud: Bool) {
+        super.init(name)
+        self.loud = loud
+    }
+
+    pub override fn handle(text: Untrusted<String>) -> String {
+        let base = super.handle(text)
+        if self.loud { base.upper() } else { base }
+    }
+}
+
+pub fn run_all(agents: List<Agent>, text: Untrusted<String>) -> List<String> {
+    let out: List<String> = []
+    for a in agents {
+        out = out.push(a.handle(text))
+    }
+    out
+}
+
+pub fn shared() -> Int {
+    let a = Agent("a")
+    let b = a
+    b.handle("x")
+    a.handle("y")
+    a.calls()
+}
+
+pub fn guarded(agent: Agent, limit: Int) -> Int {
+    try {
+        agent.checked(limit)?
+    } catch _ {
+        -1
+    }
+}
+
+// Interfaces and abstract classes.
+pub interface Named {
+    fn name() -> String
+}
+
+pub abstract class Store: Named {
+    pub abstract fn put(value: String)
+
+    pub abstract fn get() -> String
+
+    pub override fn name() -> String {
+        "store"
+    }
+}
+
+pub class Memory: Store {
+    value: String
+
+    pub init() {
+        self.value = ""
+    }
+
+    // Stores its argument, so `value` must be trusted, also in calls through `Store`.
+    pub override fn put(value: String) {
+        self.value = value
+    }
+
+    pub override fn get() -> String {
+        self.value
+    }
+}
+
+pub fn remember(store: Store, value: String) -> String {
+    store.put(value)
+    "{store.name()}: {store.get()}"
+}
+
+pub fn roundtrip() -> String {
+    remember(Memory(), "kept")
+}
+
+pub fn names(items: List<Named>) -> List<String> {
+    let out: List<String> = []
+    for n in items {
+        out = out.push(n.name())
+    }
+    out
+}

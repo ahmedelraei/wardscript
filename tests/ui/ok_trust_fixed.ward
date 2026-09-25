@@ -201,3 +201,57 @@ pub fn validated_bool(request: Untrusted<String>)
 {
     admin.set_admin(approve(request == "please"))
 }
+
+// Objects: untrusted data goes in fields declared `Untrusted`, and is checked on the
+// way out.
+class Draft {
+    body: Untrusted<String>
+
+    pub init() {
+        self.body = ""
+    }
+
+    pub fn set(text: Untrusted<String>) {
+        self.body = text
+    }
+
+    pub fn send(to: String)
+        uses {mail.send}
+    {
+        mail.send(to, approve(self.body))
+    }
+}
+
+ai fn write_reply(email: Untrusted<String>) -> String {
+    "Reply to this email:\n{email}"
+}
+
+pub fn object_reply(email: Untrusted<String>, to: String)
+    uses {llm, mail.send}
+{
+    let d = Draft()
+    d.set(write_reply(email))
+    d.send(to)
+}
+
+class Flag {
+    pub value: String
+
+    pub init() {
+        self.value = "no"
+    }
+
+    pub fn set() {
+        self.value = "yes"
+    }
+}
+
+pub fn object_flag(email: Untrusted<String>)
+    uses {mail.send}
+{
+    let f = Flag()
+    if approve(email.contains("password")) {
+        f.set()
+    }
+    mail.send("ops@example.com", f.value)
+}

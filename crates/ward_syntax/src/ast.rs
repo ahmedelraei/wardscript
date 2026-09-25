@@ -36,6 +36,7 @@ pub enum Item {
     Record(RecordDecl),
     Alias(AliasDecl),
     Enum(EnumDecl),
+    Class(ClassDecl),
     Import(Import),
     Test(TestDecl),
 }
@@ -47,6 +48,7 @@ impl Item {
             Item::Record(d) => d.span,
             Item::Alias(d) => d.span,
             Item::Enum(d) => d.span,
+            Item::Class(d) => d.span,
             Item::Import(d) => d.span,
             Item::Test(d) => d.span,
         }
@@ -82,6 +84,56 @@ pub struct FnDecl {
     /// answer, called `it`.
     pub checks: Option<CheckClause>,
     pub body: FnBody,
+    /// Set for a method (or `init`) of a class. `params[0]` is then the implicit `self`,
+    /// which the source doesn't write.
+    pub method: Option<MethodInfo>,
+    pub span: Span,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MethodInfo {
+    /// Item index of the class.
+    pub class: usize,
+    pub is_init: bool,
+    pub is_open: bool,
+    pub is_override: bool,
+    /// `abstract fn`, or any method of an interface.
+    pub is_abstract: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClassKind {
+    Class,
+    /// `abstract class`: can't be created, may have `abstract fn`s, and is open.
+    Abstract,
+    /// `interface`: only method signatures.
+    Interface,
+}
+
+/// `open class Agent: Base, Named { name: String  init(...) { ... }  fn run() { ... } }`,
+/// and interfaces. Its methods are separate `Item::Fn`s right after it, so every pass
+/// that handles functions handles methods too.
+#[derive(Debug, PartialEq)]
+pub struct ClassDecl {
+    pub is_pub: bool,
+    pub is_open: bool,
+    pub kind: ClassKind,
+    pub name: Ident,
+    pub generics: Vec<Ident>,
+    /// After `:`: a base class first, if any, then interfaces. Which is which is only
+    /// known after name resolution.
+    pub supers: Vec<TypeId>,
+    pub fields: Vec<ClassField>,
+    /// Item indices of the methods, `init` included, in source order.
+    pub methods: Vec<usize>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ClassField {
+    pub is_pub: bool,
+    pub name: Ident,
+    pub ty: TypeId,
     pub span: Span,
 }
 
@@ -92,6 +144,8 @@ pub enum FnBody {
     Ai {
         prompt: ExprId,
     },
+    /// An `abstract fn` or an interface's method: a signature that subclasses implement.
+    Abstract,
 }
 
 #[derive(Debug, PartialEq)]

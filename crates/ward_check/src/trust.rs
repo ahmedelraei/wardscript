@@ -20,7 +20,10 @@ use ward_syntax::ast::{
 use ward_syntax::diag::codes;
 use ward_syntax::{Diagnostic, LineIndex, Span};
 
-use crate::{ModuleTypes, Ty};
+use crate::{Checked, ModuleTypes, Ty, classes};
+
+/// Ends the sink description of an object field that only holds trusted data.
+const NOT_UNTRUSTED_FIELD: &str = ", which isn't declared `Untrusted`";
 
 /// A loop body is re-checked until its labels stop changing; this only guards against bugs.
 const MAX_ITERATIONS: usize = 64;
@@ -147,9 +150,13 @@ struct Summary {
     throws: Label,
     /// Parameters that must be trusted.
     sinks: BTreeMap<usize, SinkPath>,
+    /// The function writes a class field that holds only trusted data, so whether it runs
+    /// mustn't depend on untrusted data. `init` setting its own object's fields doesn't
+    /// count: nothing else can see that object yet.
+    heap_write: Option<SinkPath>,
 }
 
-type Shape = ((bool, Vec<usize>), (bool, Vec<usize>), Vec<usize>);
+type Shape = ((bool, Vec<usize>), (bool, Vec<usize>), Vec<usize>, bool);
 
 impl Summary {
     fn shape(&self) -> Shape {
@@ -157,6 +164,7 @@ impl Summary {
             self.ret.shape(),
             self.throws.shape(),
             self.sinks.keys().copied().collect(),
+            self.heap_write.is_some(),
         )
     }
 }
@@ -165,8 +173,9 @@ impl Summary {
 pub(crate) fn check(
     program: &Program,
     res: &Resolution,
-    types: &[ModuleTypes],
+    checked: &Checked,
 ) -> (Vec<ProgramDiagnostic>, HashMap<DefId, Vec<bool>>) {
+    let types = &checked.types[..];
     let fns: Vec<(DefId, &FnDecl)> =
         program
             .module_ids()
@@ -183,6 +192,7 @@ pub(crate) fn check(
         program,
         res,
         types,
+        classes: Some(checked),
         summaries: HashMap::new(),
         diags: Vec::new(),
         reported: HashSet::new(),
@@ -236,6 +246,7 @@ pub(crate) fn declares_untrusted(
         program,
         res,
         types: &[],
+        classes: None,
         summaries: HashMap::new(),
         diags: Vec::new(),
         reported: HashSet::new(),
@@ -247,6 +258,8 @@ struct Trust<'p> {
     program: &'p Program,
     res: &'p Resolution,
     types: &'p [ModuleTypes],
+    /// For class layouts; absent when only reading declared labels.
+    classes: Option<&'p Checked>,
     summaries: HashMap<DefId, Summary>,
     diags: Vec<ProgramDiagnostic>,
     /// (module, span, sink) of each W0107, so fixpoint passes and loops report once.
@@ -311,8 +324,13 @@ impl<'p> Trust<'p> {
             tries: Vec::new(),
             out: Summary::default(),
             report,
+            self_local: None,
+            is_init: f.method.is_some_and(|m| m.is_init),
         };
         let params = mres.params.get(&def.item).cloned().unwrap_or_default();
+        if f.method.is_some() {
+            cx.self_local = params.first().copied();
+        }
         for (i, (p, &local)) in f.params.iter().zip(&params).enumerate() {
             let label = match cx.t.declared(module, p.ty) {
                 Declared::Untrusted => Label::untrusted(source(
@@ -345,6 +363,7 @@ impl<'p> Trust<'p> {
             cx.env.insert(local, label);
         }
         match &f.body {
+            FnBody::Abstract => {}
             FnBody::Block(b) => {
                 let v = cx.block(b);
                 cx.ret(v, b.tail.map_or(b.span, |e| cx.span(e)));
@@ -404,6 +423,8 @@ impl<'p> Trust<'p> {
             tries: Vec::new(),
             out: Summary::default(),
             report: true,
+            self_local: None,
+            is_init: false,
         };
         cx.block(&t.body);
     }
@@ -430,6 +451,9 @@ struct FnCx<'a, 'p> {
     tries: Vec<TryFrame>,
     out: Summary,
     report: bool,
+    /// A method's `self`, which `super` also refers to.
+    self_local: Option<LocalId>,
+    is_init: bool,
 }
 
 fn join_env(a: &mut HashMap<LocalId, Label>, b: &HashMap<LocalId, Label>) {
@@ -555,10 +579,13 @@ impl FnCx<'_, '_> {
         for n in notes {
             d = d.with_note(n);
         }
-        d = d.with_help(
+        d = d.with_help(if path.sink.ends_with(NOT_UNTRUSTED_FIELD) {
+            "check the value with `validate(x, rule)?`, have a human `approve(x)` it, or \
+             declare the field `Untrusted<...>` if it's meant to hold untrusted data"
+        } else {
             "check the value with `validate(x, rule)?`, have a human `approve(x)` it, or, if it \
-             is safe, `declassify(x, \"why\")`",
-        );
+             is safe, `declassify(x, \"why\")`"
+        });
         self.t.diags.push(ProgramDiagnostic {
             module: self.module,
             diagnostic: d,
@@ -710,6 +737,10 @@ impl FnCx<'_, '_> {
                     strong = false;
                     e = *base;
                 }
+                ExprKind::Field { base, name } if self.class_of(*base).is_some() => {
+                    self.store_field(*base, name, &v);
+                    return;
+                }
                 ExprKind::Field { base, name } => {
                     if let Some(Declared::Trusted) = self.field_declared(*base, &name.name) {
                         self.meet(
@@ -740,16 +771,82 @@ impl FnCx<'_, '_> {
         }
     }
 
-    /// The declared label of field `name` of the record `base` evaluates to.
+    /// The class `base` evaluates an object of.
+    fn class_of(&self, base: ExprId) -> Option<DefId> {
+        match self.types.and_then(|t| t.exprs.get(base)) {
+            Some(Ty::Adt(d, _)) if matches!(self.t.program.item(*d), Item::Class(_)) => Some(*d),
+            _ => None,
+        }
+    }
+
+    /// The declared label of field `name` of the record or object `base` evaluates to.
     fn field_declared(&self, base: ExprId, name: &str) -> Option<Declared> {
         let Some(Ty::Adt(d, _)) = self.types.and_then(|t| t.exprs.get(base)) else {
             return None;
         };
-        let Item::Record(r) = self.t.program.item(*d) else {
-            return None;
+        match self.t.program.item(*d) {
+            Item::Record(r) => {
+                let field = r.fields.iter().find(|f| f.name.name == name)?;
+                Some(self.t.declared(d.module, field.ty))
+            }
+            Item::Class(_) => {
+                let classes = &self.t.classes?.classes;
+                let (owner, ..) = classes::find_field(classes, *d, name)?;
+                let Item::Class(c) = self.t.program.item(owner) else {
+                    return None;
+                };
+                let field = c.fields.iter().find(|f| f.name.name == name)?;
+                Some(self.t.declared(owner.module, field.ty))
+            }
+            _ => None,
+        }
+    }
+
+    /// `obj.field = v`. Objects are shared, so a field's label is its declaration's, not
+    /// the variable's: a field not declared `Untrusted` only ever holds trusted data.
+    fn store_field(&mut self, base: ExprId, name: &ward_syntax::ast::Ident, v: &Label) {
+        if self.field_declared(base, &name.name) == Some(Declared::Untrusted) {
+            return;
+        }
+        let class = self
+            .class_of(base)
+            .map_or("?", |d| classes::class_name(self.t.program, d))
+            .to_owned();
+        let path = SinkPath {
+            steps: Vec::new(),
+            sink: format!("the field `{class}.{}`{NOT_UNTRUSTED_FIELD}", name.name),
         };
-        let field = r.fields.iter().find(|f| f.name.name == name)?;
-        Some(self.t.declared(d.module, field.ty))
+        // Which object is written depends on how the reference was obtained.
+        let obj = self.expr(base);
+        let obj = self.step(
+            &obj,
+            self.span(base),
+            "the object written to depends on this",
+        );
+        let v = v.clone().joined(&obj);
+        let target = self.span(base).to(name.span);
+        self.meet(
+            &v,
+            target,
+            &format!("stored in `{class}.{}` here", name.name),
+            &path,
+        );
+        let own_object = self.is_init
+            && matches!(
+                (self.mres.values.get(base), self.self_local),
+                (Some(ValueRes::Local(l)), Some(s)) if *l == s
+            );
+        if !own_object && self.out.heap_write.is_none() {
+            let here = StepData {
+                module: self.module,
+                span: target,
+                note: format!("`{class}.{}` is written here", name.name),
+            };
+            self.out.heap_write = Some(SinkPath {
+                steps: vec![here],
+                sink: path.sink,
+            });
+        }
     }
 
     fn exprs(&mut self, es: &[ExprId]) -> Vec<Label> {
@@ -776,6 +873,10 @@ impl FnCx<'_, '_> {
             }
             ExprKind::Name(_) => match self.mres.values.get(e) {
                 Some(ValueRes::Local(local)) => self.env.get(local).cloned().unwrap_or_default(),
+                Some(ValueRes::Super(_)) => self
+                    .self_local
+                    .and_then(|l| self.env.get(&l).cloned())
+                    .unwrap_or_default(),
                 _ => Label::default(),
             },
             ExprKind::Field { base, name } => {
@@ -966,8 +1067,11 @@ impl FnCx<'_, '_> {
     fn call(&mut self, e: ExprId, callee: ExprId, args: &[ExprId]) -> Label {
         let ast = self.ast;
         let span = self.span(e);
+        if let Some(call) = self.types.and_then(|t| t.methods.get(e)).cloned() {
+            return self.method(e, callee, args, &call);
+        }
         let Some(&res) = self.mres.values.get(callee) else {
-            // A method: its result depends on the receiver and the arguments.
+            // A built-in method: its result depends on the receiver and the arguments.
             let mut l = match &ast.exprs[callee].kind {
                 ExprKind::Field { base, .. } => self.expr(*base),
                 _ => self.expr(callee),
@@ -1027,6 +1131,11 @@ impl FnCx<'_, '_> {
                     format!("result of the tool call `{name}`"),
                 ))
             }
+            // A class without any `init`: a new object with no fields set by arguments.
+            ValueRes::Class(_) => {
+                self.exprs(args);
+                Label::default()
+            }
             ValueRes::Builtin(Builtin::Approve | Builtin::Declassify) => {
                 self.exprs(args);
                 Label::default()
@@ -1051,6 +1160,34 @@ impl FnCx<'_, '_> {
         }
     }
 
+    /// A method call (receiver first) or a constructor (a fresh, trusted `self`). A virtual
+    /// call may run any override, so it gets all of their requirements and results.
+    fn method(
+        &mut self,
+        e: ExprId,
+        callee: ExprId,
+        args: &[ExprId],
+        call: &crate::MethodCall,
+    ) -> Label {
+        let span = self.span(e);
+        let (recv_expr, recv) = match &self.ast.exprs[callee].kind {
+            ExprKind::Field { base, .. } => (*base, self.expr(*base)),
+            _ => (callee, Label::default()),
+        };
+        let exprs: Vec<ExprId> = std::iter::once(recv_expr)
+            .chain(args.iter().copied())
+            .collect();
+        let mut ls = vec![recv];
+        ls.extend(self.exprs(args));
+        let mut out = Label::default();
+        for &d in &call.dispatch {
+            let r = self.call_fn(d, span, &exprs, &ls);
+            out.join(&r);
+        }
+        let is_ctor = matches!(self.mres.values.get(callee), Some(ValueRes::Class(_)));
+        if is_ctor { Label::default() } else { out }
+    }
+
     fn src_text(&self, span: Span) -> String {
         self.t
             .program
@@ -1067,6 +1204,27 @@ impl FnCx<'_, '_> {
         };
         let name = &callee.name.name;
         let summary = self.t.summaries.get(&d).cloned().unwrap_or_default();
+        if let Some(write) = &summary.heap_write {
+            let pc = self.pc();
+            self.meet(
+                &pc,
+                span,
+                &format!("`{name}` is called here, where whether this runs depends on it"),
+                write,
+            );
+            if self.out.heap_write.is_none() {
+                let mut steps = vec![StepData {
+                    module: self.module,
+                    span,
+                    note: format!("calls `{name}`"),
+                }];
+                steps.extend(write.steps.iter().cloned());
+                self.out.heap_write = Some(SinkPath {
+                    steps,
+                    sink: write.sink.clone(),
+                });
+            }
+        }
         for (i, path) in &summary.sinks {
             let (Some(&a), Some(l)) = (args.get(*i), ls.get(*i)) else {
                 continue;

@@ -1,6 +1,7 @@
 //! Type checking for Wardscript: bidirectional inference with unification, generics,
 //! exhaustive `match` and `?`. Trust labels are checked in `trust`; effects, budgets and the Rule of Two in `effects`.
 
+mod classes;
 mod effects;
 mod exhaust;
 mod infer;
@@ -38,6 +39,31 @@ pub struct ModuleTypes {
     pub locals: ArenaMap<LocalId, Ty>,
     /// The error type thrown by each call marked with `?`.
     pub throws: ArenaMap<ExprId, Ty>,
+    /// Method calls, `super` calls and constructor calls (with an `init`), by call expression.
+    pub methods: ArenaMap<ExprId, MethodCall>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MethodCall {
+    /// The method named at the call, or the `init` a constructor runs.
+    pub target: DefId,
+    /// Every method the call may run: `target` and, for a virtual call, its overrides.
+    pub dispatch: Vec<DefId>,
+    /// `super.m(...)` and constructors run `target` itself.
+    pub is_virtual: bool,
+}
+
+/// A class's own members; inherited ones are found through `base`.
+#[derive(Clone, Debug)]
+pub struct ClassInfo {
+    pub kind: ward_syntax::ast::ClassKind,
+    pub base: Option<DefId>,
+    /// Interfaces it implements (or, for an interface, extends) directly.
+    pub interfaces: Vec<DefId>,
+    /// Name, type and whether it's `pub`.
+    pub fields: Vec<(String, Ty, bool)>,
+    /// Methods by name, `init` included.
+    pub methods: Vec<(String, DefId)>,
 }
 
 pub struct Checked {
@@ -48,6 +74,9 @@ pub struct Checked {
     pub records: HashMap<DefId, Vec<(String, Ty)>>,
     /// Variant names and payload types of each enum.
     pub enums: HashMap<DefId, Vec<(String, Vec<Ty>)>>,
+    pub classes: HashMap<DefId, ClassInfo>,
+    /// The methods that override each method, directly or further down.
+    pub overrides: HashMap<DefId, Vec<DefId>>,
     /// For each function, which parameters must be trusted: they reach a sink. Callers
     /// outside Wardscript have to vouch for them.
     pub trusted_params: HashMap<DefId, Vec<bool>>,
@@ -86,6 +115,8 @@ pub fn analyze(entry: &Path, fs: &dyn FileSystem) -> Result<Analysis, LoadError>
                 fns: HashMap::new(),
                 records: HashMap::new(),
                 enums: HashMap::new(),
+                classes: HashMap::new(),
+                overrides: HashMap::new(),
                 trusted_params: HashMap::new(),
             },
         });
@@ -100,10 +131,10 @@ pub fn analyze(entry: &Path, fs: &dyn FileSystem) -> Result<Analysis, LoadError>
         .iter()
         .any(|d| d.diagnostic.severity == ward_syntax::Severity::Error)
     {
-        let (mut trust_diags, trusted_params) = trust::check(&program, &resolution, &checked.types);
+        let (mut trust_diags, trusted_params) = trust::check(&program, &resolution, &checked);
         diags.append(&mut trust_diags);
         checked.trusted_params = trusted_params;
-        diags.append(&mut effects::check(&program, &resolution));
+        diags.append(&mut effects::check(&program, &resolution, &checked.types));
     }
     diags.sort_by_key(|d| (d.module, d.diagnostic.span().start));
     checked.diagnostics = diags;
@@ -121,11 +152,14 @@ pub fn check(program: &Program, resolution: &Resolution) -> Checked {
         diags: Vec::new(),
         records: HashMap::new(),
         enums: HashMap::new(),
+        classes: HashMap::new(),
+        overrides: HashMap::new(),
         fns: HashMap::new(),
         aliases: HashMap::new(),
         expanding: Vec::new(),
     };
     c.collect_signatures();
+    c.check_classes();
     let mut types: Vec<ModuleTypes> = program
         .module_ids()
         .map(|m| {
@@ -149,6 +183,8 @@ pub fn check(program: &Program, resolution: &Resolution) -> Checked {
         fns: c.fns,
         records: c.records,
         enums: c.enums,
+        classes: c.classes,
+        overrides: c.overrides,
         trusted_params: HashMap::new(),
     }
 }
@@ -160,6 +196,8 @@ pub(crate) struct Checker<'p> {
     /// Field names and types, in terms of the record's own generic parameters.
     pub records: HashMap<DefId, Vec<(String, Ty)>>,
     pub enums: HashMap<DefId, Vec<(String, Vec<Ty>)>>,
+    pub classes: HashMap<DefId, ClassInfo>,
+    pub overrides: HashMap<DefId, Vec<DefId>>,
     pub fns: HashMap<DefId, FnSig>,
     pub aliases: HashMap<DefId, Ty>,
     /// Aliases being expanded, to catch cycles.

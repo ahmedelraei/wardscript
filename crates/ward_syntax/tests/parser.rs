@@ -22,7 +22,7 @@ fn tail_expr(parse: &Parse) -> ExprId {
     match parse.module.items.first() {
         Some(Item::Fn(f)) => match &f.body {
             FnBody::Block(b) => b.tail.expect("block has a tail expression"),
-            FnBody::Ai { .. } => panic!("expected a block body"),
+            FnBody::Ai { .. } | FnBody::Abstract => panic!("expected a block body"),
         },
         _ => panic!("expected a function"),
     }
@@ -311,7 +311,7 @@ fn stmt_count(src: &str) -> usize {
     match parse.module.items.first() {
         Some(Item::Fn(f)) => match &f.body {
             FnBody::Block(b) => b.stmts.len() + usize::from(b.tail.is_some()),
-            FnBody::Ai { .. } => 0,
+            FnBody::Ai { .. } | FnBody::Abstract => 0,
         },
         _ => panic!("expected a function"),
     }
@@ -488,4 +488,73 @@ fn test_blocks() {
     parse_ok("fn test(assert: Int) -> Int {\n    let test = assert\n    test\n}\n");
     assert_eq!(codes("@x\ntest \"t\" {}\n"), ["W0024"]);
     assert_eq!(codes("test \"{x}\" {}\n"), ["W0022"]);
+}
+
+#[test]
+fn class_methods_follow_their_class_with_an_implicit_self() {
+    let src = "pub open class Agent: base.Bot {\n    pub name: String\n    count: Int\n\n    pub init(name: String) {\n        self.name = name\n    }\n\n    pub open fn run() -> Int {\n        1\n    }\n\n    override ai fn ask(q: String) -> String {\n        \"{q}\"\n    }\n}\n\nfn open(class: Int) -> Int {\n    class\n}\n";
+    let parse = parse_ok(src);
+    let items = &parse.module.items;
+    let Some(Item::Class(c)) = items.first() else {
+        panic!("expected a class");
+    };
+    assert!(c.is_pub && c.is_open && c.supers.len() == 1);
+    assert_eq!(c.methods, vec![1, 2, 3]);
+    let names: Vec<(&str, bool)> = c
+        .fields
+        .iter()
+        .map(|f| (f.name.name.as_str(), f.is_pub))
+        .collect();
+    assert_eq!(names, [("name", true), ("count", false)]);
+    let methods: Vec<_> = c
+        .methods
+        .iter()
+        .map(|&i| match &items[i] {
+            Item::Fn(f) => (
+                f.name.name.as_str(),
+                f.params[0].name.name.as_str(),
+                f.method.expect("method"),
+            ),
+            _ => panic!("expected a method"),
+        })
+        .collect();
+    assert!(
+        methods
+            .iter()
+            .all(|(_, this, m)| *this == "self" && m.class == 0)
+    );
+    assert!(methods[0].2.is_init);
+    assert!(methods[1].2.is_open && !methods[1].2.is_override);
+    assert!(methods[2].2.is_override);
+    // `class` and `open` are only keywords before a class.
+    assert!(matches!(&items[4], Item::Fn(f) if f.name.name == "open" && f.method.is_none()));
+    assert_eq!(assert_round_trips(src), src);
+}
+
+#[test]
+fn interfaces_and_abstract_methods_have_no_bodies() {
+    let src = "interface Named: Base {\n    fn name() -> String\n}\n\nabstract class Shape: Named, Other {\n    pub abstract fn area() -> Float throws String\n}\n";
+    let parse = parse_ok(src);
+    let items = &parse.module.items;
+    let Some(Item::Class(named)) = items.first() else {
+        panic!("expected an interface");
+    };
+    assert_eq!(named.kind, ward_syntax::ast::ClassKind::Interface);
+    let Some(Item::Class(shape)) = items.get(2) else {
+        panic!("expected a class");
+    };
+    assert_eq!(shape.kind, ward_syntax::ast::ClassKind::Abstract);
+    assert_eq!(shape.supers.len(), 2);
+    for i in [1, 3] {
+        let Item::Fn(f) = &items[i] else {
+            panic!("expected a method");
+        };
+        assert!(matches!(f.body, FnBody::Abstract) && f.is_pub);
+        assert!(f.method.is_some_and(|m| m.is_abstract));
+    }
+    assert_eq!(assert_round_trips(src), src);
+    assert_eq!(
+        codes("abstract class A {\n    abstract fn f() {}\n}\n"),
+        ["W0145"]
+    );
 }

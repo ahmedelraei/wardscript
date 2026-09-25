@@ -31,6 +31,7 @@ output differs.
 | `Map<K, V>` | `ReadonlyMap<K, V>` (a `Map`); updates make copies |
 | `Option<T>` | `_rt.Opt<T>`: `null`, or the value; `Some(None)` is `new Some(null)` |
 | record `Ticket` | `interface Ticket` with readonly fields, used as plain objects |
+| class `Agent` | `class Agent`, created with `await Agent$new(...)`, which awaits its `init` (`_init$Agent`) |
 | enum with no fields | a union of string literals, `"Low" \| "Urgent"` |
 | enum with fields | a union of `{ tag: "Bug", _0: string }` objects |
 

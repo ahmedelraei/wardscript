@@ -50,6 +50,7 @@ package installed. It uses `python3`, or `WARD_PYTHON`.
 | `List<T>`, `Map<K, V>` | `list`, `dict` (never mutated) |
 | `Option<T>` | `None`, or the value itself; `Some(x)` is `wardscript.Some(x)` only when `x` is itself `None` or a `Some` |
 | record `Ticket` | frozen dataclass `Ticket` |
+| class `Agent` | class `Agent`; `init` is `__init__` (`async def _init`, created with `await Agent._new(...)`, with `--async`) |
 | enum without fields `Priority` | `enum.Enum`; `Priority.Low.value == "Low"` |
 | enum with fields `Verdict` | class `Verdict`; variants are frozen dataclasses `Verdict.Pass()`, `Verdict.Fail("log")` with fields `_0`, `_1`, ... |
 | tool results | whatever the tool returned |

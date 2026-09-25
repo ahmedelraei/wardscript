@@ -56,7 +56,11 @@ fn top_level_names(program: &Program, module: &Module) -> HashSet<String> {
         out.insert(ident(&e.name));
         out.insert(descriptor_name(&e.name));
     }
-    for f in &module.fns {
+    for c in &module.classes {
+        out.insert(ident(&c.name));
+        out.insert(format!("{}$new", ident(&c.name)));
+    }
+    for f in module.fns.iter().filter(|f| f.method.is_none()) {
         out.insert(ident(&f.name));
     }
     for r in &module.refinements {
@@ -130,9 +134,31 @@ fn enum_decl(out: &mut String, scope: &mut Scope, e: &Enum) {
 }
 
 fn function(out: &mut String, scope: &mut Scope, top: &HashSet<String>, f: &Fn) {
+    let export = if f.is_pub { "export " } else { "" };
+    let head = format!(
+        "{export}async function {}{}",
+        ident(&f.name),
+        generics(&f.generics)
+    );
+    out.push('\n');
+    traced(out, scope, top, f, "", &head, &f.name);
+}
+
+/// A function or method whose body runs inside its audit-trace run and budget. `pad`
+/// is the indentation of the declaration.
+fn traced(
+    out: &mut String,
+    scope: &mut Scope,
+    top: &HashSet<String>,
+    f: &Fn,
+    pad: &str,
+    head: &str,
+    trace_name: &str,
+) {
+    let is_method = f.method.is_some();
     let (param_names, body_lines, decls) = {
         let mut g = FnGen::new(f, scope, top);
-        g.indent = 2;
+        g.indent = 2 + pad.len() / 2;
         let names: Vec<String> = f.params.iter().map(|&p| g.local(p).to_owned()).collect();
         g.body();
         let decls = g.declarations();
@@ -142,6 +168,7 @@ fn function(out: &mut String, scope: &mut Scope, top: &HashSet<String>, f: &Fn) 
         .iter()
         .zip(&f.params)
         .zip(&f.trusted)
+        .skip(usize::from(is_method))
         .map(|((name, &p), &trusted)| {
             let ann = scope.annotation(&f.locals[p].ty, &f.generics);
             if trusted {
@@ -156,23 +183,22 @@ fn function(out: &mut String, scope: &mut Scope, top: &HashSet<String>, f: &Fn) 
     } else {
         scope.annotation(&f.ret, &f.generics)
     };
-    let export = if f.is_pub { "export " } else { "" };
-    let _ = writeln!(
-        out,
-        "\n{export}async function {}{}({}): Promise<{ret}> {{",
-        ident(&f.name),
-        generics(&f.generics),
-        params.join(", ")
-    );
+    let _ = writeln!(out, "{pad}{head}({}): Promise<{ret}> {{", params.join(", "));
+    if is_method {
+        if let Some(this) = param_names.first() {
+            let _ = writeln!(out, "{pad}  const {this} = this;");
+        }
+    }
     // The outermost call is a run in the audit trace.
     let args: Vec<String> = param_names
         .iter()
         .zip(&f.params)
+        .skip(usize::from(is_method))
         .map(|(n, &p)| format!("[{}, {n}]", names::string(&f.locals[p].name)))
         .collect();
     let mut open = format!(
-        "  return _rt.call({}, [{}], ",
-        names::string(&f.name),
+        "{pad}  return _rt.call({}, [{}], ",
+        names::string(trace_name),
         args.join(", ")
     );
     let mut close = String::from(");");
@@ -188,19 +214,169 @@ fn function(out: &mut String, scope: &mut Scope, top: &HashSet<String>, f: &Fn) 
         let _ = write!(
             open,
             "() => _rt.budget({}, {{ {} }}, ",
-            names::string(&f.name),
+            names::string(trace_name),
             limits.join(", ")
         );
         close.insert(0, ')');
     }
     let _ = writeln!(out, "{open}async () => {{");
     for d in decls {
-        let _ = writeln!(out, "    {d}");
+        let _ = writeln!(out, "{pad}    {d}");
     }
     for line in body_lines {
         let _ = writeln!(out, "{line}");
     }
-    let _ = writeln!(out, "  }}{close}\n}}");
+    let _ = writeln!(out, "{pad}  }}{close}\n{pad}}}");
+}
+
+/// The `init` constructing `class` runs: its own or the nearest base's.
+pub(crate) fn init_of(program: &Program, class: ward_ir::DefId) -> Option<ward_ir::DefId> {
+    let mut cur = Some(class);
+    while let Some(c) = cur.and_then(|d| program.class(d)) {
+        let own = c.methods.iter().copied().find(|&m| {
+            program
+                .func(m)
+                .is_some_and(|f| f.method.is_some_and(|mo| mo.is_init))
+        });
+        if own.is_some() {
+            return own;
+        }
+        cur = c.base;
+    }
+    None
+}
+
+/// A method's name in TypeScript. Each class's `init` has its own name, so a subclass's
+/// can take different parameters.
+pub(crate) fn method_name(program: &Program, f: &Fn) -> String {
+    match f.method {
+        Some(m) if m.is_init => format!("_init${}", ident(program.adt_name(m.class))),
+        _ if f.name == "constructor" => "constructor_".to_owned(),
+        _ => f.name.clone(),
+    }
+}
+
+/// `name(params): Promise<T>`, for an interface or an abstract method.
+fn signature(scope: &mut Scope, program: &Program, f: &Fn) -> String {
+    let params: Vec<String> = f
+        .params
+        .iter()
+        .zip(&f.trusted)
+        .skip(1)
+        .map(|(&p, &trusted)| {
+            let ann = scope.annotation(&f.locals[p].ty, &[]);
+            let ann = if trusted {
+                format!("{ann} | _rt.Trusted<{ann}>")
+            } else {
+                ann
+            };
+            format!("{}: {ann}", ident(&f.locals[p].name))
+        })
+        .collect();
+    let ret = if f.ret == Ty::Unit {
+        "void".to_owned()
+    } else {
+        scope.annotation(&f.ret, &[])
+    };
+    format!(
+        "{}({}): Promise<{ret}>",
+        method_name(program, f),
+        params.join(", ")
+    )
+}
+
+/// A class, and `Name$new`, which creates an object and awaits its `init`: a
+/// constructor can't be async.
+fn class_decl(
+    out: &mut String,
+    scope: &mut Scope,
+    top: &HashSet<String>,
+    module: &Module,
+    c: &ward_ir::Class,
+) {
+    let program = scope.program;
+    let name = ident(&c.name);
+    let export = if c.is_pub { "export " } else { "" };
+    let interfaces: Vec<String> = c.interfaces.iter().map(|&i| scope.adt(i)).collect();
+    let methods: Vec<&Fn> = c
+        .methods
+        .iter()
+        .filter_map(|&d| module.fns.iter().find(|f| f.def == d))
+        .collect();
+    if c.kind == ward_ir::ClassKind::Interface {
+        let extends = if interfaces.is_empty() {
+            String::new()
+        } else {
+            format!(" extends {}", interfaces.join(", "))
+        };
+        let _ = writeln!(out, "\n{export}interface {name}{extends} {{");
+        for f in methods {
+            let _ = writeln!(out, "  {};", signature(scope, program, f));
+        }
+        let _ = writeln!(out, "}}");
+        return;
+    }
+    let mut head = String::new();
+    if let Some(b) = c.base {
+        let _ = write!(head, " extends {}", scope.adt(b));
+    }
+    if !interfaces.is_empty() {
+        let _ = write!(head, " implements {}", interfaces.join(", "));
+    }
+    let is_abstract = c.kind == ward_ir::ClassKind::Abstract;
+    let abstract_kw = if is_abstract { "abstract " } else { "" };
+    let _ = writeln!(out, "\n{export}{abstract_kw}class {name}{head} {{");
+    for f in &c.fields {
+        let _ = writeln!(out, "  {}!: {};", f.name, scope.annotation(&f.ty, &[]));
+    }
+    for f in methods {
+        if matches!(f.body, ward_ir::Body::Abstract) {
+            let _ = writeln!(out, "  abstract {};", signature(scope, program, f));
+            continue;
+        }
+        let head = format!("async {}", method_name(program, f));
+        let trace = format!("{}.{}", c.name, f.name);
+        traced(out, scope, top, f, "  ", &head, &trace);
+    }
+    let _ = writeln!(out, "}}");
+    if is_abstract {
+        return;
+    }
+    let init = init_of(program, c.def).and_then(|d| program.func(d));
+    let params: Vec<(String, String)> = init
+        .map(|f| {
+            f.params
+                .iter()
+                .zip(&f.trusted)
+                .skip(1)
+                .map(|(&p, &trusted)| {
+                    let ann = scope.annotation(&f.locals[p].ty, &[]);
+                    let ann = if trusted {
+                        format!("{ann} | _rt.Trusted<{ann}>")
+                    } else {
+                        ann
+                    };
+                    (ident(&f.locals[p].name), ann)
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let decl: Vec<String> = params.iter().map(|(n, t)| format!("{n}: {t}")).collect();
+    let args: Vec<&str> = params.iter().map(|(n, _)| n.as_str()).collect();
+    let _ = writeln!(
+        out,
+        "\n{export}async function {name}$new({}): Promise<{name}> {{\n  const self = new {name}();",
+        decl.join(", ")
+    );
+    if let Some(f) = init {
+        let _ = writeln!(
+            out,
+            "  await self.{}({});",
+            method_name(program, f),
+            args.join(", ")
+        );
+    }
+    let _ = writeln!(out, "  return self;\n}}");
 }
 
 fn typescript(program: &Program, id: ModuleId, module: &Module) -> String {
@@ -246,7 +422,10 @@ fn typescript(program: &Program, id: ModuleId, module: &Module) -> String {
             variants.join(", ")
         );
     }
-    for f in &module.fns {
+    for c in &module.classes {
+        class_decl(&mut body, &mut scope, &top, module, c);
+    }
+    for f in module.fns.iter().filter(|f| f.method.is_none()) {
         function(&mut body, &mut scope, &top, f);
     }
     // Refinements: plain functions of `it`, outside the audit trace.

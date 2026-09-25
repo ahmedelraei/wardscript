@@ -15,6 +15,7 @@ tracked separately from these types.
 | records | `type Ticket { title: String }`, generic: `type Page<T> { items: List<T> }` |
 | enums | `enum Shape { Point, Circle(Float) }` |
 | aliases | `type Outcome = Result<String, String>` (expanded; may be generic, not recursive) |
+| classes | `class Agent { ... }`: objects shared by reference ([classes](classes.md)) |
 | `Untrusted<T>`, `Trusted<T>` | the type `T`, with a trust label ([trust](trust.md)) |
 
 A function without `-> T` returns `()`. `()` can't be written as a type.

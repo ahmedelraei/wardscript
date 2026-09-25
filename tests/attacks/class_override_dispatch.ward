@@ -1,0 +1,29 @@
+// The base method is harmless, but an override sends its argument: a call through
+// the base type may run it.
+import mcp "gmail" as mail
+
+open class Notifier {
+    pub init() {}
+
+    pub open fn notify(text: String) {}
+}
+
+class MailNotifier: Notifier {
+    pub override fn notify(text: String)
+        uses {mail.send}
+    {
+        mail.send("ops@example.com", text)
+    }
+}
+
+pub fn alert(n: Notifier, email: Untrusted<String>)
+    uses {mail.send}
+{
+    n.notify(email)
+}
+
+pub fn main(email: Untrusted<String>)
+    uses {mail.send}
+{
+    alert(MailNotifier(), email)
+}

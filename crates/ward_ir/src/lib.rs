@@ -10,7 +10,7 @@ mod lower;
 use la_arena::{Arena, Idx};
 pub use ward_check::Ty;
 pub use ward_resolve::{DefId, ModuleId};
-pub use ward_syntax::ast::{BinOp, UnOp};
+pub use ward_syntax::ast::{BinOp, ClassKind, UnOp};
 
 pub use lower::{LowerError, lower};
 mod refine;
@@ -52,15 +52,23 @@ impl Program {
             .find(|r| r.key == key)
     }
 
+    pub fn class(&self, def: DefId) -> Option<&Class> {
+        self.module(def.module)
+            .classes
+            .iter()
+            .find(|c| c.def == def)
+    }
+
     pub fn tool(&self, def: DefId) -> Option<&Tool> {
         self.module(def.module).tools.iter().find(|t| t.def == def)
     }
 
-    /// Name of a record or enum.
+    /// Name of a record, enum or class.
     pub fn adt_name(&self, def: DefId) -> &str {
         self.record(def)
             .map(|r| r.name.as_str())
             .or_else(|| self.enum_(def).map(|e| e.name.as_str()))
+            .or_else(|| self.class(def).map(|c| c.name.as_str()))
             .unwrap_or("?")
     }
 }
@@ -72,6 +80,9 @@ pub struct Module {
     pub path: String,
     pub records: Vec<Record>,
     pub enums: Vec<Enum>,
+    /// Classes and interfaces; supertypes come before the classes that extend them.
+    pub classes: Vec<Class>,
+    /// Functions, and methods (`Fn::method`), which belong in their class.
     pub fns: Vec<Fn>,
     pub tools: Vec<Tool>,
     /// Not in `fns`: they aren't Wardscript functions and have no `DefId` of their own.
@@ -121,6 +132,33 @@ pub struct Variant {
     pub fields: Vec<Ty>,
 }
 
+/// A class: a mutable object shared by reference, unlike records.
+pub struct Class {
+    pub def: DefId,
+    pub name: String,
+    pub is_pub: bool,
+    pub kind: ClassKind,
+    pub base: Option<DefId>,
+    /// Interfaces it implements, or extends for an interface.
+    pub interfaces: Vec<DefId>,
+    /// Its own fields; a base's are set by the base's `init`.
+    pub fields: Vec<ClassField>,
+    /// Its own `init` and other methods, in source order.
+    pub methods: Vec<DefId>,
+}
+
+pub struct ClassField {
+    pub name: String,
+    pub ty: Ty,
+    pub is_pub: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MethodOf {
+    pub class: DefId,
+    pub is_init: bool,
+}
+
 /// `import mcp "gmail" as mail`
 pub struct Tool {
     pub def: DefId,
@@ -154,6 +192,8 @@ pub struct Fn {
     pub def: DefId,
     pub name: String,
     pub is_pub: bool,
+    /// Set for methods, whose first parameter is `self`.
+    pub method: Option<MethodOf>,
     pub generics: Vec<String>,
     pub params: Vec<LocalId>,
     /// Parameters that reach a sink. Callers outside Wardscript must vouch for them.
@@ -186,6 +226,8 @@ pub enum Body {
         checks: Vec<Check>,
         it: Option<LocalId>,
     },
+    /// An abstract method: subclasses provide the body.
+    Abstract,
 }
 
 pub struct Check {
@@ -242,6 +284,15 @@ pub enum Stmt {
     /// with the element at `path` replaced.
     Assign {
         local: LocalId,
+        path: Vec<Place>,
+        value: ExprId,
+    },
+    /// `obj.field.path = value` on an object: sets the field in place, to a copy of its
+    /// value with `path` replaced when there is one.
+    SetField {
+        obj: ExprId,
+        class: DefId,
+        field: String,
         path: Vec<Place>,
         value: ExprId,
     },
@@ -316,6 +367,19 @@ pub enum ExprKind {
         method: Method,
         recv: ExprId,
         args: Vec<ExprId>,
+    },
+    /// `Class(args)`: a new object, set up by the `init` it inherits or declares, if any.
+    New {
+        class: DefId,
+        args: Vec<ExprId>,
+    },
+    /// `recv.name(args)` on an object. A virtual call runs the override for `recv`'s
+    /// class; otherwise (`super.name(...)`, and `super.init(...)`) it runs `method` itself.
+    MethodCall {
+        method: DefId,
+        recv: ExprId,
+        args: Vec<ExprId>,
+        is_virtual: bool,
     },
     /// A method call on a tool result, whose type isn't known yet.
     DynMethod {

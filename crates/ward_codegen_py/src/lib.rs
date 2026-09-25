@@ -70,7 +70,10 @@ fn top_level_names(program: &Program, module: &Module) -> HashSet<String> {
             out.insert(names::variant_class(&e.name, &v.name));
         }
     }
-    for f in &module.fns {
+    for c in &module.classes {
+        out.insert(names::ident(&c.name));
+    }
+    for f in module.fns.iter().filter(|f| f.method.is_none()) {
         out.insert(names::ident(&f.name));
     }
     for r in &module.refinements {
@@ -100,66 +103,20 @@ fn python(program: &Program, id: ModuleId, module: &Module, options: Options) ->
         enum_classes(&mut body, &mut scope, e, false);
     }
     let top = top_level_names(program, module);
-    for f in &module.fns {
-        let param_names: Vec<String> = {
-            let g = FnGen::new(f, &mut scope, &top);
-            f.params.iter().map(|&p| g.local(p).to_owned()).collect()
-        };
-        let params: Vec<String> = param_names
-            .iter()
-            .zip(&f.params)
-            .zip(&f.trusted)
-            .map(|((name, &p), &trusted)| {
-                let ann = scope.annotation(&f.locals[p].ty, &f.generics);
-                if trusted {
-                    format!("{name}: _rt.Trusted[{ann}]")
-                } else {
-                    format!("{name}: {ann}")
-                }
-            })
-            .collect();
-        let ret = scope.annotation(&f.ret, &f.generics);
-        let mut g = FnGen::new(f, &mut scope, &top);
-        g.asyncio = options.asyncio;
-        g.body();
-        let _ = writeln!(
-            body,
-            "\n\n{} {}({}) -> {ret}:",
-            def(options),
-            names::ident(&f.name),
-            params.join(", ")
+    for c in &module.classes {
+        class(&mut body, &mut scope, &top, module, c, options, false);
+    }
+    for f in module.fns.iter().filter(|f| f.method.is_none()) {
+        emit_fn(
+            &mut body,
+            &mut scope,
+            &top,
+            f,
+            options,
+            "",
+            &names::ident(&f.name),
+            &f.name,
         );
-        // The outermost call is a run in the audit trace.
-        let args: Vec<String> = param_names
-            .iter()
-            .zip(&f.params)
-            .map(|(n, &p)| format!("({}, {n})", names::string(&f.locals[p].name)))
-            .collect();
-        let mut contexts = vec![format!(
-            "_rt.call({}, [{}])",
-            names::string(&f.name),
-            args.join(", ")
-        )];
-        if !f.budget.is_empty() {
-            let limits: Vec<String> = f
-                .budget
-                .iter()
-                .map(|(k, v)| match v {
-                    ward_ir::BudgetValue::Int(n) => format!("{k}={n}"),
-                    ward_ir::BudgetValue::Float(x) => format!("{k}={x:?}"),
-                })
-                .collect();
-            contexts.push(format!(
-                "_rt.budget({}, {})",
-                names::string(&f.name),
-                limits.join(", ")
-            ));
-        }
-        let _ = writeln!(body, "    with {}:", contexts.join(", "));
-        let indent = "    ";
-        for line in g.lines {
-            let _ = writeln!(body, "{indent}{line}");
-        }
     }
 
     // Tests: each is its own run in the audit trace; `__ward_tests__` lists them.
@@ -276,7 +233,14 @@ fn python(program: &Program, id: ModuleId, module: &Module, options: Options) ->
         .filter(|r| r.is_pub)
         .map(|r| &r.name)
         .chain(module.enums.iter().filter(|e| e.is_pub).map(|e| &e.name))
-        .chain(module.fns.iter().filter(|f| f.is_pub).map(|f| &f.name))
+        .chain(module.classes.iter().filter(|c| c.is_pub).map(|c| &c.name))
+        .chain(
+            module
+                .fns
+                .iter()
+                .filter(|f| f.is_pub && f.method.is_none())
+                .map(|f| &f.name),
+        )
         .map(|n| format!("    {},", names::string(&names::ident(n))))
         .collect();
     let _ = writeln!(out, "\n__all__ = [{}]", bracketed(&exported));
@@ -289,6 +253,209 @@ fn python(program: &Program, id: ModuleId, module: &Module, options: Options) ->
         out.push_str(&registry);
     }
     out
+}
+
+/// A function or method with its audit-trace run and budget. `indent` is the class
+/// body's, for a method.
+#[allow(clippy::too_many_arguments)]
+fn emit_fn(
+    body: &mut String,
+    scope: &mut Scope,
+    top: &HashSet<String>,
+    f: &ward_ir::Fn,
+    options: Options,
+    indent: &str,
+    py_name: &str,
+    trace_name: &str,
+) {
+    let param_names: Vec<String> = {
+        let g = FnGen::new(f, scope, top);
+        f.params.iter().map(|&p| g.local(p).to_owned()).collect()
+    };
+    let is_method = f.method.is_some();
+    let params: Vec<String> = param_names
+        .iter()
+        .zip(&f.params)
+        .zip(&f.trusted)
+        .enumerate()
+        .map(|(i, ((name, &p), &trusted))| {
+            if is_method && i == 0 {
+                return name.clone();
+            }
+            let ann = scope.annotation(&f.locals[p].ty, &f.generics);
+            if trusted {
+                format!("{name}: _rt.Trusted[{ann}]")
+            } else {
+                format!("{name}: {ann}")
+            }
+        })
+        .collect();
+    let ret = scope.annotation(&f.ret, &f.generics);
+    let mut g = FnGen::new(f, scope, top);
+    g.asyncio = options.asyncio;
+    g.body();
+    let _ = writeln!(
+        body,
+        "\n{}{indent}{} {py_name}({}) -> {ret}:",
+        if indent.is_empty() { "\n" } else { "" },
+        def(options),
+        params.join(", ")
+    );
+    // The outermost call is a run in the audit trace.
+    let args: Vec<String> = param_names
+        .iter()
+        .zip(&f.params)
+        .skip(usize::from(is_method))
+        .map(|(n, &p)| format!("({}, {n})", names::string(&f.locals[p].name)))
+        .collect();
+    let mut contexts = vec![format!(
+        "_rt.call({}, [{}])",
+        names::string(trace_name),
+        args.join(", ")
+    )];
+    if !f.budget.is_empty() {
+        let limits: Vec<String> = f
+            .budget
+            .iter()
+            .map(|(k, v)| match v {
+                ward_ir::BudgetValue::Int(n) => format!("{k}={n}"),
+                ward_ir::BudgetValue::Float(x) => format!("{k}={x:?}"),
+            })
+            .collect();
+        contexts.push(format!(
+            "_rt.budget({}, {})",
+            names::string(trace_name),
+            limits.join(", ")
+        ));
+    }
+    let _ = writeln!(body, "{indent}    with {}:", contexts.join(", "));
+    for line in g.lines {
+        let _ = writeln!(body, "{indent}    {line}");
+    }
+}
+
+/// A class: field annotations, then its methods. In async code a constructor can't
+/// await, so objects are made by `await Class._new(...)`, which runs `_init`.
+fn class(
+    out: &mut String,
+    scope: &mut Scope,
+    top: &HashSet<String>,
+    module: &Module,
+    c: &ward_ir::Class,
+    options: Options,
+    stub: bool,
+) {
+    let name = names::ident(&c.name);
+    let methods: Vec<&ward_ir::Fn> = c
+        .methods
+        .iter()
+        .filter_map(|&d| module.fns.iter().find(|f| f.def == d))
+        .collect();
+    // Interfaces are protocols: classes match them by their methods, not by inheriting.
+    if c.kind == ward_ir::ClassKind::Interface {
+        scope.uses_typing = true;
+        let mut bases: Vec<String> = c.interfaces.iter().map(|&i| scope.adt(i)).collect();
+        bases.push("_typing.Protocol".to_owned());
+        let _ = writeln!(out, "\n\nclass {name}({}):", bases.join(", "));
+        if methods.is_empty() {
+            out.push_str("    pass\n");
+        }
+        for f in methods {
+            let py_name = body::method_name(f, options.asyncio);
+            let _ = writeln!(out, "{}", method_stub(scope, top, f, options, &py_name));
+        }
+        return;
+    }
+    let base = c
+        .base
+        .map(|b| format!("({})", scope.adt(b)))
+        .unwrap_or_default();
+    let _ = writeln!(out, "\n\nclass {name}{base}:");
+    let before = out.len();
+    for f in &c.fields {
+        let ann = scope.annotation(&f.ty, &[]);
+        let _ = writeln!(out, "    {}: {ann}", names::attr(&f.name));
+    }
+    if options.asyncio && c.base.is_none() {
+        let has_init = methods.iter().any(|f| f.method.is_some_and(|m| m.is_init));
+        if stub {
+            let _ = writeln!(
+                out,
+                "    @classmethod\n    async def _new(cls, *args: _typing.Any) -> _typing.Self: ..."
+            );
+        } else {
+            out.push_str(
+                "\n    @classmethod\n    async def _new(cls, *args):\n        self = cls.__new__(cls)\n        await self._init(*args)\n        return self\n",
+            );
+            if !has_init {
+                out.push_str("\n    async def _init(self):\n        pass\n");
+            }
+        }
+    }
+    for f in methods {
+        let py_name = body::method_name(f, options.asyncio);
+        let trace = format!("{}.{}", c.name, f.name);
+        if stub {
+            if !f.is_pub && f.method.is_some_and(|m| !m.is_init) {
+                continue;
+            }
+            let _ = writeln!(out, "{}", method_stub(scope, top, f, options, &py_name));
+        } else if matches!(f.body, ward_ir::Body::Abstract) {
+            let stub = method_stub(scope, top, f, options, &py_name);
+            let head = stub.strip_suffix(" ...").unwrap_or(&stub);
+            let _ = writeln!(
+                out,
+                "\n{head}\n        raise NotImplementedError({})",
+                names::string(&trace)
+            );
+        } else {
+            let at = out.len();
+            emit_fn(out, scope, top, f, options, "    ", &py_name, &trace);
+            // No blank line between `class X:` and its first member.
+            if at == before && out[at..].starts_with('\n') {
+                out.remove(at);
+            }
+        }
+    }
+    if out.len() == before {
+        out.push_str("    pass\n");
+    }
+}
+
+fn method_stub(
+    scope: &mut Scope,
+    top: &HashSet<String>,
+    f: &ward_ir::Fn,
+    options: Options,
+    py_name: &str,
+) -> String {
+    let names: Vec<String> = {
+        let g = FnGen::new(f, scope, top);
+        f.params.iter().map(|&p| g.local(p).to_owned()).collect()
+    };
+    let params: Vec<String> = names
+        .into_iter()
+        .zip(&f.params)
+        .zip(&f.trusted)
+        .enumerate()
+        .map(|(i, ((n, &p), &trusted))| {
+            if i == 0 {
+                return n;
+            }
+            let ann = scope.annotation(&f.locals[p].ty, &f.generics);
+            if trusted {
+                format!("{n}: _rt.Trusted[{ann}]")
+            } else {
+                format!("{n}: {ann}")
+            }
+        })
+        .collect();
+    let ret = scope.annotation(&f.ret, &f.generics);
+    format!(
+        "    {} {py_name}({}) -> {ret}: ...",
+        def(options),
+        params.join(", ")
+    )
 }
 
 /// `\n    a,\n    b,\n` between brackets, or nothing when empty.
@@ -406,7 +573,10 @@ fn stub(program: &Program, id: ModuleId, module: &Module, options: Options) -> S
         enum_classes(&mut body, &mut scope, e, true);
     }
     let top = top_level_names(program, module);
-    for f in module.fns.iter().filter(|f| f.is_pub) {
+    for c in &module.classes {
+        class(&mut body, &mut scope, &top, module, c, options, true);
+    }
+    for f in module.fns.iter().filter(|f| f.is_pub && f.method.is_none()) {
         let names: Vec<String> = {
             let g = FnGen::new(f, &mut scope, &top);
             f.params.iter().map(|&p| g.local(p).to_owned()).collect()
@@ -449,8 +619,10 @@ fn stub(program: &Program, id: ModuleId, module: &Module, options: Options) -> S
         .collect();
     generics.sort();
     generics.dedup();
-    let needs_typing =
-        scope.uses_typing || !generics.is_empty() || module.enums.iter().any(|e| !e.is_unit_only());
+    let needs_typing = scope.uses_typing
+        || !generics.is_empty()
+        || module.enums.iter().any(|e| !e.is_unit_only())
+        || (options.asyncio && !module.classes.is_empty());
 
     let mut out = header(module);
     let mut imports = Vec::new();

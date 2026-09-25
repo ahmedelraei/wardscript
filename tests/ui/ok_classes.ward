@@ -1,0 +1,78 @@
+// Classes: objects with shared, mutable state; `init`; inheritance and overriding.
+
+pub open class Counter {
+    pub name: String
+    count: Int
+
+    pub init(name: String) {
+        self.name = name
+        self.count = 0
+    }
+
+    // Subclasses may replace it.
+    pub open fn bump(by: Int) -> Int {
+        self.count = self.count + by
+        self.count
+    }
+
+    pub fn value() -> Int {
+        self.count
+    }
+}
+
+pub class Doubler: Counter {
+    pub override fn bump(by: Int) -> Int {
+        super.bump(by * 2)
+    }
+}
+
+pub class Labeled: Counter {
+    label: String
+
+    pub init(name: String, label: String) {
+        super.init(name)
+        self.label = label
+    }
+
+    pub fn describe() -> String {
+        "{self.label}: {self.count}"
+    }
+}
+
+// Untrusted data lives in fields declared `Untrusted`.
+pub class Inbox {
+    messages: Untrusted<List<String>>
+
+    pub init() {
+        self.messages = []
+    }
+
+    pub fn add(message: Untrusted<String>) {
+        self.messages = self.messages.push(message)
+    }
+
+    pub fn size() -> Int {
+        self.messages.len()
+    }
+}
+
+class Empty {}
+
+pub fn total(counters: List<Counter>) -> Int {
+    let sum = 0
+    for c in counters {
+        sum = sum + c.value()
+    }
+    sum
+}
+
+pub fn run() -> Int {
+    let a = Counter("a")
+    let b: Counter = Doubler("b")
+    a.bump(1)
+    b.bump(1)
+    let alias = a
+    alias.bump(10)
+    let e = Empty()
+    total([a, b, Labeled("c", "third")])
+}

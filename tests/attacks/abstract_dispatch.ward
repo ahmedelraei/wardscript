@@ -1,0 +1,34 @@
+// An abstract method's implementation stores its argument in a field that only holds
+// trusted data; calling it through the abstract class needs trusted data too.
+import mcp "shell" as sh
+
+abstract class Task {
+    pub abstract fn set(command: String)
+
+    pub abstract fn run()
+}
+
+class Shell: Task {
+    command: String
+
+    pub init() {
+        self.command = "true"
+    }
+
+    pub override fn set(command: String) {
+        self.command = command
+    }
+
+    pub override fn run()
+        uses {sh.run}
+    {
+        sh.run(self.command)
+    }
+}
+
+pub fn schedule(t: Task, request: Untrusted<String>)
+    uses {sh.run}
+{
+    t.set(request)
+    t.run()
+}

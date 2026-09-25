@@ -1,0 +1,91 @@
+// Mistakes with classes, one per declaration.
+
+open class Base {
+    pub name: String
+    secret: String
+
+    pub init(name: String) {
+        self.name = name
+        self.secret = "s"
+    }
+
+    pub open fn greet() -> String {
+        "hi {self.name}"
+    }
+
+    pub fn fixed() -> Int {
+        1
+    }
+}
+
+class Sealed {}
+
+type Rec {
+    x: Int,
+}
+
+// W0140: not `open`, not a class.
+class A: Sealed {}
+
+class B: Rec {}
+
+// W0141: missing `override`, overriding a non-open method, wrong signature, nothing to override.
+class C: Base {
+    pub fn greet() -> String {
+        "c"
+    }
+
+    pub override fn fixed() -> Int {
+        2
+    }
+}
+
+class D: Base {
+    pub override fn greet(loud: Bool) -> String {
+        "d"
+    }
+
+    pub override fn missing() {}
+}
+
+// W0143: fields that `init` doesn't set; fields without an `init`.
+class E {
+    a: Int
+    b: Int
+
+    init() {
+        self.a = 1
+        if true {
+            self.b = 2
+        }
+    }
+}
+
+class F {
+    x: Int
+}
+
+// W0144: a subclass `init` that doesn't start with `super.init(...)`.
+class G: Base {
+    pub init() {
+        let n = "g"
+        super.init(n)
+    }
+}
+
+// W0145: generic classes; a method called `init`.
+class H<T> {}
+
+class I {
+    fn init() {}
+}
+
+fn use_them(b: Base) -> String {
+    // W0142: private field; W0144: `super` outside a subclass.
+    let s = b.secret
+    let t = super.greet()
+    // W0106: a class isn't a record type; W0124: nor a value.
+    let r = Base { name: "x" }
+    let v = Base
+    b.name
+}
