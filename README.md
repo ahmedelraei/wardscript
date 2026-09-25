@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/img/logo.svg" alt="Wardscript logo" width="120">
+</p>
+
 # Wardscript
 
 A small, typed language for trustworthy AI functions and agents. The compiler
