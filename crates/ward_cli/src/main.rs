@@ -105,6 +105,14 @@ enum Command {
         #[arg(long)]
         trace_dir: Option<PathBuf>,
     },
+    /// Format files in place, keeping comments
+    Fmt {
+        #[arg(required = true)]
+        files: Vec<PathBuf>,
+        /// Don't write; fail if a file isn't formatted (for CI)
+        #[arg(long)]
+        check: bool,
+    },
     /// Start a project: a first program with a test and its recording
     Init {
         /// Where to create it (made if missing)
@@ -217,6 +225,7 @@ fn main() -> ExitCode {
             },
         ),
         Command::Init { dir } => init(&dir),
+        Command::Fmt { files, check } => fmt(&files, check),
         Command::Lsp => match ward_lsp::serve(std::io::stdin().lock(), std::io::stdout().lock()) {
             Ok(true) => ExitCode::SUCCESS,
             Ok(false) => ExitCode::from(1),
@@ -566,6 +575,42 @@ fn find_mcp_config(file: &Path) -> Option<PathBuf> {
         .skip(1)
         .map(|d| d.join("mcp.json"))
         .find(|p| p.is_file())
+}
+
+fn fmt(files: &[PathBuf], check: bool) -> ExitCode {
+    let mut code = ExitCode::SUCCESS;
+    for file in files {
+        let src = match std::fs::read_to_string(file) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("error: cannot read `{}`: {e}", file.display());
+                return ExitCode::from(exit::INTERNAL);
+            }
+        };
+        match ward_syntax::printer::format(&src) {
+            Ok(out) if out == src => {}
+            Ok(_) if check => {
+                eprintln!("not formatted: {}", file.display());
+                code = ExitCode::from(exit::DIAGNOSTICS);
+            }
+            Ok(out) => {
+                if let Err(e) = std::fs::write(file, out) {
+                    eprintln!("error: cannot write `{}`: {e}", file.display());
+                    return ExitCode::from(exit::INTERNAL);
+                }
+                eprintln!("formatted: {}", file.display());
+            }
+            Err(errors) => {
+                eprintln!(
+                    "error: `{}` has {}; fix them before formatting",
+                    file.display(),
+                    count(errors.len(), "syntax error")
+                );
+                code = ExitCode::from(exit::DIAGNOSTICS);
+            }
+        }
+    }
+    code
 }
 
 const INIT_PROGRAM: &str = include_str!("init/main.ward");

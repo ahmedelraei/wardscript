@@ -1,11 +1,81 @@
-//! AST → canonical source. Comments are not preserved.
+//! AST → canonical source. `print` drops comments; `format` (`ward fmt`) keeps them,
+//! the blank lines between statements, and integers as written.
 
 use crate::ast::*;
+use crate::{Diagnostic, Severity};
 
 pub fn print(module: &Module) -> String {
     let mut p = Printer::new(module, false);
     p.module();
     p.out
+}
+
+/// A `// comment` in the source.
+#[derive(Clone, Debug, PartialEq)]
+struct Comment {
+    start: u32,
+    text: String,
+    /// Nothing but whitespace before it on its line.
+    own_line: bool,
+    /// A blank line before it.
+    blank_before: bool,
+}
+
+fn blank_before(src: &str, pos: usize) -> bool {
+    let before = src.get(..pos).unwrap_or("");
+    let gap = before.len() - before.trim_end().len();
+    before[before.len() - gap..].matches('\n').count() >= 2
+}
+
+/// The comments of `src`: `//` in the text between tokens.
+fn comments(src: &str) -> Vec<Comment> {
+    let mut diags = Vec::new();
+    let tokens = crate::lexer::lex(src, 0, &mut diags);
+    let mut out = Vec::new();
+    let mut prev_end = 0usize;
+    for t in tokens {
+        let gap_start = prev_end;
+        let gap_end = t.span.start as usize;
+        prev_end = t.span.end as usize;
+        let Some(gap) = src.get(gap_start..gap_end) else {
+            continue;
+        };
+        let mut i = 0;
+        while let Some(found) = gap[i..].find("//") {
+            let start = gap_start + i + found;
+            let end = src[start..].find('\n').map_or(src.len(), |n| start + n);
+            let line_start = src[..start].rfind('\n').map_or(0, |n| n + 1);
+            out.push(Comment {
+                start: start as u32,
+                text: src[start..end].trim_end().to_owned(),
+                own_line: src[line_start..start].trim().is_empty(),
+                blank_before: blank_before(src, start),
+            });
+            i = end - gap_start;
+            if i >= gap.len() {
+                break;
+            }
+        }
+    }
+    out
+}
+
+/// Formats a file, keeping its comments. Refuses a file with syntax errors.
+pub fn format(src: &str) -> Result<String, Vec<Diagnostic>> {
+    let parse = crate::parse(src);
+    let errors: Vec<Diagnostic> = parse
+        .diagnostics
+        .into_iter()
+        .filter(|d| d.severity == Severity::Error)
+        .collect();
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    let mut p = Printer::new(&parse.module, false);
+    p.comments = comments(src);
+    p.src = Some(src);
+    p.module();
+    Ok(p.out)
 }
 
 /// Prints one expression with every unary and binary operation parenthesized, which makes
@@ -21,6 +91,11 @@ struct Printer<'m> {
     out: String,
     indent: usize,
     parens_all: bool,
+    /// Comments to keep, in order, and how many are printed.
+    comments: Vec<Comment>,
+    next_comment: usize,
+    /// The source, to keep blank lines between statements.
+    src: Option<&'m str>,
 }
 
 impl<'m> Printer<'m> {
@@ -30,6 +105,89 @@ impl<'m> Printer<'m> {
             out: String::new(),
             indent: 0,
             parens_all,
+            comments: Vec::new(),
+            next_comment: 0,
+            src: None,
+        }
+    }
+
+    /// Ends the current line of code with `// text`.
+    fn trailing(&mut self, text: &str) {
+        let line_start = self.out.rfind('\n').map_or(0, |i| i + 1);
+        if self.out[line_start..].trim().is_empty() && line_start > 0 {
+            // At the start of a new line: the comment belongs on the line before.
+            let prev = line_start - 1;
+            self.out.insert_str(prev, &format!("  {text}"));
+        } else {
+            self.out.push_str("  ");
+            self.out.push_str(text);
+        }
+    }
+
+    /// An empty line, when positioned at the start of an indented line.
+    fn blank_line(&mut self) {
+        let trimmed = self.out.trim_end_matches(' ').len();
+        self.out.truncate(trimmed);
+        if !self.out.ends_with("\n\n") && !self.out.is_empty() {
+            self.newline();
+        } else {
+            for _ in 0..self.indent {
+                self.out.push_str("    ");
+            }
+        }
+    }
+
+    /// Before a node that starts at `pos`, at the start of its line: the comments before
+    /// it, and a blank line if the source has one (`blank`).
+    fn lead(&mut self, pos: u32, blank: bool) {
+        let mut first = true;
+        while let Some(c) = self.comments.get(self.next_comment).cloned() {
+            if c.start >= pos {
+                break;
+            }
+            self.next_comment += 1;
+            if c.own_line {
+                // A blank line between comments always stays; before the first one,
+                // only where the caller allows it.
+                if c.blank_before && (!first || blank) {
+                    self.blank_line();
+                }
+                first = false;
+                self.w(&c.text);
+                self.newline();
+            } else {
+                self.trailing(&c.text);
+            }
+        }
+        // A blank line between the comments and the node stays too.
+        if blank || !first {
+            if let Some(src) = self.src {
+                if blank_before(src, pos as usize) {
+                    self.blank_line();
+                }
+            }
+        }
+    }
+
+    /// At the end of the last line of a list or block that ends at `end`: the comments
+    /// left before it.
+    fn tail(&mut self, end: u32) {
+        while let Some(c) = self.comments.get(self.next_comment).cloned() {
+            if c.start >= end {
+                break;
+            }
+            self.next_comment += 1;
+            if c.own_line {
+                if c.blank_before {
+                    self.newline();
+                    let trimmed = self.out.trim_end_matches(' ').len();
+                    self.out.truncate(trimmed);
+                }
+                self.newline();
+                self.w(&c.text);
+            } else {
+                self.trailing(&c.text);
+            }
         }
     }
 
@@ -65,9 +223,11 @@ impl<'m> Printer<'m> {
                 });
             }
             prev_import = is_import;
+            self.lead(item.span().start, false);
             self.item(item);
         }
-        if !self.m.items.is_empty() {
+        self.tail(u32::MAX);
+        if !self.out.is_empty() {
             self.w("\n");
         }
     }
@@ -111,11 +271,17 @@ impl<'m> Printer<'m> {
                 self.w(&r.name.name);
                 self.generics(&r.generics);
                 self.w(" ");
-                self.braced_lines(&r.fields, |p, f| {
-                    p.w(&f.name.name);
-                    p.w(": ");
-                    p.ty(f.ty);
-                });
+                let end = r.span.end;
+                self.braced_lines(
+                    &r.fields,
+                    |f| f.span.start,
+                    end,
+                    |p, f| {
+                        p.w(&f.name.name);
+                        p.w(": ");
+                        p.ty(f.ty);
+                    },
+                );
             }
             Item::Alias(a) => {
                 self.vis(a.is_pub);
@@ -131,14 +297,20 @@ impl<'m> Printer<'m> {
                 self.w(&e.name.name);
                 self.generics(&e.generics);
                 self.w(" ");
-                self.braced_lines(&e.variants, |p, v| {
-                    p.w(&v.name.name);
-                    if !v.fields.is_empty() {
-                        p.w("(");
-                        p.sep(&v.fields, ", ", |p, t| p.ty(*t));
-                        p.w(")");
-                    }
-                });
+                let end = e.span.end;
+                self.braced_lines(
+                    &e.variants,
+                    |v| v.span.start,
+                    end,
+                    |p, v| {
+                        p.w(&v.name.name);
+                        if !v.fields.is_empty() {
+                            p.w("(");
+                            p.sep(&v.fields, ", ", |p, t| p.ty(*t));
+                            p.w(")");
+                        }
+                    },
+                );
             }
             Item::Fn(f) => self.fn_decl(f),
         }
@@ -158,8 +330,15 @@ impl<'m> Printer<'m> {
         }
     }
 
-    /// `{}` when empty, otherwise one comma-terminated entry per line.
-    fn braced_lines<X>(&mut self, items: &[X], mut f: impl FnMut(&mut Self, &X)) {
+    /// `{}` when empty, otherwise one comma-terminated entry per line. `start` gives
+    /// where each entry starts and `end` where the list ends, for comments.
+    fn braced_lines<X>(
+        &mut self,
+        items: &[X],
+        start: impl Fn(&X) -> u32,
+        end: u32,
+        mut f: impl FnMut(&mut Self, &X),
+    ) {
         if items.is_empty() {
             self.w("{}");
             return;
@@ -168,9 +347,11 @@ impl<'m> Printer<'m> {
         self.indent += 1;
         for x in items {
             self.newline();
+            self.lead(start(x), false);
             f(self, x);
             self.w(",");
         }
+        self.tail(end);
         self.indent -= 1;
         self.newline();
         self.w("}");
@@ -265,6 +446,7 @@ impl<'m> Printer<'m> {
             self.indent += 1;
             for e in &checks.entries {
                 self.newline();
+                self.lead(e.span.start, false);
                 self.expr(e.cond, false);
                 if let Some((reason, _)) = &e.reason {
                     self.w(" => ");
@@ -321,14 +503,23 @@ impl<'m> Printer<'m> {
         }
         self.w("{");
         self.indent += 1;
-        for &s in &b.stmts {
+        for (i, &s) in b.stmts.iter().enumerate() {
             self.newline();
+            self.lead(self.m.stmts[s].span.start, i > 0);
             self.stmt(s);
+            // `x;` last in a block discards the value; without the `;` it would be the
+            // block's value.
+            let last = i + 1 == b.stmts.len() && b.tail.is_none();
+            if let (true, StmtKind::Expr { semi: true, .. }) = (last, &self.m.stmts[s].kind) {
+                self.w(";");
+            }
         }
         if let Some(tail) = b.tail {
             self.newline();
+            self.lead(self.m.exprs[tail].span.start, !b.stmts.is_empty());
             self.stmt_expr(tail);
         }
+        self.tail(b.span.end);
         self.indent -= 1;
         self.newline();
         self.w("}");
@@ -441,6 +632,16 @@ impl<'m> Printer<'m> {
     fn expr(&mut self, id: ExprId, no_struct: bool) {
         let m = self.m;
         match &m.exprs[id].kind {
+            // An integer as written, `_` separators and all, when formatting.
+            ExprKind::Lit(Lit::Int(_)) if self.src.is_some() => {
+                let span = self.m.exprs[id].span;
+                let text = self
+                    .src
+                    .and_then(|s| s.get(span.range()))
+                    .unwrap_or_default()
+                    .to_owned();
+                self.w(&text);
+            }
             ExprKind::Lit(lit) => self.lit(lit),
             ExprKind::Template(parts) => {
                 self.w("\"");
@@ -554,6 +755,7 @@ impl<'m> Printer<'m> {
                 self.indent += 1;
                 for arm in arms {
                     self.newline();
+                    self.lead(arm.span.start, false);
                     self.pat(arm.pat);
                     self.w(" => ");
                     self.expr(arm.body, false);
@@ -561,6 +763,7 @@ impl<'m> Printer<'m> {
                         self.w(",");
                     }
                 }
+                self.tail(m.exprs[id].span.end);
                 self.indent -= 1;
                 self.newline();
                 self.w("}");

@@ -77,7 +77,8 @@ fn hover_and_definition() {
             json!({"jsonrpc": "2.0", "id": 2, "method": "textDocument/hover", "params": {"position": {"line": 6, "character": 4}}}),
             json!({"jsonrpc": "2.0", "id": 3, "method": "textDocument/hover", "params": {"position": {"line": 5, "character": 13}}}),
             json!({"jsonrpc": "2.0", "id": 4, "method": "textDocument/definition", "params": {"position": {"line": 5, "character": 13}}}),
-            json!({"jsonrpc": "2.0", "id": 5, "method": "textDocument/formatting", "params": {}}),
+            json!({"jsonrpc": "2.0", "id": 5, "method": "textDocument/references", "params": {}}),
+            json!({"jsonrpc": "2.0", "id": 6, "method": "textDocument/formatting", "params": {}}),
         ],
     );
     assert_eq!(msgs[1]["params"]["diagnostics"], json!([]));
@@ -103,8 +104,11 @@ fn hover_and_definition() {
         def["result"]["range"]["start"],
         json!({"line": 0, "character": 3})
     );
-    let unsupported = msgs.iter().find(|m| m["id"] == 5).expect("formatting");
+    let unsupported = msgs.iter().find(|m| m["id"] == 5).expect("references");
     assert_eq!(unsupported["error"]["code"], -32601);
+    // The source is formatted already: no edits.
+    let formatting = msgs.iter().find(|m| m["id"] == 6).expect("formatting");
+    assert_eq!(formatting["result"], json!([]));
 }
 
 #[test]

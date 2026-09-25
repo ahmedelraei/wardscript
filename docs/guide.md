@@ -53,8 +53,8 @@ recorded answer. [The spec](spec/README.md) describes the language.
 
 ## Editors
 
-`ward lsp` is a language server; [editors/vscode](../editors/vscode) is a VS Code
-extension that uses it.
+`ward lsp` is a language server (diagnostics, hover, go to definition, formatting);
+[editors/vscode](../editors/vscode) is a VS Code extension that uses it.
 
 ## Commands
 
@@ -65,6 +65,7 @@ extension that uses it.
 | `ward build FILE -o DIR` | compile to Python (`--async` for asyncio hosts), or `--target typescript` ([TypeScript](spec/typescript.md)) |
 | `ward run FILE FN ARGS...` | build and call a function (`--mock`, `--model`) |
 | `ward test FILE [FILTER...]` | run tests from recordings (`--record` to record) |
+| `ward fmt FILES...` | format in place, keeping comments (`--check` in CI) |
 | `ward lock [mcp.json]` | pin MCP tool schemas in `ward.lock` (`--check` in CI) |
 | `ward trace show [RUN]` | show a run's audit trace; `ward trace export` for OTLP |
 | `ward lsp` | the language server |

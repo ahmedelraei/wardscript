@@ -83,6 +83,8 @@ impl Server {
                     "textDocumentSync": {"openClose": true, "change": 1, "save": true},
                     "hoverProvider": true,
                     "definitionProvider": true,
+                    "documentFormattingProvider": true,
+                    "documentFormattingProvider": true,
                 },
                 "serverInfo": {"name": "ward", "version": env!("CARGO_PKG_VERSION")},
             })),
@@ -118,6 +120,7 @@ impl Server {
             }
             "textDocument/hover" => reply(self.at(&params, hover).unwrap_or(Value::Null)),
             "textDocument/definition" => reply(self.at(&params, definition).unwrap_or(Value::Null)),
+            "textDocument/formatting" => reply(self.format(&params).unwrap_or(Value::Null)),
             _ => match &message.id {
                 Some(id) => vec![json!({
                     "jsonrpc": "2.0",
@@ -142,6 +145,19 @@ impl Server {
             None => Vec::new(),
         };
         vec![publish(uri, diags)]
+    }
+
+    /// One edit replacing the whole document, or none when it's formatted or has
+    /// syntax errors.
+    fn format(&self, params: &Value) -> Option<Value> {
+        let path = uri_to_path(params["textDocument"]["uri"].as_str()?)?;
+        let src = self.docs.get(&path)?;
+        let out = ward_syntax::printer::format(src).ok()?;
+        if out == *src {
+            return Some(json!([]));
+        }
+        let end = position(src, src.len() as u32);
+        Some(json!([{"range": {"start": {"line": 0, "character": 0}, "end": end}, "newText": out}]))
     }
 
     fn analyze(&self, path: &Path) -> Option<Analysis> {

@@ -165,6 +165,7 @@ BAML defines tests in its files and runs them with `baml-cli test`.
 - [x] TypeScript backend (`ward_codegen_ts`, `ward build --target typescript`) with a runtime written in TypeScript (`crates/ward_runtime/ts`) instead of a napi-rs binding; decision 017.
 - AgentDojo port: publish how many attacks are rejected at compile time and how many normal tasks still succeed (utility).
 - [x] LSP (`ward lsp`: diagnostics, hover, go to definition) + VS Code extension (`editors/vscode`); decision 016.
+- [x] `ward fmt` (and LSP formatting): the printer keeps comments and blank lines between statements.
 - `salsa` for incremental checking.
 - WASM backend via `wasm-encoder` (sandboxed execution).
 
