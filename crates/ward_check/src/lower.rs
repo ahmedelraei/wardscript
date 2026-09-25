@@ -38,6 +38,34 @@ impl Checker<'_> {
                     Item::Alias(_) => {
                         self.alias(def);
                     }
+                    Item::Class(c) => {
+                        let fields = c
+                            .fields
+                            .iter()
+                            .map(|f| (f.name.name.clone(), self.lower(m, f.ty), f.is_pub))
+                            .collect();
+                        let methods = c
+                            .methods
+                            .iter()
+                            .filter_map(|&i| match program.module(m).ast.items.get(i) {
+                                Some(Item::Fn(f)) => {
+                                    Some((f.name.name.clone(), DefId { module: m, item: i }))
+                                }
+                                _ => None,
+                            })
+                            .collect();
+                        // Supertypes are sorted out by `check_classes`.
+                        self.classes.insert(
+                            def,
+                            crate::ClassInfo {
+                                kind: c.kind,
+                                base: None,
+                                interfaces: Vec::new(),
+                                fields,
+                                methods,
+                            },
+                        );
+                    }
                     Item::Fn(f) => {
                         let params = f.params.iter().map(|p| self.lower(m, p.ty)).collect();
                         let ret = f.ret.map_or(Ty::Unit, |t| self.lower(m, t));
@@ -96,6 +124,7 @@ impl Checker<'_> {
                 Item::Record(r) => r.generics.len(),
                 Item::Enum(e) => e.generics.len(),
                 Item::Alias(a) => a.generics.len(),
+                // Generic classes are rejected where they're declared.
                 _ => 0,
             },
         };
@@ -201,6 +230,9 @@ impl Checker<'_> {
             Ty::Unit => Some("`()` has no JSON representation".into()),
             Ty::Param(_) => Some("a generic type has no fixed schema".into()),
             Ty::Dynamic => Some("a dynamic value has no fixed schema".into()),
+            Ty::Adt(d, _) if self.classes.contains_key(d) => {
+                Some("a class is an object, not data; use a record".into())
+            }
             Ty::Adt(d, args) => {
                 if visiting.contains(d) {
                     return None;

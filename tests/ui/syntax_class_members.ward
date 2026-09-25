@@ -1,0 +1,21 @@
+// Syntax errors inside a class body; each member reports once and parsing goes on.
+class Point {
+    x Int
+    pub y: Int
+
+    open z: Int
+
+    init(x: Int) -> Int {
+        self.x = x
+    }
+
+    42
+
+    pub fn norm() -> Int {
+        self.x
+    }
+}
+
+fn after() -> Int {
+    1
+}

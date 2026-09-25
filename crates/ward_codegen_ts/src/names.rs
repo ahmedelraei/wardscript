@@ -123,6 +123,12 @@ impl<'p> Scope<'p> {
         self.qualify(def.module, name)
     }
 
+    /// `Counter$new`: creates an object and runs its `init`, which may await.
+    pub fn constructor(&mut self, def: DefId) -> String {
+        let name = format!("{}$new", ident(self.program.adt_name(def)));
+        self.qualify(def.module, name)
+    }
+
     pub fn adt_descriptor(&mut self, def: DefId) -> String {
         let name = descriptor_name(self.program.adt_name(def));
         self.qualify(def.module, name)

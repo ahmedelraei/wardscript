@@ -1,0 +1,193 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/syntax_class_members.ward
+---
+exit: Some(1)
+--- human ---
+[W0010] Error: expected `:`, found `Int`
+   ╭─[ tests/ui/syntax_class_members.ward:3:7 ]
+   │
+ 3 │     x Int
+   │       ─┬─  
+   │        ╰─── expected `:`
+   │ 
+   │ Help: fields need a type: `name: Type`
+───╯
+[W0010] Error: expected `fn` after the modifier, found `z`
+   ╭─[ tests/ui/syntax_class_members.ward:6:10 ]
+   │
+ 6 │     open z: Int
+   │          ┬  
+   │          ╰── expected `fn` after the modifier
+───╯
+[W0145] Error: `init` can't declare a return type
+   ╭─[ tests/ui/syntax_class_members.ward:8:21 ]
+   │
+ 8 │     init(x: Int) -> Int {
+   │                     ─┬─  
+   │                      ╰─── remove this
+   │ 
+   │ Help: `init` sets up `self`; calling the class returns the new object
+───╯
+[W0010] Error: expected a field, `init` or a method, found `42`
+    ╭─[ tests/ui/syntax_class_members.ward:12:5 ]
+    │
+ 12 │     42
+    │     ─┬  
+    │      ╰── expected a field, `init` or a method
+────╯
+error: could not check `tests/ui/syntax_class_members.ward` due to 4 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0010",
+      "file": "tests/ui/syntax_class_members.ward",
+      "help": "fields need a type: `name: Type`",
+      "labels": [
+        {
+          "message": "expected `:`",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 10,
+              "line": 3,
+              "offset": 107
+            },
+            "start": {
+              "column": 7,
+              "line": 3,
+              "offset": 104
+            }
+          }
+        }
+      ],
+      "message": "expected `:`, found `Int`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 10,
+          "line": 3,
+          "offset": 107
+        },
+        "start": {
+          "column": 7,
+          "line": 3,
+          "offset": 104
+        }
+      }
+    },
+    {
+      "code": "W0010",
+      "file": "tests/ui/syntax_class_members.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected `fn` after the modifier",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 11,
+              "line": 6,
+              "offset": 134
+            },
+            "start": {
+              "column": 10,
+              "line": 6,
+              "offset": 133
+            }
+          }
+        }
+      ],
+      "message": "expected `fn` after the modifier, found `z`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 11,
+          "line": 6,
+          "offset": 134
+        },
+        "start": {
+          "column": 10,
+          "line": 6,
+          "offset": 133
+        }
+      }
+    },
+    {
+      "code": "W0145",
+      "file": "tests/ui/syntax_class_members.ward",
+      "help": "`init` sets up `self`; calling the class returns the new object",
+      "labels": [
+        {
+          "message": "remove this",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 24,
+              "line": 8,
+              "offset": 164
+            },
+            "start": {
+              "column": 21,
+              "line": 8,
+              "offset": 161
+            }
+          }
+        }
+      ],
+      "message": "`init` can't declare a return type",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 24,
+          "line": 8,
+          "offset": 164
+        },
+        "start": {
+          "column": 21,
+          "line": 8,
+          "offset": 161
+        }
+      }
+    },
+    {
+      "code": "W0010",
+      "file": "tests/ui/syntax_class_members.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "expected a field, `init` or a method",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 7,
+              "line": 12,
+              "offset": 199
+            },
+            "start": {
+              "column": 5,
+              "line": 12,
+              "offset": 197
+            }
+          }
+        }
+      ],
+      "message": "expected a field, `init` or a method, found `42`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 7,
+          "line": 12,
+          "offset": 199
+        },
+        "start": {
+          "column": 5,
+          "line": 12,
+          "offset": 197
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/syntax_class_members.ward"
+}

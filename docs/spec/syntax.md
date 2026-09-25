@@ -12,6 +12,8 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
 - **Keywords** (reserved; can't be used as names):
   `ai fn pub let type enum match if else for in while return throw throws try catch import as uses budget true false`.
   `model` and `check` are keywords only where a clause can start (`model {`, `check {`),
+  `class`, `interface`, `open` and `abstract` only where a declaration starts,
+  `open`, `override`, `abstract` and `init` only at the start of a class member,
   `where` only after a type, `test` only before a string at the top level, and
   `assert` only at the start of a statement in a test; elsewhere they're names.
 - **Integers**: `[0-9][0-9_]*`, 64-bit signed. `_` separators are ignored (`1_000`).
@@ -27,7 +29,7 @@ constructs *mean* (types, trust labels, effects) is specified in later sections.
 
 ```ebnf
 module      = item* ;
-item        = annotation* (import | ["pub"] (fn | ai_fn)) | ["pub"] (type | enum) | test ;
+item        = annotation* (import | ["pub"] (fn | ai_fn)) | ["pub"] (type | enum | class) | test ;
 test        = "test" STRING block ;                       (* run by `ward test` *)
 annotation  = "@" IDENT ["(" [annotation_arg ("," annotation_arg)* [","]] ")"] ;
 annotation_arg = IDENT ("." IDENT)* ["=" STRING] ;                     (* rule_of_two, reason = "..." *)
@@ -51,6 +53,12 @@ type_decl   = "type" IDENT [generics] "{" [field ("," field)* [","]] "}"   (* re
             | "type" IDENT [generics] "=" rtype ;                          (* alias *)
 field       = IDENT ":" rtype ;
 enum        = "enum" IDENT [generics] "{" [variant ("," variant)* [","]] "}" ;
+class       = (["open" | "abstract"] "class" | "interface") IDENT [":" type ("," type)*]
+              "{" member* "}" ;                                     (* see classes.md *)
+member      = annotation* ["pub"] (IDENT ":" rtype [","|";"]
+            | "init" "(" [param ("," param)* [","]] ")" ["throws" type] clause* block
+            | ["open"] ["override"] (fn | ai_fn)
+            | "abstract" "fn" IDENT signature) ;               (* also an interface's `fn` *)
 variant     = IDENT ["(" rtype ("," rtype)* [","] ")"] ;
 generics    = "<" IDENT ("," IDENT)* [","] ">" ;
 
@@ -153,8 +161,8 @@ ai fn triage(email: Untrusted<String>) -> Ticket
 
 ### Annotations
 
-Annotations go on their own lines before a function or an import; on a type or enum
-they're an error (W0024). Their strings can't interpolate (W0022). Which annotations
+Annotations go on their own lines before a function, a method or an import; on a
+type, enum, class or field they're an error (W0024). Their strings can't interpolate (W0022). Which annotations
 exist is part of [effects](effects.md).
 
 ```ward

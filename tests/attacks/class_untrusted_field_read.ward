@@ -1,0 +1,16 @@
+// A field declared `Untrusted` is untrusted when read, whoever holds the object.
+import mcp "gmail" as mail
+
+class Message {
+    pub body: Untrusted<String>
+
+    pub init(body: Untrusted<String>) {
+        self.body = body
+    }
+}
+
+pub fn forward(m: Message, to: String)
+    uses {mail.send}
+{
+    mail.send(to, m.body)
+}

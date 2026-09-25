@@ -15,6 +15,7 @@ enum ItemRes {
     /// A record or alias.
     Type(DefId),
     Enum(DefId),
+    Class(DefId),
     Module(ModuleId),
     Tool(DefId),
 }
@@ -57,6 +58,7 @@ pub fn resolve(program: &Program) -> (Resolution, Vec<ProgramDiagnostic>) {
                 diags: &mut diags,
                 locals: Vec::new(),
                 generics: Vec::new(),
+                class: None,
             };
             r.module();
             r.res
@@ -97,7 +99,10 @@ fn collect_items(
                 tests.insert(&t.name, t.name_span);
                 continue;
             }
+            // Methods are reached through their class's values.
+            Item::Fn(f) if f.method.is_some() => continue,
             Item::Fn(f) => (&f.name, ItemRes::Fn(def), f.is_pub),
+            Item::Class(c) => (&c.name, ItemRes::Class(def), c.is_pub),
             Item::Record(r) => (&r.name, ItemRes::Type(def), r.is_pub),
             Item::Alias(a) => (&a.name, ItemRes::Type(def), a.is_pub),
             Item::Enum(e) => (&e.name, ItemRes::Enum(def), e.is_pub),
@@ -154,6 +159,8 @@ struct BodyResolver<'a> {
     /// Innermost scope last.
     locals: Vec<HashMap<String, LocalId>>,
     generics: Vec<String>,
+    /// The class whose method is being resolved.
+    class: Option<DefId>,
 }
 
 impl BodyResolver<'_> {
@@ -206,6 +213,33 @@ impl BodyResolver<'_> {
                         }
                     }
                 }
+                Item::Class(c) => {
+                    self.set_generics(&c.generics);
+                    for &t in &c.supers {
+                        self.ty(t);
+                    }
+                    let mut seen: HashMap<&str, Span> = HashMap::new();
+                    for field in &c.fields {
+                        if let Some(&first) = seen.get(field.name.name.as_str()) {
+                            self.error(duplicate(
+                                &field.name.name,
+                                field.name.span,
+                                first,
+                                "field",
+                            ));
+                        }
+                        seen.insert(&field.name.name, field.name.span);
+                        self.ty(field.ty);
+                    }
+                    for &m in &c.methods {
+                        if let Some(Item::Fn(f)) = ast.items.get(m) {
+                            if let Some(&first) = seen.get(f.name.name.as_str()) {
+                                self.error(duplicate(&f.name.name, f.name.span, first, "member"));
+                            }
+                            seen.insert(&f.name.name, f.name.span);
+                        }
+                    }
+                }
                 Item::Import(_) => {}
                 Item::Test(t) => {
                     self.set_generics(&[]);
@@ -221,6 +255,10 @@ impl BodyResolver<'_> {
 
     fn fn_decl(&mut self, item: usize, f: &FnDecl) {
         self.set_generics(&f.generics);
+        self.class = f.method.map(|m| DefId {
+            module: self.m,
+            item: m.class,
+        });
         self.locals.push(HashMap::new());
         let mut params = Vec::new();
         for p in &f.params {
@@ -256,8 +294,10 @@ impl BodyResolver<'_> {
         match &f.body {
             FnBody::Block(b) => self.block(b),
             FnBody::Ai { prompt } => self.expr(*prompt),
+            FnBody::Abstract => {}
         }
         self.locals.pop();
+        self.class = None;
     }
 
     fn bind(&mut self, name: &Ident) -> LocalId {
@@ -281,8 +321,16 @@ impl BodyResolver<'_> {
                 ItemRes::Enum(d) => Lookup::Value(ValueRes::Enum(d)),
                 ItemRes::Module(m) => Lookup::Value(ValueRes::Module(m)),
                 ItemRes::Tool(d) => Lookup::Value(ValueRes::Tool(d)),
+                ItemRes::Class(d) => Lookup::Value(ValueRes::Class(d)),
                 ItemRes::Type(d) => Lookup::Type(d),
             };
+        }
+        if name == "super" {
+            if let Some(class) = self.class {
+                if matches!(self.program.item(class), Item::Class(c) if !c.supers.is_empty()) {
+                    return Lookup::Value(ValueRes::Super(class));
+                }
+            }
         }
         match BUILTINS.iter().find(|(n, _)| *n == name) {
             Some(&(_, b)) => Lookup::Value(ValueRes::Builtin(b)),
@@ -325,6 +373,16 @@ impl BodyResolver<'_> {
                     }
                     _ => d,
                 };
+                self.error(d);
+                None
+            }
+            Lookup::NotFound if name.name == "super" => {
+                let d = Diagnostic::error(
+                    codes::INVALID_SUPER,
+                    "`super` is only available in methods of a class that extends another",
+                    name.span,
+                )
+                .with_label("no base class here");
                 self.error(d);
                 None
             }
@@ -383,6 +441,7 @@ impl BodyResolver<'_> {
                 match res {
                     ItemRes::Fn(d) => Some(ValueRes::Fn(d)),
                     ItemRes::Enum(d) => Some(ValueRes::Enum(d)),
+                    ItemRes::Class(d) => Some(ValueRes::Class(d)),
                     ItemRes::Type(_) => {
                         let d = self.type_not_value(&name.name, name.span);
                         self.error(d);
@@ -410,9 +469,30 @@ impl BodyResolver<'_> {
                 Some(ValueRes::ToolMember(def))
             }
             ValueRes::ToolMember(def) => Some(ValueRes::ToolMember(def)),
-            ValueRes::Local(_) | ValueRes::Fn(_) | ValueRes::Variant(..) | ValueRes::Builtin(_) => {
+            ValueRes::Class(def) => {
+                let class = match self.program.item(def) {
+                    Item::Class(c) => c.name.name.as_str(),
+                    _ => "?",
+                };
+                self.error(
+                    Diagnostic::error(
+                        codes::NO_SUCH_MEMBER,
+                        format!("class `{class}` has no static member `{}`", name.name),
+                        name.span,
+                    )
+                    .with_label("not a member of the class itself")
+                    .with_help(format!(
+                        "fields and methods belong to objects: `{class}(...).{}`",
+                        name.name
+                    )),
+                );
                 None
             }
+            ValueRes::Local(_)
+            | ValueRes::Fn(_)
+            | ValueRes::Variant(..)
+            | ValueRes::Builtin(_)
+            | ValueRes::Super(_) => None,
         }
     }
 
@@ -606,6 +686,18 @@ impl BodyResolver<'_> {
             Some(ItemRes::Type(def)) if matches!(self.program.item(def), Item::Record(_)) => {
                 self.res.records.insert(id, def);
             }
+            Some(ItemRes::Class(_)) => self.error(
+                Diagnostic::error(
+                    codes::WRONG_KIND_OF_NAME,
+                    format!("`{}` is a class, not a record type", name.name),
+                    name.span,
+                )
+                .with_label("expected a record type")
+                .with_help(format!(
+                    "create an object by calling it: `{}(...)`",
+                    name.name
+                )),
+            ),
             Some(_) => self.error(
                 Diagnostic::error(
                     codes::WRONG_KIND_OF_NAME,
@@ -706,7 +798,11 @@ impl BodyResolver<'_> {
 
     fn type_candidates(&self) -> Vec<&str> {
         let items = self.scope().items.iter().filter_map(|(n, e)| {
-            matches!(e.res, ItemRes::Type(_) | ItemRes::Enum(_)).then_some(n.as_str())
+            matches!(
+                e.res,
+                ItemRes::Type(_) | ItemRes::Enum(_) | ItemRes::Class(_)
+            )
+            .then_some(n.as_str())
         });
         self.generics
             .iter()
@@ -748,7 +844,9 @@ impl BodyResolver<'_> {
                     return Some(TypeRes::Param(i));
                 }
                 match self.scope().items.get(&name.name).map(|e| e.res) {
-                    Some(ItemRes::Type(d) | ItemRes::Enum(d)) => return Some(TypeRes::Def(d)),
+                    Some(ItemRes::Type(d) | ItemRes::Enum(d) | ItemRes::Class(d)) => {
+                        return Some(TypeRes::Def(d));
+                    }
                     Some(_) => {
                         self.not_a_type(name);
                         return None;
@@ -783,7 +881,9 @@ impl BodyResolver<'_> {
                     return None;
                 };
                 match self.module_member(mid, name)? {
-                    ItemRes::Type(d) | ItemRes::Enum(d) => Some(TypeRes::Def(d)),
+                    ItemRes::Type(d) | ItemRes::Enum(d) | ItemRes::Class(d) => {
+                        Some(TypeRes::Def(d))
+                    }
                     _ => {
                         self.not_a_type(name);
                         None

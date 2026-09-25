@@ -1,0 +1,62 @@
+// Interfaces and abstract classes: contracts that classes implement.
+
+pub interface Named {
+    fn name() -> String
+}
+
+pub interface Greeter: Named {
+    fn greet(who: String) -> String
+}
+
+pub abstract class Shape: Named {
+    label: String
+
+    pub init(label: String) {
+        self.label = label
+    }
+
+    pub abstract fn area() -> Float
+
+    pub override fn name() -> String {
+        self.label
+    }
+
+    pub fn describe() -> String {
+        "{self.name()} has area {self.area()}"
+    }
+}
+
+pub class Square: Shape, Greeter {
+    side: Float
+
+    pub init(side: Float) {
+        super.init("square")
+        self.side = side
+    }
+
+    pub override fn area() -> Float {
+        self.side * self.side
+    }
+
+    pub override fn greet(who: String) -> String {
+        "hi {who}, I'm {self.name()}"
+    }
+}
+
+pub fn total(shapes: List<Shape>) -> Float {
+    let sum = 0.0
+    for s in shapes {
+        sum = sum + s.area()
+    }
+    sum
+}
+
+pub fn hello(g: Greeter) -> String {
+    g.greet("ada")
+}
+
+pub fn main() -> String {
+    let sq = Square(2.0)
+    let n: Named = sq
+    "{total([sq, Square(1.0)])} {hello(sq)} {n.name()} {sq.describe()}"
+}

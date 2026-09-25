@@ -213,7 +213,13 @@ impl<'m> Printer<'m> {
 
     fn module(&mut self) {
         let mut prev_import = false;
-        for (i, item) in self.m.items.iter().enumerate() {
+        // Methods are printed inside their class.
+        let items = self
+            .m
+            .items
+            .iter()
+            .filter(|it| !matches!(it, Item::Fn(f) if f.method.is_some()));
+        for (i, item) in items.enumerate() {
             let is_import = matches!(item, Item::Import(_));
             if i > 0 {
                 self.w(if is_import && prev_import {
@@ -312,8 +318,84 @@ impl<'m> Printer<'m> {
                     },
                 );
             }
+            Item::Class(c) => self.class(c),
             Item::Fn(f) => self.fn_decl(f),
         }
+    }
+
+    /// Members in source order: fields one per line, a blank line before each method.
+    fn class(&mut self, c: &ClassDecl) {
+        self.vis(c.is_pub);
+        if c.is_open {
+            self.w("open ");
+        }
+        self.w(match c.kind {
+            ClassKind::Class => "class ",
+            ClassKind::Abstract => "abstract class ",
+            ClassKind::Interface => "interface ",
+        });
+        self.w(&c.name.name);
+        self.generics(&c.generics);
+        if !c.supers.is_empty() {
+            self.w(": ");
+            self.sep(&c.supers, ", ", |p, t| p.ty(*t));
+        }
+        let methods: Vec<&FnDecl> = c
+            .methods
+            .iter()
+            .filter_map(|&i| match self.m.items.get(i) {
+                Some(Item::Fn(f)) => Some(f),
+                _ => None,
+            })
+            .collect();
+        if c.fields.is_empty() && methods.is_empty() {
+            self.w(" {}");
+            return;
+        }
+        enum Member<'a> {
+            Field(&'a ClassField),
+            Method(&'a FnDecl),
+        }
+        let mut members: Vec<(u32, Member)> = c
+            .fields
+            .iter()
+            .map(|f| (f.span.start, Member::Field(f)))
+            .chain(
+                methods
+                    .into_iter()
+                    .map(|f| (f.span.start, Member::Method(f))),
+            )
+            .collect();
+        members.sort_by_key(|(start, _)| *start);
+        self.w(" {");
+        self.indent += 1;
+        for (i, (start, member)) in members.iter().enumerate() {
+            if i > 0 && matches!(member, Member::Method(_)) {
+                self.newline();
+                let trimmed = self.out.trim_end_matches(' ').len();
+                self.out.truncate(trimmed);
+            }
+            self.newline();
+            self.lead(*start, false);
+            match member {
+                Member::Field(f) => {
+                    self.vis(f.is_pub);
+                    self.w(&f.name.name);
+                    self.w(": ");
+                    self.ty(f.ty);
+                }
+                Member::Method(f) => {
+                    self.annotations(&f.annotations);
+                    // An interface's methods are abstract without saying so.
+                    let in_interface = c.kind == ClassKind::Interface;
+                    self.fn_decl_in(f, in_interface);
+                }
+            }
+        }
+        self.tail(c.span.end);
+        self.indent -= 1;
+        self.newline();
+        self.w("}");
     }
 
     fn vis(&mut self, is_pub: bool) {
@@ -380,15 +462,37 @@ impl<'m> Printer<'m> {
     }
 
     fn fn_decl(&mut self, f: &FnDecl) {
-        self.vis(f.is_pub);
+        self.fn_decl_in(f, false);
+    }
+
+    fn fn_decl_in(&mut self, f: &FnDecl, in_interface: bool) {
+        self.vis(f.is_pub && !in_interface);
+        if let Some(m) = f.method {
+            if m.is_open {
+                self.w("open ");
+            }
+            if m.is_override {
+                self.w("override ");
+            }
+            if m.is_abstract && !in_interface {
+                self.w("abstract ");
+            }
+        }
         if f.is_ai {
             self.w("ai ");
         }
-        self.w("fn ");
+        if !f.method.is_some_and(|m| m.is_init) {
+            self.w("fn ");
+        }
         self.w(&f.name.name);
         self.generics(&f.generics);
         self.w("(");
-        self.sep(&f.params, ", ", |p, param| {
+        // A method's `self` is implicit.
+        let params = match f.method {
+            Some(_) => f.params.get(1..).unwrap_or(&[]),
+            None => &f.params,
+        };
+        self.sep(params, ", ", |p, param| {
             p.w(&param.name.name);
             p.w(": ");
             p.ty(param.ty);
@@ -466,6 +570,11 @@ impl<'m> Printer<'m> {
         }
         match &f.body {
             FnBody::Block(b) => self.block(b),
+            // The signature is all there is; drop the space written before a body.
+            FnBody::Abstract => {
+                let trimmed = self.out.trim_end().len();
+                self.out.truncate(trimmed);
+            }
             FnBody::Ai { prompt } => {
                 self.w("{");
                 self.indent += 1;

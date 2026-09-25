@@ -1,0 +1,28 @@
+// A setter stores its argument in a field, so the argument must be trusted.
+import mcp "gmail" as mail
+
+class Draft {
+    body: String
+
+    pub init() {
+        self.body = ""
+    }
+
+    pub fn set(text: String) {
+        self.body = text
+    }
+
+    pub fn send(to: String)
+        uses {mail.send}
+    {
+        mail.send(to, self.body)
+    }
+}
+
+pub fn reply(email: Untrusted<String>, to: String)
+    uses {mail.send}
+{
+    let d = Draft()
+    d.set(email)
+    d.send(to)
+}

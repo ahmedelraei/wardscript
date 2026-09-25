@@ -140,6 +140,7 @@ impl Ty {
                     Item::Record(r) => r.name.name.as_str(),
                     Item::Enum(e) => e.name.name.as_str(),
                     Item::Alias(a) => a.name.name.as_str(),
+                    Item::Class(c) => c.name.name.as_str(),
                     _ => "?",
                 };
                 if args.is_empty() {

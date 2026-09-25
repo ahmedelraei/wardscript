@@ -95,6 +95,7 @@ fn lower_module(
         path: data.path.clone(),
         records: Vec::new(),
         enums: Vec::new(),
+        classes: Vec::new(),
         fns: Vec::new(),
         tools: Vec::new(),
         refinements: Vec::new(),
@@ -142,6 +143,34 @@ fn lower_module(
                     variants,
                 });
             }
+            Item::Class(c) => {
+                let info = checked
+                    .classes
+                    .get(&def)
+                    .ok_or_else(|| internal(format!("class `{}` has no layout", c.name.name)))?;
+                module.classes.push(Class {
+                    def,
+                    name: c.name.name.clone(),
+                    is_pub: c.is_pub,
+                    kind: c.kind,
+                    base: info.base,
+                    interfaces: info.interfaces.clone(),
+                    fields: info
+                        .fields
+                        .iter()
+                        .map(|(name, ty, is_pub)| ClassField {
+                            name: name.clone(),
+                            ty: ty.clone(),
+                            is_pub: *is_pub,
+                        })
+                        .collect(),
+                    methods: c
+                        .methods
+                        .iter()
+                        .map(|&i| DefId { module: m, item: i })
+                        .collect(),
+                });
+            }
             Item::Import(ast::Import {
                 kind: ImportKind::Tool {
                     provider, source, ..
@@ -172,6 +201,9 @@ fn lower_module(
                     exprs: Arena::default(),
                     stmts: Arena::default(),
                     pats: Arena::default(),
+                    self_local: f
+                        .method
+                        .and_then(|_| res.params.get(&item).and_then(|ps| ps.first()).copied()),
                 };
                 let params = res
                     .params
@@ -182,6 +214,7 @@ fn lower_module(
                     .collect::<Result<_, _>>()?;
                 let body = match &f.body {
                     FnBody::Block(b) => Body::Block(cx.block(b)?),
+                    FnBody::Abstract => Body::Abstract,
                     FnBody::Ai { prompt } => {
                         let prompt = cx.expr(*prompt)?;
                         let it = res.check_its.get(&item).map(|&l| cx.local(l)).transpose()?;
@@ -220,18 +253,35 @@ fn lower_module(
                     })
                     .collect::<Result<_, LowerError>>()?;
                 let model = f.model.as_ref().map(model_policy);
+                let mut trusted = match f.method {
+                    Some(_) => family_trusted(checked, def, f.params.len()),
+                    None => checked
+                        .trusted_params
+                        .get(&def)
+                        .cloned()
+                        .unwrap_or_else(|| vec![false; f.params.len()]),
+                };
+                // A receiver can't be wrapped; the checker already vouched for it.
+                if f.method.is_some() {
+                    if let Some(t) = trusted.first_mut() {
+                        *t = false;
+                    }
+                }
                 module.fns.push(Fn {
                     budget,
                     model,
                     def,
                     name: f.name.name.clone(),
                     is_pub: f.is_pub,
+                    method: f.method.map(|mi| MethodOf {
+                        class: DefId {
+                            module: m,
+                            item: mi.class,
+                        },
+                        is_init: mi.is_init,
+                    }),
                     generics: names(&f.generics),
-                    trusted: checked
-                        .trusted_params
-                        .get(&def)
-                        .cloned()
-                        .unwrap_or_else(|| vec![false; f.params.len()]),
+                    trusted,
                     params,
                     ret: sig.ret.clone(),
                     throws: sig.throws.clone(),
@@ -260,6 +310,7 @@ fn lower_module(
                     exprs: Arena::default(),
                     stmts: Arena::default(),
                     pats: Arena::default(),
+                    self_local: None,
                 };
                 let body = Body::Block(cx.block(&t.body)?);
                 let site = cx.site(t.name_span);
@@ -270,6 +321,7 @@ fn lower_module(
                         def,
                         name: name.clone(),
                         is_pub: false,
+                        method: None,
                         generics: Vec::new(),
                         params: Vec::new(),
                         trusted: Vec::new(),
@@ -309,6 +361,7 @@ fn lower_module(
             exprs: Arena::default(),
             stmts: Arena::default(),
             pats: Arena::default(),
+            self_local: None,
         };
         let param = cx.local(it)?;
         let base = cx.locals[param].ty.clone();
@@ -324,6 +377,7 @@ fn lower_module(
                 },
                 name: name.clone(),
                 is_pub: false,
+                method: None,
                 generics: Vec::new(),
                 params: vec![param],
                 trusted: vec![false],
@@ -343,7 +397,56 @@ fn lower_module(
             name,
         });
     }
+    // Python and TypeScript need a base class defined before its subclasses.
+    let mut ordered: Vec<Class> = Vec::new();
+    let mut pending = std::mem::take(&mut module.classes);
+    while !pending.is_empty() {
+        let ready = pending
+            .iter()
+            .position(|c| {
+                c.base
+                    .iter()
+                    .chain(&c.interfaces)
+                    .all(|&b| b.module != m || ordered.iter().any(|o| o.def == b))
+            })
+            .unwrap_or(0);
+        ordered.push(pending.remove(ready));
+    }
+    module.classes = ordered;
     Ok(module)
+}
+
+/// A method's trusted parameters, shared by every method it overrides or is overridden
+/// by: a caller vouches for arguments by the method it names, and any of them may run.
+fn family_trusted(checked: &Checked, def: DefId, n: usize) -> Vec<bool> {
+    let mut family = vec![def];
+    for (&base, overrides) in &checked.overrides {
+        if overrides.contains(&def) && !family.contains(&base) {
+            family.push(base);
+        }
+    }
+    for m in family.clone() {
+        for &o in checked.overrides.get(&m).into_iter().flatten() {
+            if !family.contains(&o) {
+                family.push(o);
+            }
+        }
+    }
+    let mut out = vec![false; n];
+    for m in family {
+        for (i, &t) in checked
+            .trusted_params
+            .get(&m)
+            .into_iter()
+            .flatten()
+            .enumerate()
+        {
+            if let Some(slot) = out.get_mut(i) {
+                *slot |= t;
+            }
+        }
+    }
+    out
 }
 
 /// The source text at `span`.
@@ -375,6 +478,8 @@ struct FnLower<'a> {
     exprs: Arena<Expr>,
     stmts: Arena<Stmt>,
     pats: Arena<Pat>,
+    /// A method's `self`, which `super` also refers to.
+    self_local: Option<ward_resolve::LocalId>,
 }
 
 type R<T> = Result<T, LowerError>;
@@ -448,12 +553,27 @@ impl FnLower<'_> {
                 let local = self.stmt_local(id)?;
                 Stmt::Let { local, value }
             }
-            ast::StmtKind::Assign { target, value } => {
-                let mut path = Vec::new();
-                let local = self.place(*target, &mut path)?;
-                let value = self.expr(*value)?;
-                Stmt::Assign { local, path, value }
-            }
+            ast::StmtKind::Assign { target, value } => match self.object_field(*target)? {
+                Some((field_expr, obj_base, class, field)) => {
+                    let obj = self.expr(obj_base)?;
+                    let mut path = Vec::new();
+                    self.path_below(*target, field_expr, &mut path)?;
+                    let value = self.expr(*value)?;
+                    Stmt::SetField {
+                        obj,
+                        class,
+                        field,
+                        path,
+                        value,
+                    }
+                }
+                None => {
+                    let mut path = Vec::new();
+                    let local = self.place(*target, &mut path)?;
+                    let value = self.expr(*value)?;
+                    Stmt::Assign { local, path, value }
+                }
+            },
             ast::StmtKind::Expr { expr, .. } => Stmt::Expr(self.expr(*expr)?),
             ast::StmtKind::Return(v) => Stmt::Return(v.map(|v| self.expr(v)).transpose()?),
             ast::StmtKind::Throw(v) => Stmt::Throw(self.expr(*v)?),
@@ -490,6 +610,60 @@ impl FnLower<'_> {
             .get(id)
             .ok_or_else(|| self.bug("statement binds no variable"))?;
         self.local(l)
+    }
+
+    /// The object field nearest the end of an assignment target (`a.b.c` with `a.b` an
+    /// object sets field `c` of it): the field expression, the object, class and field.
+    fn object_field(
+        &self,
+        target: ast::ExprId,
+    ) -> R<Option<(ast::ExprId, ast::ExprId, DefId, String)>> {
+        let ast = self.ast;
+        let mut e = target;
+        loop {
+            match &ast.exprs[e].kind {
+                ast::ExprKind::Field { base, name } => {
+                    if let Ty::Adt(d, _) = self.ty(*base)? {
+                        if self.checked.classes.contains_key(&d) {
+                            return Ok(Some((e, *base, d, name.name.clone())));
+                        }
+                    }
+                    e = *base;
+                }
+                ast::ExprKind::Index { base, .. } => e = *base,
+                _ => return Ok(None),
+            }
+        }
+    }
+
+    /// The places from just below `stop` out to `e`, outwards-in.
+    fn path_below(&mut self, e: ast::ExprId, stop: ast::ExprId, path: &mut Vec<Place>) -> R<()> {
+        if e == stop {
+            return Ok(());
+        }
+        let ast = self.ast;
+        match &ast.exprs[e].kind {
+            ast::ExprKind::Field { base, name } => {
+                self.path_below(*base, stop, path)?;
+                let record = match self.ty(*base)? {
+                    Ty::Adt(d, _) => Some(d),
+                    _ => None,
+                };
+                path.push(Place::Field {
+                    record,
+                    name: name.name.clone(),
+                });
+                Ok(())
+            }
+            ast::ExprKind::Index { base, index } => {
+                self.path_below(*base, stop, path)?;
+                let container = self.ty(*base)?;
+                let index = self.expr(*index)?;
+                path.push(Place::Index { container, index });
+                Ok(())
+            }
+            _ => Err(self.bug("invalid assignment target")),
+        }
     }
 
     /// Walks an assignment target down to its variable, collecting the path outwards-in.
@@ -558,7 +732,7 @@ impl FnLower<'_> {
                     }
                 }
             },
-            ast::ExprKind::Call { callee, args } => self.call(*callee, args, span)?,
+            ast::ExprKind::Call { callee, args } => self.call(e, *callee, args, span)?,
             ast::ExprKind::Index { base, index } => ExprKind::Index {
                 base: self.expr(*base)?,
                 index: self.expr(*index)?,
@@ -634,12 +808,40 @@ impl FnLower<'_> {
                 args: Vec::new(),
             },
             ValueRes::Builtin(Builtin::None) => ExprKind::None,
+            ValueRes::Super(_) => match self.self_local {
+                Some(l) => ExprKind::Local(self.local(l)?),
+                None => return Err(self.bug("`super` outside a method")),
+            },
             _ => return Err(self.bug("name is not a value")),
         })
     }
 
-    fn call(&mut self, callee: ast::ExprId, args: &[ast::ExprId], span: Span) -> R<ExprKind> {
+    fn call(
+        &mut self,
+        e: ast::ExprId,
+        callee: ast::ExprId,
+        args: &[ast::ExprId],
+        span: Span,
+    ) -> R<ExprKind> {
         let ast = self.ast;
+        if let Some(&ValueRes::Class(class)) = self.res.values.get(callee) {
+            return Ok(ExprKind::New {
+                class,
+                args: self.exprs(args)?,
+            });
+        }
+        if let Some(call) = self.types.methods.get(e) {
+            let (method, is_virtual) = (call.target, call.is_virtual);
+            let ast::ExprKind::Field { base, .. } = &ast.exprs[callee].kind else {
+                return Err(self.bug("method call without a receiver"));
+            };
+            return Ok(ExprKind::MethodCall {
+                method,
+                recv: self.expr(*base)?,
+                args: self.exprs(args)?,
+                is_virtual,
+            });
+        }
         let Some(&res) = self.res.values.get(callee) else {
             let ast::ExprKind::Field { base, name } = &ast.exprs[callee].kind else {
                 return Err(self.bug("call of something that isn't a function"));

@@ -1,0 +1,23 @@
+// A constructor argument ends up in a field that a later call sends.
+import mcp "shell" as sh
+
+class Job {
+    command: String
+
+    pub init(command: String) {
+        self.command = command
+    }
+
+    pub fn run()
+        uses {sh.run}
+    {
+        sh.run(self.command)
+    }
+}
+
+pub fn schedule(request: Untrusted<String>)
+    uses {sh.run}
+{
+    let job = Job(request)
+    job.run()
+}

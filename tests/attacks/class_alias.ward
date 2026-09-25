@@ -1,0 +1,19 @@
+// Two variables, one object: writing through one is seen through the other.
+import mcp "gmail" as mail
+
+class Box {
+    pub text: String
+
+    pub init() {
+        self.text = "safe"
+    }
+}
+
+pub fn forward(email: Untrusted<String>, to: String)
+    uses {mail.send}
+{
+    let a = Box()
+    let b = a
+    b.text = email
+    mail.send(to, a.text)
+}

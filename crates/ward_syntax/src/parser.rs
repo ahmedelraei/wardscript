@@ -29,6 +29,7 @@ pub fn parse(src: &str) -> Parse {
         newlines: false,
         lex_errors,
         in_test: false,
+        methods: Vec::new(),
     };
     p.items();
     let mut diagnostics = p.diags;
@@ -80,6 +81,8 @@ struct Parser<'s> {
     lex_errors: Vec<u32>,
     /// Inside a `test` body, where `assert` starts a statement.
     in_test: bool,
+    /// Methods of the class just parsed, pushed as items right after it.
+    methods: Vec<FnDecl>,
 }
 
 impl Parser<'_> {
@@ -135,6 +138,21 @@ impl Parser<'_> {
             self.peek(),
             T::Fn | T::Ai | T::Pub | T::Type | T::Enum | T::Import | T::At
         ) || self.at_test_start()
+            || self.at_class_start()
+    }
+
+    /// `class Name` or `open class`: both words are only keywords here.
+    /// `class Name`, `open class`, `abstract class` or `interface Name`: these words
+    /// are only keywords here.
+    fn at_class_start(&self) -> bool {
+        let next_is =
+            |w: &str| self.nth_tok(1).kind == T::Ident && self.text(self.nth_tok(1).span) == w;
+        (self.at_word("class") || self.at_word("interface")) && self.nth_tok(1).kind == T::Ident
+            || (self.at_word("open") || self.at_word("abstract")) && next_is("class")
+    }
+
+    fn at_word(&self, word: &str) -> bool {
+        self.at(T::Ident) && self.text(self.tok().span) == word
     }
 
     /// `test "name"`: `test` is only a keyword here.
@@ -423,8 +441,24 @@ impl Parser<'_> {
             let start = self.pos;
             if self.at_item_start() {
                 match self.item() {
-                    Ok(item) => self.module.items.push(item),
-                    Err(Bail) => self.recover_item(start),
+                    Ok(mut item) => {
+                        let at = self.module.items.len();
+                        let methods = std::mem::take(&mut self.methods);
+                        if let Item::Class(c) = &mut item {
+                            c.methods = (at + 1..at + 1 + methods.len()).collect();
+                        }
+                        self.module.items.push(item);
+                        for mut m in methods {
+                            if let Some(info) = &mut m.method {
+                                info.class = at;
+                            }
+                            self.module.items.push(Item::Fn(m));
+                        }
+                    }
+                    Err(Bail) => {
+                        self.methods.clear();
+                        self.recover_item(start);
+                    }
                 }
             } else {
                 let t = self.tok();
@@ -475,6 +509,7 @@ impl Parser<'_> {
             other => {
                 let what = match other {
                     Item::Record(_) | Item::Alias(_) => "types",
+                    Item::Class(_) => "classes",
                     Item::Test(_) => "tests",
                     _ => "enums",
                 };
@@ -545,6 +580,9 @@ impl Parser<'_> {
         }
         let pub_tok = self.eat(T::Pub);
         let is_pub = pub_tok.is_some();
+        if self.at_class_start() {
+            return self.class_decl(is_pub, start).map(Item::Class);
+        }
         match self.peek() {
             T::Fn => self.fn_decl(is_pub, false, start).map(Item::Fn),
             T::Ai => {
@@ -572,7 +610,9 @@ impl Parser<'_> {
                 self.report(
                     Diagnostic::error(
                         codes::EXPECTED_ITEM,
-                        format!("expected `fn`, `type` or `enum` after `pub`, found {found}"),
+                        format!(
+                            "expected `fn`, `type`, `enum` or `class` after `pub`, found {found}"
+                        ),
                         t.span,
                     )
                     .with_label("expected an item"),
@@ -592,8 +632,45 @@ impl Parser<'_> {
     fn fn_decl(&mut self, is_pub: bool, is_ai: bool, start: Span) -> PResult<FnDecl> {
         self.bump();
         let name = self.ident()?;
+        self.fn_after_name(is_pub, is_ai, start, name, None)
+    }
+
+    /// Everything after a function's name. A method gets the implicit `self: Class`.
+    fn fn_after_name(
+        &mut self,
+        is_pub: bool,
+        is_ai: bool,
+        start: Span,
+        name: Ident,
+        method: Option<(MethodInfo, &Ident)>,
+    ) -> PResult<FnDecl> {
         let generics = self.generic_params()?;
-        let (params, _) = self.comma_list(T::LParen, T::RParen, |p| p.param())?;
+        let (mut params, _) = self.comma_list(T::LParen, T::RParen, |p| p.param())?;
+        if let Some((_, class)) = method {
+            let path = Path {
+                segments: vec![class.clone()],
+                span: class.span,
+            };
+            let ty = self.module.types.alloc(TypeExpr {
+                kind: TypeKind::Named {
+                    path,
+                    args: Vec::new(),
+                },
+                refinement: None,
+                span: class.span,
+            });
+            params.insert(
+                0,
+                Param {
+                    name: Ident {
+                        name: "self".to_owned(),
+                        span: name.span,
+                    },
+                    ty,
+                    span: name.span,
+                },
+            );
+        }
         let ret = match self.eat(T::Arrow) {
             Some(_) => Some(self.ty_top()?),
             None => None,
@@ -620,6 +697,38 @@ impl Parser<'_> {
             None => None,
         };
 
+        if let Some((info, _)) = method.filter(|(m, _)| m.is_abstract) {
+            if self.at(T::LBrace) {
+                let brace = self.tok().span;
+                self.push(
+                    Diagnostic::error(
+                        codes::INVALID_CLASS,
+                        format!("abstract method `{}` can't have a body", name.name),
+                        brace,
+                    )
+                    .with_label("remove the body")
+                    .with_help("subclasses implement it with `override fn`"),
+                );
+                self.block()?;
+            }
+            return Ok(FnDecl {
+                annotations: Vec::new(),
+                is_pub,
+                is_ai,
+                name,
+                generics,
+                params,
+                ret,
+                throws,
+                uses: None,
+                budget: None,
+                model: None,
+                checks: None,
+                body: FnBody::Abstract,
+                method: Some(info),
+                span: start.to(self.prev_span()),
+            });
+        }
         let mut uses: Option<(Span, Vec<Path>)> = None;
         let mut budget: Option<(Span, Vec<BudgetEntry>)> = None;
         let mut model: Option<ModelClause> = None;
@@ -721,8 +830,178 @@ impl Parser<'_> {
             model,
             checks,
             body,
+            method: method.map(|(m, _)| m),
             span: start.to(self.prev_span()),
         })
+    }
+
+    fn class_decl(&mut self, is_pub: bool, start: Span) -> PResult<ClassDecl> {
+        let is_open = self.at_word("open");
+        let mut kind = ClassKind::Class;
+        if is_open {
+            self.bump();
+        } else if self.at_word("abstract") {
+            self.bump();
+            kind = ClassKind::Abstract;
+        }
+        if self.at_word("interface") {
+            kind = ClassKind::Interface;
+        }
+        self.bump();
+        let name = self.ident()?;
+        let generics = self.generic_params()?;
+        let mut supers = Vec::new();
+        if self.eat(T::Colon).is_some() {
+            supers.push(self.ty()?);
+            while self.eat(T::Comma).is_some() {
+                supers.push(self.ty()?);
+            }
+        }
+        let mut fields = Vec::new();
+        self.with_newlines(false, |p| -> PResult<()> {
+            let open = p.expect(T::LBrace)?;
+            while !p.at(T::RBrace) && !p.at(T::Eof) && !p.at_item_start_outside_class() {
+                let member = p.tok().span;
+                let member_pos = p.pos;
+                if let Err(Bail) = p.member(&name, kind, member, &mut fields) {
+                    // Members start on a new line, so a name there starts the next one.
+                    p.skip_until(|t| {
+                        t.kind == T::RBrace
+                            || p_member_start(t.kind)
+                            || (t.nl_before && t.kind == T::Ident)
+                    });
+                    if p.pos == member_pos {
+                        p.bump();
+                    }
+                }
+            }
+            p.close(open, T::RBrace, "a field, `init` or a method")
+                .map(|_| ())
+        })?;
+        Ok(ClassDecl {
+            is_pub,
+            is_open,
+            kind,
+            name,
+            generics,
+            supers,
+            fields,
+            methods: Vec::new(),
+            span: start.to(self.prev_span()),
+        })
+    }
+
+    /// Items other than those that also start class members (`fn`, `pub`, `ai`, `@`).
+    fn at_item_start_outside_class(&self) -> bool {
+        matches!(self.peek(), T::Type | T::Enum | T::Import)
+            || self.at_test_start()
+            || self.at_class_start()
+    }
+
+    /// A field (`name: Type`), `init(...) { ... }` or a method, with its modifiers.
+    fn member(
+        &mut self,
+        class: &Ident,
+        kind: ClassKind,
+        start: Span,
+        fields: &mut Vec<ClassField>,
+    ) -> PResult<()> {
+        let mut annotations = Vec::new();
+        while self.at(T::At) {
+            annotations.push(self.annotation()?);
+        }
+        // An interface's methods are all public.
+        let is_pub = self.eat(T::Pub).is_some() || kind == ClassKind::Interface;
+        let mut is_open = false;
+        let mut is_override = false;
+        let mut is_abstract = kind == ClassKind::Interface;
+        loop {
+            let next_starts_fn = matches!(self.nth_tok(1).kind, T::Fn | T::Ai | T::Ident);
+            if self.at_word("open") && next_starts_fn && !is_open {
+                is_open = true;
+            } else if self.at_word("override") && next_starts_fn && !is_override {
+                is_override = true;
+            } else if self.at_word("abstract") && next_starts_fn && !is_abstract {
+                is_abstract = true;
+            } else {
+                break;
+            }
+            self.bump();
+        }
+        let info = MethodInfo {
+            class: 0,
+            is_init: false,
+            is_open,
+            is_override,
+            is_abstract,
+        };
+        let method = if self.at_word("init") && self.nth_tok(1).kind == T::LParen {
+            let name = self.ident()?;
+            let info = MethodInfo {
+                is_init: true,
+                ..info
+            };
+            let f = self.fn_after_name(is_pub, false, start, name, Some((info, class)))?;
+            if let Some(ret) = f.ret {
+                self.push(
+                    Diagnostic::error(
+                        codes::INVALID_CLASS,
+                        "`init` can't declare a return type",
+                        self.module.types[ret].span,
+                    )
+                    .with_label("remove this")
+                    .with_help("`init` sets up `self`; calling the class returns the new object"),
+                );
+            }
+            Some(f)
+        } else if self.at(T::Fn) || self.at(T::Ai) {
+            let is_ai = self.eat(T::Ai).is_some();
+            if !self.at(T::Fn) {
+                return Err(self.expected("`fn` after `ai`"));
+            }
+            self.bump();
+            let name = self.ident()?;
+            Some(self.fn_after_name(is_pub, is_ai, start, name, Some((info, class)))?)
+        } else {
+            None
+        };
+        if let Some(mut f) = method {
+            f.annotations = annotations;
+            self.methods.push(f);
+            return Ok(());
+        }
+        if is_open || is_override || (is_abstract && kind != ClassKind::Interface) {
+            return Err(self.expected("`fn` after the modifier"));
+        }
+        if !self.at(T::Ident) {
+            return Err(self.expected("a field, `init` or a method"));
+        }
+        let name = self.ident()?;
+        self.expect_with_help(T::Colon, "fields need a type: `name: Type`")?;
+        let ty = self.ty_top()?;
+        for a in annotations {
+            self.push(
+                Diagnostic::error(
+                    codes::MISPLACED_ANNOTATION,
+                    "annotations aren't allowed on fields",
+                    a.span,
+                )
+                .with_label("remove this annotation")
+                .with_help("only functions, methods and imports take annotations"),
+            );
+        }
+        let span = start.to(self.module.types[ty].span);
+        fields.push(ClassField {
+            is_pub,
+            name,
+            ty,
+            span,
+        });
+        // Fields may be separated by `,` or `;` as well as line breaks.
+        if self.eat(T::Comma).is_none() {
+            self.eat(T::Semi);
+        }
+        Ok(())
     }
 
     fn test_decl(&mut self, start: Span) -> PResult<TestDecl> {
@@ -1726,6 +2005,10 @@ impl Parser<'_> {
         self.newlines = saved_newlines;
         expr
     }
+}
+
+fn p_member_start(kind: T) -> bool {
+    matches!(kind, T::Fn | T::Ai | T::Pub | T::At)
 }
 
 fn binop(kind: T) -> Option<BinOp> {

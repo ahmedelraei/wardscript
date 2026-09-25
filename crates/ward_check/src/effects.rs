@@ -93,7 +93,11 @@ const BUDGET_KEYS: [(&str, bool); 4] = [
     ("time", false),
 ];
 
-pub(crate) fn check(program: &Program, res: &Resolution) -> Vec<ProgramDiagnostic> {
+pub(crate) fn check(
+    program: &Program,
+    res: &Resolution,
+    types: &[crate::ModuleTypes],
+) -> Vec<ProgramDiagnostic> {
     let fns: Vec<(DefId, &FnDecl)> =
         program
             .module_ids()
@@ -109,6 +113,7 @@ pub(crate) fn check(program: &Program, res: &Resolution) -> Vec<ProgramDiagnosti
     let mut cx = Cx {
         program,
         res,
+        types,
         diags: Vec::new(),
         facts: HashMap::new(),
     };
@@ -143,6 +148,7 @@ pub(crate) fn check(program: &Program, res: &Resolution) -> Vec<ProgramDiagnosti
 struct Cx<'p> {
     program: &'p Program,
     res: &'p Resolution,
+    types: &'p [crate::ModuleTypes],
     diags: Vec<ProgramDiagnostic>,
     facts: HashMap<DefId, Facts>,
 }
@@ -363,6 +369,7 @@ impl<'p> Cx<'p> {
     fn events(&self, def: DefId, f: &'p FnDecl) -> Vec<Event> {
         let module = def.module;
         let mut w = Walker {
+            types: self.types.get(module.0 as usize),
             cx: self,
             ast: &self.program.module(module).ast,
             mres: self.res.module(module),
@@ -382,6 +389,7 @@ impl<'p> Cx<'p> {
                 f.name.span,
                 "an `ai fn` calls the model".to_owned(),
             )),
+            FnBody::Abstract => {}
         }
         // Checks run with the call: what they use, the `ai fn` uses.
         for e in f.checks.iter().flat_map(|c| &c.entries) {
@@ -480,9 +488,11 @@ impl<'p> Cx<'p> {
         }
         facts.min_calls = match &f.body {
             FnBody::Ai { .. } => 1,
+            FnBody::Abstract => 0,
             FnBody::Block(b) => {
                 let module = def.module;
                 let mc = MinCalls {
+                    types: self.types.get(module.0 as usize),
                     cx: self,
                     ast: &self.program.module(module).ast,
                     mres: self.res.module(module),
@@ -938,6 +948,7 @@ fn fn_name(program: &Program, def: DefId) -> &str {
 
 struct Walker<'a, 'p> {
     cx: &'a Cx<'p>,
+    types: Option<&'p crate::ModuleTypes>,
     ast: &'p Module,
     mres: &'p ModuleRes,
     out: Vec<Event>,
@@ -1040,6 +1051,27 @@ impl Walker<'_, '_> {
     fn call(&mut self, e: ExprId, callee: ExprId, args: &[ExprId], used: bool) {
         let ast = self.ast;
         let span = ast.exprs[e].span;
+        // A method may run any of its overrides; a constructor runs `init`.
+        if let Some(call) = self.types.and_then(|t| t.methods.get(e)) {
+            for &d in &call.dispatch {
+                self.out.push(Event::Call(d, span));
+                if let (Item::Fn(f), true) = (self.cx.program.item(d), used) {
+                    if f.is_ai {
+                        self.out.push(Event::Untrusted(
+                            span,
+                            format!("the output of `ai fn {}` is untrusted", f.name.name),
+                        ));
+                    }
+                }
+            }
+            if let ExprKind::Field { base, .. } = &ast.exprs[callee].kind {
+                self.expr(*base, true);
+            }
+            for &a in args {
+                self.expr(a, true);
+            }
+            return;
+        }
         match self.mres.values.get(callee) {
             None => {
                 if let ExprKind::Field { base, .. } = &ast.exprs[callee].kind {
@@ -1092,6 +1124,7 @@ impl Walker<'_, '_> {
 /// The fewest model calls any run of a function makes.
 struct MinCalls<'a, 'p> {
     cx: &'a Cx<'p>,
+    types: Option<&'p crate::ModuleTypes>,
     ast: &'p Module,
     mres: &'p ModuleRes,
 }
@@ -1141,7 +1174,21 @@ impl MinCalls<'_, '_> {
                 }
             }
             ExprKind::Call { callee, args } => {
+                let method = self.types.and_then(|t| t.methods.get(e));
                 let own = match self.mres.values.get(*callee) {
+                    _ if method.is_some() => {
+                        let fewest = method
+                            .into_iter()
+                            .flat_map(|m| &m.dispatch)
+                            .map(|d| self.cx.facts.get(d).map_or(0, |f| f.min_calls))
+                            .min()
+                            .unwrap_or(0);
+                        let recv = match &self.ast.exprs[*callee].kind {
+                            ExprKind::Field { base, .. } => self.expr(*base),
+                            _ => 0,
+                        };
+                        fewest + recv
+                    }
                     Some(ValueRes::Fn(d)) => self.cx.facts.get(d).map_or(0, |f| f.min_calls),
                     None => match &self.ast.exprs[*callee].kind {
                         ExprKind::Field { base, .. } => self.expr(*base),

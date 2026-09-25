@@ -28,7 +28,8 @@ Labels are per value, not per part: a list holding one untrusted element is
 untrusted, and so is every element read from it.
 
 A record field declared `Untrusted<T>` is untrusted when read, whatever the record's
-own label. A field declared `Trusted<T>` is a sink when the record is built or the
+own label. Object fields work differently, since objects are shared: a class field
+not declared `Untrusted<T>` only ever holds trusted data ([classes](classes.md#trust)). A field declared `Trusted<T>` is a sink when the record is built or the
 field assigned. An enum variant's field declared `Untrusted<T>` is untrusted when a
 pattern binds it.
 

@@ -43,6 +43,22 @@
           }
         },
         {
+          "match": "\\b(?:(open|abstract)\\s+)?(class|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.modifier.ward" },
+            "2": { "name": "storage.type.class.ward" },
+            "3": { "name": "entity.name.type.class.ward" }
+          }
+        },
+        {
+          "match": "^\\s*(?:pub\\s+)?(?:(open|override|abstract)\\s+)*(?=(?:ai\\s+)?fn\\b)",
+          "captures": { "1": { "name": "storage.modifier.ward" } }
+        },
+        {
+          "match": "^\\s*(?:pub\\s+)?(init)(?=\\s*\\()",
+          "captures": { "1": { "name": "storage.type.function.ward" } }
+        },
+        {
           "match": "\\b(type|enum)\\s+([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
             "1": { "name": "storage.type.ward" },
@@ -79,6 +95,10 @@
         {
           "name": "constant.language.ward",
           "match": "\\b(true|false|None)\\b"
+        },
+        {
+          "name": "variable.language.ward",
+          "match": "\\b(self|super)\\b"
         }
       ]
     },

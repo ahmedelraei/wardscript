@@ -301,10 +301,13 @@ fn signature(analysis: &Analysis, d: ward_resolve::DefId) -> Option<String> {
     };
     let sig = analysis.checked.fns.get(&d)?;
     let generics: Vec<String> = f.generics.iter().map(|g| g.name.clone()).collect();
+    // A method's `self` is implicit.
+    let skip = usize::from(f.method.is_some());
     let params: Vec<String> = f
         .params
         .iter()
         .zip(&sig.params)
+        .skip(skip)
         .map(|(p, t)| format!("{}: {}", p.name.name, t.display(program, &generics)))
         .collect();
     let mut out = format!(
@@ -328,6 +331,7 @@ fn item_name_span(item: &Item) -> Option<Span> {
         Item::Record(r) => r.name.span,
         Item::Alias(a) => a.name.span,
         Item::Enum(e) => e.name.span,
+        Item::Class(c) => c.name.span,
         Item::Import(i) => i.alias.as_ref().map_or(i.span, |a| a.span),
         Item::Test(t) => t.name_span,
     })
@@ -367,11 +371,29 @@ fn definition(analysis: &Analysis, offset: u32) -> Option<Value> {
         }
     }
     let e = expr_at(analysis, offset)?;
+    // The method named in `obj.name(...)`.
+    let types = analysis.checked.types.first();
+    let method = ast.exprs.iter().find_map(|(call, x)| match &x.kind {
+        ward_syntax::ast::ExprKind::Call { callee, .. } if *callee == e => {
+            types.and_then(|t| t.methods.get(call)).map(|m| m.target)
+        }
+        _ => None,
+    });
+    if let Some(d) = method {
+        return Some(location(
+            analysis,
+            d.module,
+            item_name_span(program.item(d))?,
+        ));
+    }
     let target = match res.values.get(e)? {
         ValueRes::Local(l) => (ModuleId(0), res.locals[*l].span),
-        ValueRes::Fn(d) | ValueRes::Enum(d) | ValueRes::Tool(d) | ValueRes::ToolMember(d) => {
-            (d.module, item_name_span(program.item(*d))?)
-        }
+        ValueRes::Fn(d)
+        | ValueRes::Enum(d)
+        | ValueRes::Tool(d)
+        | ValueRes::ToolMember(d)
+        | ValueRes::Class(d)
+        | ValueRes::Super(d) => (d.module, item_name_span(program.item(*d))?),
         ValueRes::Variant(d, i) => match program.item(*d) {
             Item::Enum(en) => (d.module, en.variants.get(*i)?.name.span),
             _ => return None,

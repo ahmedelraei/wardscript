@@ -128,6 +128,10 @@ pub enum ValueRes {
     /// An `import mcp "..." as x` namespace. Typed dynamically until M7.
     Tool(DefId),
     ToolMember(DefId),
+    /// A class used as a value: its constructor.
+    Class(DefId),
+    /// `super` in a method of the subclass `DefId`, as in `super.run()`.
+    Super(DefId),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -168,7 +172,7 @@ impl Prim {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TypeRes {
     Prim(Prim),
-    /// A record, alias or enum.
+    /// A record, alias, enum or class.
     Def(DefId),
     /// The `n`th generic parameter of the enclosing item.
     Param(usize),

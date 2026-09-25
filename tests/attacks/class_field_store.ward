@@ -1,0 +1,22 @@
+// A model's answer stored in an object's field, then sent from there.
+import mcp "gmail" as mail
+
+class Draft {
+    pub body: String
+
+    pub init() {
+        self.body = ""
+    }
+}
+
+ai fn write(email: Untrusted<String>) -> String {
+    "Reply to this email:\n{email}"
+}
+
+pub fn reply(email: Untrusted<String>, to: String)
+    uses {llm, mail.send}
+{
+    let d = Draft()
+    d.body = write(email)
+    mail.send(to, d.body)
+}

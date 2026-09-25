@@ -174,6 +174,7 @@ impl<'a, 'p> FnGen<'a, 'p> {
             ));
         }
         match &f.body {
+            Body::Abstract => self.line(format!("throw new Error({});", names::string(&f.name))),
             Body::Block(b) => {
                 let dest = if matches!(f.ret, Ty::Unit) {
                     Dest::Discard
@@ -468,6 +469,13 @@ impl<'a, 'p> FnGen<'a, 'p> {
                 self.expr_into(*value, &Dest::Assign(name));
             }
             Stmt::Assign { local, path, value } => self.assign(*local, path, *value),
+            Stmt::SetField {
+                obj,
+                field,
+                path,
+                value,
+                ..
+            } => self.set_field(*obj, field, path, *value),
             Stmt::Expr(e) => self.expr_into(*e, &Dest::Discard),
             Stmt::Return(None) => self.line("return;"),
             Stmt::Return(Some(e)) => {
@@ -530,6 +538,37 @@ impl<'a, 'p> FnGen<'a, 'p> {
             self.expr_into(value, &Dest::Assign(name));
             return;
         }
+        let new = self.updated(&name, path, value);
+        self.line(format!("{name} = {new};"));
+    }
+
+    /// `obj.field.a = v` sets the field in place, to a copy with `a` replaced.
+    fn set_field(&mut self, obj: ExprId, field: &str, path: &[Place], value: ExprId) {
+        // The object is evaluated before the value, as written.
+        let o = if matches!(self.ex(obj).kind, ExprKind::Local(_)) {
+            self.expr(obj).at(ATOM)
+        } else {
+            let t = self.fresh();
+            self.expr_into(obj, &Dest::Assign(t.clone()));
+            t
+        };
+        let target = format!("{o}.{field}");
+        if path.is_empty() {
+            let v = if self.needs_stmts(value) {
+                self.hoist(value)
+            } else {
+                self.expr(value)
+            };
+            self.line(format!("{target} = {};", v.at(TERNARY)));
+            return;
+        }
+        let new = self.updated(&target, path, value);
+        self.line(format!("{target} = {new};"));
+    }
+
+    /// `root` with the element at `path` replaced by `value`, as an expression.
+    fn updated(&mut self, root: &str, path: &[Place], value: ExprId) -> String {
+        let name = root.to_owned();
         let value_hoists = self.needs_stmts(value);
         let mut keys = Vec::new();
         for place in path {
@@ -565,7 +604,7 @@ impl<'a, 'p> FnGen<'a, 'p> {
         for ((place, k), c) in places.iter().zip(&containers).rev() {
             new = self.replaced(c, place, k, &new);
         }
-        self.line(format!("{name} = {new};"));
+        new
     }
 
     fn access(&self, c: &str, place: &Place, key: &str) -> String {
@@ -640,9 +679,12 @@ impl<'a, 'p> FnGen<'a, 'p> {
             | ExprKind::ToolCall { args, .. }
             | ExprKind::Variant { args, .. }
             | ExprKind::List(args) => args.clone(),
-            ExprKind::Method { recv, args, .. } | ExprKind::DynMethod { recv, args, .. } => {
+            ExprKind::Method { recv, args, .. }
+            | ExprKind::DynMethod { recv, args, .. }
+            | ExprKind::MethodCall { recv, args, .. } => {
                 std::iter::once(*recv).chain(args.iter().copied()).collect()
             }
+            ExprKind::New { args, .. } => args.clone(),
             ExprKind::Unary { operand, .. } => vec![*operand],
             ExprKind::Binary { lhs, rhs, .. } => vec![*lhs, *rhs],
             ExprKind::Record { fields, .. } => fields.iter().map(|&(_, v)| v).collect(),
@@ -700,6 +742,40 @@ impl<'a, 'p> FnGen<'a, 'p> {
             ExprKind::Local(l) => Ts::atom(self.local(*l)),
             ExprKind::None => Ts::atom("null"),
             ExprKind::Template(parts) => self.template(parts),
+            ExprKind::New { class, args } => {
+                let ctor = self.scope.constructor(*class);
+                let init = crate::init_of(self.scope.program, *class);
+                let args = self.method_args(init, args);
+                self.awaited(format!("{ctor}({args})"))
+            }
+            ExprKind::MethodCall {
+                method,
+                recv,
+                args,
+                is_virtual,
+            } => {
+                let program = self.scope.program;
+                let Some(m) = program.func(*method) else {
+                    return Ts::atom("null");
+                };
+                let name = crate::method_name(program, m);
+                let mut ops = self.operands(&[*recv]);
+                let r = ops.pop().map_or_else(String::new, |p| p.at(ATOM));
+                let args = self.method_args(Some(*method), args);
+                if *is_virtual {
+                    self.awaited(format!("{r}.{name}({args})"))
+                } else {
+                    let class = m
+                        .method
+                        .map_or_else(|| "?".to_owned(), |mo| self.scope.adt(mo.class));
+                    let args = if args.is_empty() {
+                        r
+                    } else {
+                        format!("{r}, {args}")
+                    };
+                    self.awaited(format!("{class}.prototype.{name}.call({args})"))
+                }
+            }
             ExprKind::Call { func, args } => {
                 let name = self.scope.func(*func);
                 let trusted = self
@@ -1020,13 +1096,36 @@ impl<'a, 'p> FnGen<'a, 'p> {
     fn is_pure(&self, e: ExprId) -> bool {
         match &self.ex(e).kind {
             ExprKind::Lit(_) | ExprKind::Local(_) | ExprKind::None => true,
+            // An object's fields can change under it.
             ExprKind::Field {
                 base,
-                record: Some(_),
+                record: Some(d),
                 ..
-            } => self.is_pure(*base),
+            } => self.scope.program.class(*d).is_none() && self.is_pure(*base),
             _ => false,
         }
+    }
+
+    /// A method's arguments (without the receiver), vouching for those the checker
+    /// proved trusted.
+    fn method_args(&mut self, method: Option<DefId>, args: &[ExprId]) -> String {
+        let trusted = method
+            .and_then(|m| self.scope.program.func(m))
+            .map(|f| f.trusted.clone())
+            .unwrap_or_default();
+        self.operands(args)
+            .iter()
+            .enumerate()
+            .map(|(i, p)| {
+                // Parameter 0 is `self`.
+                if trusted.get(i + 1).copied().unwrap_or(false) {
+                    format!("_rt.trusted({})", p.at(TERNARY))
+                } else {
+                    p.at(TERNARY)
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 
     fn template(&mut self, parts: &[TemplatePart]) -> Ts {

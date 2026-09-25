@@ -1,0 +1,77 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/trust_class_field.ward
+---
+exit: Some(1)
+--- human ---
+[W0107] Error: untrusted data reaches the field `Draft.body`, which isn't declared `Untrusted`
+    ╭─[ tests/ui/trust_class_field.ward:20:5 ]
+    │
+ 20 │     d.body = write(email)
+    │     ───┬──   ──────┬─────  
+    │        ╰─────────────────── 2. stored in `Draft.body` here
+    │                    │       
+    │                    ╰─────── 1. output of `ai fn write`
+    │ 
+    │ Help: check the value with `validate(x, rule)?`, have a human `approve(x)` it, or declare the field `Untrusted<...>` if it's meant to hold untrusted data
+────╯
+error: could not check `tests/ui/trust_class_field.ward` due to 1 error
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0107",
+      "file": "tests/ui/trust_class_field.ward",
+      "help": "check the value with `validate(x, rule)?`, have a human `approve(x)` it, or declare the field `Untrusted<...>` if it's meant to hold untrusted data",
+      "labels": [
+        {
+          "message": "2. stored in `Draft.body` here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 11,
+              "line": 20,
+              "offset": 382
+            },
+            "start": {
+              "column": 5,
+              "line": 20,
+              "offset": 376
+            }
+          }
+        },
+        {
+          "message": "1. output of `ai fn write`",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 26,
+              "line": 20,
+              "offset": 397
+            },
+            "start": {
+              "column": 14,
+              "line": 20,
+              "offset": 385
+            }
+          }
+        }
+      ],
+      "message": "untrusted data reaches the field `Draft.body`, which isn't declared `Untrusted`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 11,
+          "line": 20,
+          "offset": 382
+        },
+        "start": {
+          "column": 5,
+          "line": 20,
+          "offset": 376
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/trust_class_field.ward"
+}

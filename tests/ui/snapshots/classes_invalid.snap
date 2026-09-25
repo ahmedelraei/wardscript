@@ -1,0 +1,852 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/classes_invalid.ward
+---
+exit: Some(1)
+--- human ---
+[W0140] Error: class `Sealed` isn't `open`, so it can't be extended
+    ╭─[ tests/ui/classes_invalid.ward:28:10 ]
+    │
+ 28 │ class A: Sealed {}
+    │          ───┬──  
+    │             ╰──── invalid supertype
+    │ 
+    │ Help: declare it `open class Sealed`
+────╯
+[W0140] Error: `B` can only extend a class or an interface
+    ╭─[ tests/ui/classes_invalid.ward:30:10 ]
+    │
+ 30 │ class B: Rec {}
+    │          ─┬─  
+    │           ╰─── invalid supertype
+    │ 
+    │ Help: records and enums can't be extended
+────╯
+[W0141] Error: `greet` overrides `Base.greet` without saying so
+    ╭─[ tests/ui/classes_invalid.ward:34:12 ]
+    │
+ 34 │     pub fn greet() -> String {
+    │            ──┬──  
+    │              ╰──── invalid override
+    │
+    ├─[ tests/ui/classes_invalid.ward:34:12 ]
+    │
+ 12 │     pub open fn greet() -> String {
+    │                 ──┬──  
+    │                   ╰──── the overridden method
+    │ 
+    │ Help: mark it `override fn greet`
+────╯
+[W0141] Error: `Base.fixed` isn't `open`, so it can't be overridden
+    ╭─[ tests/ui/classes_invalid.ward:38:21 ]
+    │
+ 38 │     pub override fn fixed() -> Int {
+    │                     ──┬──  
+    │                       ╰──── invalid override
+    │
+    ├─[ tests/ui/classes_invalid.ward:38:21 ]
+    │
+ 16 │     pub fn fixed() -> Int {
+    │            ──┬──  
+    │              ╰──── the overridden method
+    │ 
+    │ Help: declare it `open fn fixed` in `Base`
+────╯
+[W0141] Error: `greet` must have the same signature as `Base.greet`
+    ╭─[ tests/ui/classes_invalid.ward:44:21 ]
+    │
+ 44 │     pub override fn greet(loud: Bool) -> String {
+    │                     ──┬──  
+    │                       ╰──── invalid override
+    │
+    ├─[ tests/ui/classes_invalid.ward:44:21 ]
+    │
+ 12 │     pub open fn greet() -> String {
+    │                 ──┬──  
+    │                   ╰──── the overridden method
+    │ 
+    │ Help: an override takes the same parameters, returns and throws the same types, and has the same visibility (an interface's methods are `pub`)
+────╯
+[W0141] Error: `missing` overrides nothing
+    ╭─[ tests/ui/classes_invalid.ward:48:21 ]
+    │
+ 48 │     pub override fn missing() {}
+    │                     ───┬───  
+    │                        ╰───── no supertype has a method with this name
+    │ 
+    │ Help: remove `override`
+────╯
+[W0143] Error: `init` doesn't set the field `b`
+    ╭─[ tests/ui/classes_invalid.ward:56:5 ]
+    │
+ 56 │     init() {
+    │     ──┬─  
+    │       ╰─── `self.b` is never assigned here
+    │
+    ├─[ tests/ui/classes_invalid.ward:56:5 ]
+    │
+ 54 │     b: Int
+    │     ┬  
+    │     ╰── declared here
+    │ 
+    │ Help: assign it in `init`'s body, outside any `if` or loop: `self.b = ...`
+────╯
+[W0143] Error: class `F` has fields but no `init`
+    ╭─[ tests/ui/classes_invalid.ward:64:7 ]
+    │
+ 64 │ class F {
+    │       ┬  
+    │       ╰── add an `init` that sets its fields
+ 65 │     x: Int
+    │     ┬  
+    │     ╰── this field is never set
+    │ 
+    │ Help: e.g. `init(x: ...) { self.x = x }`
+────╯
+[W0144] Error: `init` of `G` must start by calling `super.init(...)`
+    ╭─[ tests/ui/classes_invalid.ward:70:9 ]
+    │
+ 70 │     pub init() {
+    │         ──┬─  
+    │           ╰─── the base class's fields aren't set up
+    │ 
+    │ Help: make `super.init(...)` the first statement
+────╯
+[W0144] Error: `super.init(...)` is only allowed as the first statement of `init`
+    ╭─[ tests/ui/classes_invalid.ward:72:9 ]
+    │
+ 72 │         super.init(n)
+    │         ──────┬──────  
+    │               ╰──────── not allowed here
+────╯
+[W0145] Error: `H` can't be generic
+    ╭─[ tests/ui/classes_invalid.ward:77:9 ]
+    │
+ 77 │ class H<T> {}
+    │         ┬  
+    │         ╰── generic parameters aren't supported on classes and interfaces
+    │ 
+    │ Help: use a generic record, or a class per element type
+────╯
+[W0145] Error: a method can't be called `init`
+    ╭─[ tests/ui/classes_invalid.ward:80:8 ]
+    │
+ 80 │     fn init() {}
+    │        ──┬─  
+    │          ╰─── not allowed here
+    │ 
+    │ Help: declare the constructor without `fn`: `init(...) { ... }`
+────╯
+[W0142] Error: field `secret` of `Base` is private
+    ╭─[ tests/ui/classes_invalid.ward:85:15 ]
+    │
+ 85 │     let s = b.secret
+    │               ───┬──  
+    │                  ╰──── only visible in the methods of its class and subclasses
+    │ 
+    │ Help: mark it `pub` in `Base`
+────╯
+[W0144] Error: `super` is only available in methods of a class that extends another
+    ╭─[ tests/ui/classes_invalid.ward:86:13 ]
+    │
+ 86 │     let t = super.greet()
+    │             ──┬──  
+    │               ╰──── no base class here
+────╯
+[W0106] Error: `Base` is a class, not a record type
+    ╭─[ tests/ui/classes_invalid.ward:88:13 ]
+    │
+ 88 │     let r = Base { name: "x" }
+    │             ──┬─  
+    │               ╰─── expected a record type
+    │ 
+    │ Help: create an object by calling it: `Base(...)`
+────╯
+[W0124] Error: class `Base` can't be used as a value
+    ╭─[ tests/ui/classes_invalid.ward:89:13 ]
+    │
+ 89 │     let v = Base
+    │             ──┬─  
+    │               ╰─── not a value
+    │ 
+    │ Help: create an object by calling it: `Base(...)`
+────╯
+error: could not check `tests/ui/classes_invalid.ward` due to 16 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0140",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "declare it `open class Sealed`",
+      "labels": [
+        {
+          "message": "invalid supertype",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 16,
+              "line": 28,
+              "offset": 402
+            },
+            "start": {
+              "column": 10,
+              "line": 28,
+              "offset": 396
+            }
+          }
+        }
+      ],
+      "message": "class `Sealed` isn't `open`, so it can't be extended",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 16,
+          "line": 28,
+          "offset": 402
+        },
+        "start": {
+          "column": 10,
+          "line": 28,
+          "offset": 396
+        }
+      }
+    },
+    {
+      "code": "W0140",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "records and enums can't be extended",
+      "labels": [
+        {
+          "message": "invalid supertype",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 13,
+              "line": 30,
+              "offset": 419
+            },
+            "start": {
+              "column": 10,
+              "line": 30,
+              "offset": 416
+            }
+          }
+        }
+      ],
+      "message": "`B` can only extend a class or an interface",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 13,
+          "line": 30,
+          "offset": 419
+        },
+        "start": {
+          "column": 10,
+          "line": 30,
+          "offset": 416
+        }
+      }
+    },
+    {
+      "code": "W0141",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "mark it `override fn greet`",
+      "labels": [
+        {
+          "message": "invalid override",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 34,
+              "offset": 554
+            },
+            "start": {
+              "column": 12,
+              "line": 34,
+              "offset": 549
+            }
+          }
+        },
+        {
+          "message": "the overridden method",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 22,
+              "line": 12,
+              "offset": 215
+            },
+            "start": {
+              "column": 17,
+              "line": 12,
+              "offset": 210
+            }
+          }
+        }
+      ],
+      "message": "`greet` overrides `Base.greet` without saying so",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 34,
+          "offset": 554
+        },
+        "start": {
+          "column": 12,
+          "line": 34,
+          "offset": 549
+        }
+      }
+    },
+    {
+      "code": "W0141",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "declare it `open fn fixed` in `Base`",
+      "labels": [
+        {
+          "message": "invalid override",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 26,
+              "line": 38,
+              "offset": 613
+            },
+            "start": {
+              "column": 21,
+              "line": 38,
+              "offset": 608
+            }
+          }
+        },
+        {
+          "message": "the overridden method",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 16,
+              "offset": 278
+            },
+            "start": {
+              "column": 12,
+              "line": 16,
+              "offset": 273
+            }
+          }
+        }
+      ],
+      "message": "`Base.fixed` isn't `open`, so it can't be overridden",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 26,
+          "line": 38,
+          "offset": 613
+        },
+        "start": {
+          "column": 21,
+          "line": 38,
+          "offset": 608
+        }
+      }
+    },
+    {
+      "code": "W0141",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "an override takes the same parameters, returns and throws the same types, and has the same visibility (an interface's methods are `pub`)",
+      "labels": [
+        {
+          "message": "invalid override",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 26,
+              "line": 44,
+              "offset": 685
+            },
+            "start": {
+              "column": 21,
+              "line": 44,
+              "offset": 680
+            }
+          }
+        },
+        {
+          "message": "the overridden method",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 22,
+              "line": 12,
+              "offset": 215
+            },
+            "start": {
+              "column": 17,
+              "line": 12,
+              "offset": 210
+            }
+          }
+        }
+      ],
+      "message": "`greet` must have the same signature as `Base.greet`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 26,
+          "line": 44,
+          "offset": 685
+        },
+        "start": {
+          "column": 21,
+          "line": 44,
+          "offset": 680
+        }
+      }
+    },
+    {
+      "code": "W0141",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "remove `override`",
+      "labels": [
+        {
+          "message": "no supertype has a method with this name",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 28,
+              "line": 48,
+              "offset": 756
+            },
+            "start": {
+              "column": 21,
+              "line": 48,
+              "offset": 749
+            }
+          }
+        }
+      ],
+      "message": "`missing` overrides nothing",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 28,
+          "line": 48,
+          "offset": 756
+        },
+        "start": {
+          "column": 21,
+          "line": 48,
+          "offset": 749
+        }
+      }
+    },
+    {
+      "code": "W0143",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "assign it in `init`'s body, outside any `if` or loop: `self.b = ...`",
+      "labels": [
+        {
+          "message": "`self.b` is never assigned here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 9,
+              "line": 56,
+              "offset": 874
+            },
+            "start": {
+              "column": 5,
+              "line": 56,
+              "offset": 870
+            }
+          }
+        },
+        {
+          "message": "declared here",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 6,
+              "line": 54,
+              "offset": 859
+            },
+            "start": {
+              "column": 5,
+              "line": 54,
+              "offset": 858
+            }
+          }
+        }
+      ],
+      "message": "`init` doesn't set the field `b`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 9,
+          "line": 56,
+          "offset": 874
+        },
+        "start": {
+          "column": 5,
+          "line": 56,
+          "offset": 870
+        }
+      }
+    },
+    {
+      "code": "W0143",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "e.g. `init(x: ...) { self.x = x }`",
+      "labels": [
+        {
+          "message": "add an `init` that sets its fields",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 8,
+              "line": 64,
+              "offset": 965
+            },
+            "start": {
+              "column": 7,
+              "line": 64,
+              "offset": 964
+            }
+          }
+        },
+        {
+          "message": "this field is never set",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 6,
+              "line": 65,
+              "offset": 973
+            },
+            "start": {
+              "column": 5,
+              "line": 65,
+              "offset": 972
+            }
+          }
+        }
+      ],
+      "message": "class `F` has fields but no `init`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 8,
+          "line": 64,
+          "offset": 965
+        },
+        "start": {
+          "column": 7,
+          "line": 64,
+          "offset": 964
+        }
+      }
+    },
+    {
+      "code": "W0144",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "make `super.init(...)` the first statement",
+      "labels": [
+        {
+          "message": "the base class's fields aren't set up",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 13,
+              "line": 70,
+              "offset": 1081
+            },
+            "start": {
+              "column": 9,
+              "line": 70,
+              "offset": 1077
+            }
+          }
+        }
+      ],
+      "message": "`init` of `G` must start by calling `super.init(...)`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 13,
+          "line": 70,
+          "offset": 1081
+        },
+        "start": {
+          "column": 9,
+          "line": 70,
+          "offset": 1077
+        }
+      }
+    },
+    {
+      "code": "W0144",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "not allowed here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 22,
+              "line": 72,
+              "offset": 1127
+            },
+            "start": {
+              "column": 9,
+              "line": 72,
+              "offset": 1114
+            }
+          }
+        }
+      ],
+      "message": "`super.init(...)` is only allowed as the first statement of `init`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 22,
+          "line": 72,
+          "offset": 1127
+        },
+        "start": {
+          "column": 9,
+          "line": 72,
+          "offset": 1114
+        }
+      }
+    },
+    {
+      "code": "W0145",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "use a generic record, or a class per element type",
+      "labels": [
+        {
+          "message": "generic parameters aren't supported on classes and interfaces",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 10,
+              "line": 77,
+              "offset": 1197
+            },
+            "start": {
+              "column": 9,
+              "line": 77,
+              "offset": 1196
+            }
+          }
+        }
+      ],
+      "message": "`H` can't be generic",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 10,
+          "line": 77,
+          "offset": 1197
+        },
+        "start": {
+          "column": 9,
+          "line": 77,
+          "offset": 1196
+        }
+      }
+    },
+    {
+      "code": "W0145",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "declare the constructor without `fn`: `init(...) { ... }`",
+      "labels": [
+        {
+          "message": "not allowed here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 12,
+              "line": 80,
+              "offset": 1224
+            },
+            "start": {
+              "column": 8,
+              "line": 80,
+              "offset": 1220
+            }
+          }
+        }
+      ],
+      "message": "a method can't be called `init`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 12,
+          "line": 80,
+          "offset": 1224
+        },
+        "start": {
+          "column": 8,
+          "line": 80,
+          "offset": 1220
+        }
+      }
+    },
+    {
+      "code": "W0142",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "mark it `pub` in `Base`",
+      "labels": [
+        {
+          "message": "only visible in the methods of its class and subclasses",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 21,
+              "line": 85,
+              "offset": 1350
+            },
+            "start": {
+              "column": 15,
+              "line": 85,
+              "offset": 1344
+            }
+          }
+        }
+      ],
+      "message": "field `secret` of `Base` is private",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 21,
+          "line": 85,
+          "offset": 1350
+        },
+        "start": {
+          "column": 15,
+          "line": 85,
+          "offset": 1344
+        }
+      }
+    },
+    {
+      "code": "W0144",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "no base class here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 18,
+              "line": 86,
+              "offset": 1368
+            },
+            "start": {
+              "column": 13,
+              "line": 86,
+              "offset": 1363
+            }
+          }
+        }
+      ],
+      "message": "`super` is only available in methods of a class that extends another",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 18,
+          "line": 86,
+          "offset": 1368
+        },
+        "start": {
+          "column": 13,
+          "line": 86,
+          "offset": 1363
+        }
+      }
+    },
+    {
+      "code": "W0106",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "create an object by calling it: `Base(...)`",
+      "labels": [
+        {
+          "message": "expected a record type",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 88,
+              "offset": 1456
+            },
+            "start": {
+              "column": 13,
+              "line": 88,
+              "offset": 1452
+            }
+          }
+        }
+      ],
+      "message": "`Base` is a class, not a record type",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 88,
+          "offset": 1456
+        },
+        "start": {
+          "column": 13,
+          "line": 88,
+          "offset": 1452
+        }
+      }
+    },
+    {
+      "code": "W0124",
+      "file": "tests/ui/classes_invalid.ward",
+      "help": "create an object by calling it: `Base(...)`",
+      "labels": [
+        {
+          "message": "not a value",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 17,
+              "line": 89,
+              "offset": 1487
+            },
+            "start": {
+              "column": 13,
+              "line": 89,
+              "offset": 1483
+            }
+          }
+        }
+      ],
+      "message": "class `Base` can't be used as a value",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 17,
+          "line": 89,
+          "offset": 1487
+        },
+        "start": {
+          "column": 13,
+          "line": 89,
+          "offset": 1483
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/classes_invalid.ward"
+}

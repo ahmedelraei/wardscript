@@ -1,0 +1,60 @@
+// Mistakes with interfaces and abstract classes.
+
+interface Named {
+    fn name() -> String
+}
+
+abstract class Shape {
+    pub abstract fn area() -> Float
+}
+
+open class Base {}
+
+// W0140: an interface extends a class; the base class isn't first.
+interface Bad: Base {}
+
+class Late: Named, Base {
+    pub override fn name() -> String {
+        "late"
+    }
+}
+
+// W0145: fields in an interface; abstract methods in a plain class; an abstract `ai fn`.
+interface WithField {
+    x: Int
+}
+
+class Plain {
+    pub abstract fn run()
+}
+
+abstract class Asker {
+    pub abstract ai fn ask() -> String
+}
+
+// W0146: abstract methods left unimplemented.
+class Circle: Shape, Named {}
+
+// W0141: an implementation that isn't `pub`, or has another signature.
+class Wrong: Shape, Named {
+    override fn name() -> String {
+        "w"
+    }
+
+    pub override fn area(scale: Float) -> Float {
+        scale
+    }
+}
+
+// W0144: `super` on an abstract method.
+class Square: Shape {
+    pub override fn area() -> Float {
+        super.area()
+    }
+}
+
+// W0147: interfaces and abstract classes can't be created.
+fn make() {
+    let s = Shape()
+    let n = Named()
+}

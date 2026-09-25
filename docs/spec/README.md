@@ -13,6 +13,7 @@ Status: **M10 (tests)**.
 | [Diagnostics](diagnostics.md) | syntax (M1), names and types (M2), trust (M4), effects (M5), tools (M7) |
 | [Names, modules and imports](names.md) | implemented (M2) |
 | [Types](types.md) | implemented (M2), refinements and checks (M9) |
+| [Classes](classes.md) (objects, `init`, inheritance, field labels) | implemented |
 | [Trust labels](trust.md) (`Trusted` / `Untrusted`, sources, sinks, `validate` / `approve` / `declassify`) | implemented (M4) |
 | [Effects, budgets, Rule of Two](effects.md) | implemented (M5) |
 | [Python backend and runtime](runtime.md) | implemented (M3), budgets (M5), audit trace, providers, sink checks, async and streaming (M6), model policies (M8) |
@@ -30,6 +31,7 @@ it is assigned; retired codes are not reused.
 | W00xx | syntax ([list](diagnostics.md)) |
 | W010x | names and modules, and W0107: untrusted data reaches a sensitive action |
 | W011x-W012x | types |
+| W014x | classes |
 | W02xx | effects, budgets, Rule of Two |
 | W03xx | tools |
 

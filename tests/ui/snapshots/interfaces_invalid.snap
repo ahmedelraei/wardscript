@@ -1,0 +1,561 @@
+---
+source: crates/ward_cli/tests/ui.rs
+description: tests/ui/interfaces_invalid.ward
+---
+exit: Some(1)
+--- human ---
+[W0140] Error: interface `Bad` can only extend interfaces
+    ╭─[ tests/ui/interfaces_invalid.ward:14:16 ]
+    │
+ 14 │ interface Bad: Base {}
+    │                ──┬─  
+    │                  ╰─── invalid supertype
+    │ 
+    │ Help: an interface can't inherit from a class
+────╯
+[W0140] Error: `Base` must come first, before the interfaces
+    ╭─[ tests/ui/interfaces_invalid.ward:16:20 ]
+    │
+ 16 │ class Late: Named, Base {
+    │                    ──┬─  
+    │                      ╰─── invalid supertype
+    │ 
+    │ Help: a class has one base class, written first: `class A: Base, Named`
+────╯
+[W0145] Error: interface `WithField` can't have fields
+    ╭─[ tests/ui/interfaces_invalid.ward:24:5 ]
+    │
+ 24 │     x: Int
+    │     ┬  
+    │     ╰── an interface only declares methods
+    │ 
+    │ Help: declare the field in the classes that implement it
+────╯
+[W0145] Error: only an abstract class can have abstract methods
+    ╭─[ tests/ui/interfaces_invalid.ward:28:21 ]
+    │
+ 28 │     pub abstract fn run()
+    │                     ─┬─  
+    │                      ╰─── not allowed here
+    │ 
+    │ Help: declare the class `abstract class`, or give the method a body
+────╯
+[W0145] Error: an abstract method can't be an `ai fn`
+    ╭─[ tests/ui/interfaces_invalid.ward:32:24 ]
+    │
+ 32 │     pub abstract ai fn ask() -> String
+    │                        ─┬─  
+    │                         ╰─── not allowed here
+    │ 
+    │ Help: declare it `abstract fn`; an implementation may be an `ai fn`
+────╯
+[W0146] Error: class `Circle` doesn't implement `Shape.area`, `Named.name`
+    ╭─[ tests/ui/interfaces_invalid.ward:36:7 ]
+    │
+ 36 │ class Circle: Shape, Named {}
+    │       ───┬──  
+    │          ╰──── missing implementations
+    │ 
+    │ Help: add `pub override fn area(...)`, or declare the class `abstract class`
+────╯
+[W0141] Error: `name` must have the same signature as `Named.name`
+    ╭─[ tests/ui/interfaces_invalid.ward:40:17 ]
+    │
+ 40 │     override fn name() -> String {
+    │                 ──┬─  
+    │                   ╰─── invalid override
+    │
+    ├─[ tests/ui/interfaces_invalid.ward:40:17 ]
+    │
+  4 │     fn name() -> String
+    │        ──┬─  
+    │          ╰─── the overridden method
+    │ 
+    │ Help: an override takes the same parameters, returns and throws the same types, and has the same visibility (an interface's methods are `pub`)
+────╯
+[W0141] Error: `area` must have the same signature as `Shape.area`
+    ╭─[ tests/ui/interfaces_invalid.ward:44:21 ]
+    │
+ 44 │     pub override fn area(scale: Float) -> Float {
+    │                     ──┬─  
+    │                       ╰─── invalid override
+    │
+    ├─[ tests/ui/interfaces_invalid.ward:44:21 ]
+    │
+  8 │     pub abstract fn area() -> Float
+    │                     ──┬─  
+    │                       ╰─── the overridden method
+    │ 
+    │ Help: an override takes the same parameters, returns and throws the same types, and has the same visibility (an interface's methods are `pub`)
+────╯
+[W0144] Error: the base class's `area` is abstract, so it can't be called
+    ╭─[ tests/ui/interfaces_invalid.ward:52:9 ]
+    │
+ 52 │         super.area()
+    │         ──────┬─────  
+    │               ╰─────── no body to run
+────╯
+[W0147] Error: `Shape` is an abstract class, so it can't be created
+    ╭─[ tests/ui/interfaces_invalid.ward:58:13 ]
+    │
+ 58 │     let s = Shape()
+    │             ───┬───  
+    │                ╰───── no object can be only this
+    │ 
+    │ Help: create an object of a class that implements `Shape`
+────╯
+[W0147] Error: `Named` is an interface, so it can't be created
+    ╭─[ tests/ui/interfaces_invalid.ward:59:13 ]
+    │
+ 59 │     let n = Named()
+    │             ───┬───  
+    │                ╰───── no object can be only this
+    │ 
+    │ Help: create an object of a class that implements `Named`
+────╯
+error: could not check `tests/ui/interfaces_invalid.ward` due to 11 errors
+--- json ---
+{
+  "diagnostics": [
+    {
+      "code": "W0140",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": "an interface can't inherit from a class",
+      "labels": [
+        {
+          "message": "invalid supertype",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 20,
+              "line": 14,
+              "offset": 265
+            },
+            "start": {
+              "column": 16,
+              "line": 14,
+              "offset": 261
+            }
+          }
+        }
+      ],
+      "message": "interface `Bad` can only extend interfaces",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 20,
+          "line": 14,
+          "offset": 265
+        },
+        "start": {
+          "column": 16,
+          "line": 14,
+          "offset": 261
+        }
+      }
+    },
+    {
+      "code": "W0140",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": "a class has one base class, written first: `class A: Base, Named`",
+      "labels": [
+        {
+          "message": "invalid supertype",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 24,
+              "line": 16,
+              "offset": 293
+            },
+            "start": {
+              "column": 20,
+              "line": 16,
+              "offset": 289
+            }
+          }
+        }
+      ],
+      "message": "`Base` must come first, before the interfaces",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 24,
+          "line": 16,
+          "offset": 293
+        },
+        "start": {
+          "column": 20,
+          "line": 16,
+          "offset": 289
+        }
+      }
+    },
+    {
+      "code": "W0145",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": "declare the field in the classes that implement it",
+      "labels": [
+        {
+          "message": "an interface only declares methods",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 6,
+              "line": 24,
+              "offset": 476
+            },
+            "start": {
+              "column": 5,
+              "line": 24,
+              "offset": 475
+            }
+          }
+        }
+      ],
+      "message": "interface `WithField` can't have fields",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 24,
+          "offset": 476
+        },
+        "start": {
+          "column": 5,
+          "line": 24,
+          "offset": 475
+        }
+      }
+    },
+    {
+      "code": "W0145",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": "declare the class `abstract class`, or give the method a body",
+      "labels": [
+        {
+          "message": "not allowed here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 24,
+              "line": 28,
+              "offset": 522
+            },
+            "start": {
+              "column": 21,
+              "line": 28,
+              "offset": 519
+            }
+          }
+        }
+      ],
+      "message": "only an abstract class can have abstract methods",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 24,
+          "line": 28,
+          "offset": 522
+        },
+        "start": {
+          "column": 21,
+          "line": 28,
+          "offset": 519
+        }
+      }
+    },
+    {
+      "code": "W0145",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": "declare it `abstract fn`; an implementation may be an `ai fn`",
+      "labels": [
+        {
+          "message": "not allowed here",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 27,
+              "line": 32,
+              "offset": 577
+            },
+            "start": {
+              "column": 24,
+              "line": 32,
+              "offset": 574
+            }
+          }
+        }
+      ],
+      "message": "an abstract method can't be an `ai fn`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 27,
+          "line": 32,
+          "offset": 577
+        },
+        "start": {
+          "column": 24,
+          "line": 32,
+          "offset": 574
+        }
+      }
+    },
+    {
+      "code": "W0146",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": "add `pub override fn area(...)`, or declare the class `abstract class`",
+      "labels": [
+        {
+          "message": "missing implementations",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 13,
+              "line": 36,
+              "offset": 652
+            },
+            "start": {
+              "column": 7,
+              "line": 36,
+              "offset": 646
+            }
+          }
+        }
+      ],
+      "message": "class `Circle` doesn't implement `Shape.area`, `Named.name`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 13,
+          "line": 36,
+          "offset": 652
+        },
+        "start": {
+          "column": 7,
+          "line": 36,
+          "offset": 646
+        }
+      }
+    },
+    {
+      "code": "W0141",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": "an override takes the same parameters, returns and throws the same types, and has the same visibility (an interface's methods are `pub`)",
+      "labels": [
+        {
+          "message": "invalid override",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 21,
+              "line": 40,
+              "offset": 791
+            },
+            "start": {
+              "column": 17,
+              "line": 40,
+              "offset": 787
+            }
+          }
+        },
+        {
+          "message": "the overridden method",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 12,
+              "line": 4,
+              "offset": 80
+            },
+            "start": {
+              "column": 8,
+              "line": 4,
+              "offset": 76
+            }
+          }
+        }
+      ],
+      "message": "`name` must have the same signature as `Named.name`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 21,
+          "line": 40,
+          "offset": 791
+        },
+        "start": {
+          "column": 17,
+          "line": 40,
+          "offset": 787
+        }
+      }
+    },
+    {
+      "code": "W0141",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": "an override takes the same parameters, returns and throws the same types, and has the same visibility (an interface's methods are `pub`)",
+      "labels": [
+        {
+          "message": "invalid override",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 25,
+              "line": 44,
+              "offset": 849
+            },
+            "start": {
+              "column": 21,
+              "line": 44,
+              "offset": 845
+            }
+          }
+        },
+        {
+          "message": "the overridden method",
+          "primary": false,
+          "span": {
+            "end": {
+              "column": 25,
+              "line": 8,
+              "offset": 143
+            },
+            "start": {
+              "column": 21,
+              "line": 8,
+              "offset": 139
+            }
+          }
+        }
+      ],
+      "message": "`area` must have the same signature as `Shape.area`",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 25,
+          "line": 44,
+          "offset": 849
+        },
+        "start": {
+          "column": 21,
+          "line": 44,
+          "offset": 845
+        }
+      }
+    },
+    {
+      "code": "W0144",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": null,
+      "labels": [
+        {
+          "message": "no body to run",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 21,
+              "line": 52,
+              "offset": 1019
+            },
+            "start": {
+              "column": 9,
+              "line": 52,
+              "offset": 1007
+            }
+          }
+        }
+      ],
+      "message": "the base class's `area` is abstract, so it can't be called",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 21,
+          "line": 52,
+          "offset": 1019
+        },
+        "start": {
+          "column": 9,
+          "line": 52,
+          "offset": 1007
+        }
+      }
+    },
+    {
+      "code": "W0147",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": "create an object of a class that implements `Shape`",
+      "labels": [
+        {
+          "message": "no object can be only this",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 20,
+              "line": 58,
+              "offset": 1120
+            },
+            "start": {
+              "column": 13,
+              "line": 58,
+              "offset": 1113
+            }
+          }
+        }
+      ],
+      "message": "`Shape` is an abstract class, so it can't be created",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 20,
+          "line": 58,
+          "offset": 1120
+        },
+        "start": {
+          "column": 13,
+          "line": 58,
+          "offset": 1113
+        }
+      }
+    },
+    {
+      "code": "W0147",
+      "file": "tests/ui/interfaces_invalid.ward",
+      "help": "create an object of a class that implements `Named`",
+      "labels": [
+        {
+          "message": "no object can be only this",
+          "primary": true,
+          "span": {
+            "end": {
+              "column": 20,
+              "line": 59,
+              "offset": 1140
+            },
+            "start": {
+              "column": 13,
+              "line": 59,
+              "offset": 1133
+            }
+          }
+        }
+      ],
+      "message": "`Named` is an interface, so it can't be created",
+      "severity": "error",
+      "span": {
+        "end": {
+          "column": 20,
+          "line": 59,
+          "offset": 1140
+        },
+        "start": {
+          "column": 13,
+          "line": 59,
+          "offset": 1133
+        }
+      }
+    }
+  ],
+  "file": "tests/ui/interfaces_invalid.ward"
+}

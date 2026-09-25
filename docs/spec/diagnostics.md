@@ -77,6 +77,19 @@ without a span in this file, such as W0107 path steps in another module) (progra
 | W0133 | a refinement where it isn't allowed: only record fields, variant payloads, type aliases and `ai fn` return types |
 | W0134 | `check` clause on a function that isn't an `ai fn` |
 
+## W014x: classes
+
+| Code | Meaning |
+|---|---|
+| W0140 | invalid supertype: not a class or interface, a class that isn't `open` or abstract, a base class not written first, an interface extending a class, or a cycle |
+| W0141 | invalid override: missing `override`, nothing to override, base method not `open`, or a different signature or visibility |
+| W0142 | private field, method or `init` used outside the methods of its class and subclasses |
+| W0143 | a field that `init` doesn't set, or a class with fields but no `init` |
+| W0144 | `super` misused: outside a subclass's method, called directly, or `super.init(...)` missing from the start of a subclass's `init` or used elsewhere |
+| W0145 | invalid class: generic, a method named `init`, `init` with a return type or in an interface, `init` called on an object, fields in an interface, an abstract method outside an abstract class, with a body, or declared `ai fn` |
+| W0146 | a class that can be created doesn't implement every abstract method it inherits |
+| W0147 | creating an object of an abstract class or an interface |
+
 ## W02xx: effects, budgets, Rule of Two
 
 See [effects](effects.md).

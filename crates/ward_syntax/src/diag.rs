@@ -69,6 +69,16 @@ pub mod codes {
     pub const MISPLACED_REFINEMENT: Code = Code("W0133");
     pub const CHECK_NOT_AI: Code = Code("W0134");
 
+    // W014x: classes
+    pub const INVALID_BASE_CLASS: Code = Code("W0140");
+    pub const INVALID_OVERRIDE: Code = Code("W0141");
+    pub const PRIVATE_MEMBER: Code = Code("W0142");
+    pub const UNINITIALIZED_FIELD: Code = Code("W0143");
+    pub const INVALID_SUPER: Code = Code("W0144");
+    pub const INVALID_CLASS: Code = Code("W0145");
+    pub const MISSING_IMPLEMENTATION: Code = Code("W0146");
+    pub const ABSTRACT_INSTANCE: Code = Code("W0147");
+
     // W02xx: effects, budgets, Rule of Two
     pub const MISSING_EFFECT: Code = Code("W0200");
     pub const UNUSED_EFFECT: Code = Code("W0201");
@@ -140,6 +150,14 @@ pub mod codes {
         INVALID_REFINEMENT,
         MISPLACED_REFINEMENT,
         CHECK_NOT_AI,
+        INVALID_BASE_CLASS,
+        INVALID_OVERRIDE,
+        PRIVATE_MEMBER,
+        UNINITIALIZED_FIELD,
+        INVALID_SUPER,
+        INVALID_CLASS,
+        MISSING_IMPLEMENTATION,
+        ABSTRACT_INSTANCE,
         MISSING_EFFECT,
         UNUSED_EFFECT,
         UNKNOWN_EFFECT,

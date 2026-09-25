@@ -8,6 +8,7 @@ use ward_syntax::ast::*;
 use ward_syntax::diag::codes;
 use ward_syntax::{Diagnostic, Span};
 
+use crate::classes;
 use crate::exhaust::{self, Ctor, Ctors, DPat, Witness};
 use crate::methods;
 use crate::ty::{Ty, Unifier};
@@ -38,7 +39,19 @@ pub(crate) fn check_fn(c: &mut Checker, def: DefId, f: &FnDecl, out: &mut Module
         handlers: Vec::new(),
         propagating: None,
         thrown: ArenaMap::default(),
+        class: None,
+        super_init: None,
+        methods: ArenaMap::default(),
     };
+    cx.class = f.method.map(|m| DefId {
+        module: def.module,
+        item: m.class,
+    });
+    if let (Some(m), FnBody::Block(b)) = (f.method, &f.body) {
+        if m.is_init {
+            cx.super_init = crate::classes::super_init_call(cx.ast, mres, b);
+        }
+    }
     for (&local, ty) in mres
         .params
         .get(&def.item)
@@ -58,6 +71,7 @@ pub(crate) fn check_fn(c: &mut Checker, def: DefId, f: &FnDecl, out: &mut Module
         FnBody::Ai { prompt } => {
             cx.check(*prompt, &Ty::String);
         }
+        FnBody::Abstract => {}
     }
     // `check {...}`: conditions on the answer, called `it`, next to the parameters.
     if let (Some(checks), Some(&it)) = (&f.checks, mres.check_its.get(&def.item)) {
@@ -91,6 +105,9 @@ pub(crate) fn check_test(c: &mut Checker, m: ModuleId, t: &TestDecl, out: &mut M
         handlers: Vec::new(),
         propagating: None,
         thrown: ArenaMap::default(),
+        class: None,
+        super_init: None,
+        methods: ArenaMap::default(),
     };
     cx.block(&t.body, Some(&Ty::Unit));
     cx.finish(out);
@@ -127,6 +144,9 @@ pub(crate) fn check_refinement(
         handlers: Vec::new(),
         propagating: None,
         thrown: ArenaMap::default(),
+        class: None,
+        super_init: None,
+        methods: ArenaMap::default(),
     };
     cx.locals.insert(it, base);
     cx.check(cond, &Ty::Bool);
@@ -155,6 +175,11 @@ struct Cx<'a, 'p> {
     propagating: Option<ExprId>,
     /// Error type of each call marked with `?`.
     thrown: ArenaMap<ExprId, Ty>,
+    /// The class whose method is being checked.
+    class: Option<DefId>,
+    /// The `super.init(...)` call that starts this `init`, the only place one is allowed.
+    super_init: Option<ExprId>,
+    methods: ArenaMap<ExprId, crate::MethodCall>,
 }
 
 struct Handler {
@@ -220,6 +245,9 @@ impl Cx<'_, '_> {
         for (e, t) in self.thrown.iter() {
             out.throws.insert(e, self.u.resolve(t).without_vars());
         }
+        for (e, call) in self.methods.iter() {
+            out.methods.insert(e, call.clone());
+        }
     }
 
     fn show(&self, t: &Ty) -> String {
@@ -227,6 +255,14 @@ impl Cx<'_, '_> {
     }
 
     fn coerce(&mut self, found: &Ty, expected: &Ty, span: Span) -> bool {
+        // An object of a subclass is accepted where its base class is expected.
+        if let (Ty::Adt(sub, _), Ty::Adt(sup, _)) =
+            (self.u.shallow(found), self.u.shallow(expected))
+        {
+            if sub != sup && classes::is_subclass(&self.c.classes, sub, sup) {
+                return true;
+            }
+        }
         if self.u.unify(found, expected) {
             return true;
         }
@@ -421,6 +457,16 @@ impl Cx<'_, '_> {
                 format!("tool function `{text}` can't be used as a value"),
                 format!("call it: `{text}(...)`"),
             ),
+            ValueRes::Class(_) => self.not_a_value(
+                span,
+                format!("class `{text}` can't be used as a value"),
+                format!("create an object by calling it: `{text}(...)`"),
+            ),
+            ValueRes::Super(_) => self.not_a_value(
+                span,
+                "`super` can't be used as a value".to_owned(),
+                "call a method of the base class: `super.name(...)`".to_owned(),
+            ),
         }
     }
 
@@ -467,8 +513,28 @@ impl Cx<'_, '_> {
     fn is_namespace(&self, base: ExprId) -> bool {
         matches!(
             self.mres.values.get(base),
-            Some(ValueRes::Enum(_) | ValueRes::Module(_) | ValueRes::Tool(_))
+            Some(ValueRes::Enum(_) | ValueRes::Module(_) | ValueRes::Tool(_) | ValueRes::Class(_))
         )
+    }
+
+    /// Private members are visible in the methods of their class and its subclasses.
+    fn check_access(&mut self, owner: DefId, is_pub: bool, name: &Ident, what: &str) {
+        let inside = self
+            .class
+            .is_some_and(|c| classes::is_subclass(&self.c.classes, c, owner));
+        if is_pub || inside {
+            return;
+        }
+        let class = classes::class_name(self.c.program, owner).to_owned();
+        self.err(
+            Diagnostic::error(
+                codes::PRIVATE_MEMBER,
+                format!("{what} `{}` of `{class}` is private", name.name),
+                name.span,
+            )
+            .with_label("only visible in the methods of its class and subclasses")
+            .with_help(format!("mark it `pub` in `{class}`")),
+        );
     }
 
     fn field(&mut self, base: ExprId, name: &Ident) -> Ty {
@@ -479,6 +545,31 @@ impl Cx<'_, '_> {
         let base_span = self.span(base);
         let r = self.u.resolve(&bt);
         match &r {
+            Ty::Adt(d, _) if self.c.classes.contains_key(d) => {
+                if let Some((owner, t, is_pub)) =
+                    classes::find_field(&self.c.classes, *d, &name.name)
+                {
+                    self.check_access(owner, is_pub, name, "field");
+                    return t;
+                }
+                if classes::find_method(&self.c.classes, *d, &name.name).is_some() {
+                    let shown = self.show(&r);
+                    self.err(
+                        Diagnostic::error(
+                            codes::NOT_A_VALUE,
+                            format!("`{}` is a method of `{shown}`, not a field", name.name),
+                            name.span,
+                        )
+                        .with_label("not a value")
+                        .with_help(format!("call it: `.{}(...)`", name.name)),
+                    );
+                    return Ty::Error;
+                }
+                let names = classes::member_names(&self.c.classes, *d);
+                let suggestion = did_you_mean(&name.name, names).map(str::to_owned);
+                self.no_field(&r, name, suggestion);
+                Ty::Error
+            }
             Ty::Adt(d, args) => {
                 if let Some(fields) = self.c.records.get(d) {
                     if let Some((_, t)) = fields.iter().find(|(n, _)| *n == name.name) {
@@ -562,7 +653,7 @@ impl Cx<'_, '_> {
         let callee_text = self.text(callee_span).to_owned();
         let Some(&res) = self.mres.values.get(callee) else {
             if let ExprKind::Field { base, name } = &ast.exprs[callee].kind {
-                return self.method_call(*base, name, args, span);
+                return self.method_call(e, *base, name, args, span);
             }
             let t = self.infer(callee);
             self.infer_all(args);
@@ -672,7 +763,118 @@ impl Cx<'_, '_> {
                 );
                 Ty::Error
             }
+            ValueRes::Class(d) => self.construct(e, d, args, &callee_text, span),
+            ValueRes::Super(_) => {
+                self.infer_all(args);
+                self.err(
+                    Diagnostic::error(codes::INVALID_SUPER, "`super` can't be called", callee_span)
+                        .with_label("not a function")
+                        .with_help("call the base class's `init` with `super.init(...)`"),
+                );
+                Ty::Error
+            }
         }
+    }
+
+    /// `Counter(...)`: runs the nearest `init` and returns the new object.
+    fn construct(
+        &mut self,
+        e: ExprId,
+        class: DefId,
+        args: &[ExprId],
+        name: &str,
+        span: Span,
+    ) -> Ty {
+        let kind = self.c.classes.get(&class).map(|c| c.kind);
+        if let Some(kind @ (ClassKind::Abstract | ClassKind::Interface)) = kind {
+            self.infer_all(args);
+            let what = if kind == ClassKind::Interface {
+                "an interface"
+            } else {
+                "an abstract class"
+            };
+            self.err(
+                Diagnostic::error(
+                    codes::ABSTRACT_INSTANCE,
+                    format!("`{name}` is {what}, so it can't be created"),
+                    span,
+                )
+                .with_label("no object can be only this")
+                .with_help(format!(
+                    "create an object of a class that implements `{name}`"
+                )),
+            );
+            return Ty::Adt(class, Vec::new());
+        }
+        let Some(init) = classes::init_of(&self.c.classes, class) else {
+            self.args(args, &[], &format!("class `{name}`"), span);
+            return Ty::Adt(class, Vec::new());
+        };
+        if let Item::Fn(f) = self.c.program.item(init) {
+            if let Some(owner) = f.method.map(|m| DefId {
+                module: init.module,
+                item: m.class,
+            }) {
+                if !f.is_pub
+                    && !self
+                        .class
+                        .is_some_and(|c| classes::is_subclass(&self.c.classes, c, owner))
+                {
+                    let class_name = classes::class_name(self.c.program, owner).to_owned();
+                    self.err(
+                        Diagnostic::error(
+                            codes::PRIVATE_MEMBER,
+                            format!("`init` of `{class_name}` is private"),
+                            span,
+                        )
+                        .with_label("can't create this object here")
+                        .with_help(format!("mark it `pub init(...)` in `{class_name}`")),
+                    );
+                }
+            }
+        }
+        self.method_sig_call(e, init, args, &format!("class `{name}`"), name, false);
+        Ty::Adt(class, Vec::new())
+    }
+
+    /// Checks a call to the method `def` (arguments exclude `self`) and records it.
+    fn method_sig_call(
+        &mut self,
+        e: ExprId,
+        def: DefId,
+        args: &[ExprId],
+        what: &str,
+        callee_text: &str,
+        is_virtual: bool,
+    ) -> Ty {
+        let Some(sig) = self.c.fns.get(&def) else {
+            self.infer_all(args);
+            return Ty::Error;
+        };
+        let params = sig.params.get(1..).unwrap_or(&[]).to_vec();
+        let (ret, throws) = (sig.ret.clone(), sig.throws.clone());
+        let span = self.span(e);
+        self.args(args, &params, what, span);
+        if let Some(t) = throws {
+            self.call_throws(e, t, callee_text, span);
+        }
+        // An abstract method has no body to run.
+        let mut dispatch = Vec::new();
+        if !classes::is_abstract(self.c.program, def) {
+            dispatch.push(def);
+        }
+        if is_virtual {
+            dispatch.extend(self.c.overrides.get(&def).into_iter().flatten().copied());
+        }
+        self.methods.insert(
+            e,
+            crate::MethodCall {
+                target: def,
+                dispatch,
+                is_virtual,
+            },
+        );
+        ret
     }
 
     fn not_callable(&mut self, span: Span, message: String, ty: &Ty) {
@@ -764,10 +966,20 @@ impl Cx<'_, '_> {
         t
     }
 
-    fn method_call(&mut self, base: ExprId, name: &Ident, args: &[ExprId], span: Span) -> Ty {
+    fn method_call(
+        &mut self,
+        e: ExprId,
+        base: ExprId,
+        name: &Ident,
+        args: &[ExprId],
+        span: Span,
+    ) -> Ty {
         if self.is_namespace(base) {
             self.infer_all(args);
             return Ty::Error;
+        }
+        if let Some(&ValueRes::Super(class)) = self.mres.values.get(base) {
+            return self.super_call(e, base, class, name, args, span);
         }
         let bt = self.infer(base);
         let base_span = self.span(base);
@@ -790,6 +1002,11 @@ impl Cx<'_, '_> {
         if let Some(sig) = methods::method(&r, &name.name) {
             self.args(args, &sig.params, &format!("method `{}`", name.name), span);
             return sig.ret;
+        }
+        if let Ty::Adt(class, _) = &r {
+            if self.c.classes.contains_key(class) {
+                return self.class_method_call(e, *class, &r, name, args);
+            }
         }
         self.infer_all(args);
         let shown = self.show(&r);
@@ -817,6 +1034,139 @@ impl Cx<'_, '_> {
         };
         self.err(d);
         Ty::Error
+    }
+
+    fn class_method_call(
+        &mut self,
+        e: ExprId,
+        class: DefId,
+        recv: &Ty,
+        name: &Ident,
+        args: &[ExprId],
+    ) -> Ty {
+        let shown = self.show(recv);
+        let Some(def) = classes::find_method(&self.c.classes, class, &name.name) else {
+            self.infer_all(args);
+            let d = if classes::find_field(&self.c.classes, class, &name.name).is_some() {
+                Diagnostic::error(
+                    codes::NOT_CALLABLE,
+                    format!("`{}` is a field of `{shown}`, not a method", name.name),
+                    name.span,
+                )
+                .with_label("not a method")
+                .with_help(format!("remove the parentheses: `.{}`", name.name))
+            } else {
+                let d = Diagnostic::error(
+                    codes::NO_SUCH_METHOD,
+                    format!("no method `{}` on type `{shown}`", name.name),
+                    name.span,
+                )
+                .with_label("unknown method");
+                let names = classes::member_names(&self.c.classes, class);
+                match did_you_mean(&name.name, names) {
+                    Some(s) => d.with_help(format!("a member with a similar name exists: `{s}`")),
+                    None => d,
+                }
+            };
+            self.err(d);
+            return Ty::Error;
+        };
+        let Item::Fn(f) = self.c.program.item(def) else {
+            return Ty::Error;
+        };
+        if f.method.is_some_and(|m| m.is_init) {
+            self.infer_all(args);
+            self.err(
+                Diagnostic::error(
+                    codes::INVALID_CLASS,
+                    "`init` can't be called on an object",
+                    name.span,
+                )
+                .with_label("it runs when the object is created")
+                .with_help(format!("create a new object instead: `{shown}(...)`")),
+            );
+            return Ty::Error;
+        }
+        let owner = f.method.map_or(class, |m| DefId {
+            module: def.module,
+            item: m.class,
+        });
+        self.check_access(owner, f.is_pub, name, "method");
+        let text = format!("{shown}.{}", name.name);
+        self.method_sig_call(
+            e,
+            def,
+            args,
+            &format!("method `{}`", name.name),
+            &text,
+            true,
+        )
+    }
+
+    /// `super.name(...)`: the base class's method, not an override.
+    fn super_call(
+        &mut self,
+        e: ExprId,
+        base: ExprId,
+        class: DefId,
+        name: &Ident,
+        args: &[ExprId],
+        span: Span,
+    ) -> Ty {
+        let base_class = self.c.classes.get(&class).and_then(|c| c.base);
+        self.record(
+            base,
+            base_class.map_or(Ty::Error, |b| Ty::Adt(b, Vec::new())),
+        );
+        let found = base_class.and_then(|b| classes::find_method(&self.c.classes, b, &name.name));
+        let Some(def) = found else {
+            self.infer_all(args);
+            if base_class.is_some() {
+                self.err(
+                    Diagnostic::error(
+                        codes::NO_SUCH_METHOD,
+                        format!("the base class has no method `{}`", name.name),
+                        name.span,
+                    )
+                    .with_label("unknown method"),
+                );
+            }
+            return Ty::Error;
+        };
+        let is_init =
+            matches!(self.c.program.item(def), Item::Fn(f) if f.method.is_some_and(|m| m.is_init));
+        if is_init && self.super_init != Some(e) {
+            self.err(
+                Diagnostic::error(
+                    codes::INVALID_SUPER,
+                    "`super.init(...)` is only allowed as the first statement of `init`",
+                    span,
+                )
+                .with_label("not allowed here"),
+            );
+        }
+        if classes::is_abstract(self.c.program, def) {
+            self.err(
+                Diagnostic::error(
+                    codes::INVALID_SUPER,
+                    format!(
+                        "the base class's `{}` is abstract, so it can't be called",
+                        name.name
+                    ),
+                    span,
+                )
+                .with_label("no body to run"),
+            );
+        }
+        let text = format!("super.{}", name.name);
+        self.method_sig_call(
+            e,
+            def,
+            args,
+            &format!("method `{}`", name.name),
+            &text,
+            false,
+        )
     }
 
     /// A call to a throwing function. Without `?` the error would be ignored silently.
@@ -1510,6 +1860,7 @@ fn item_name(item: &Item) -> &str {
         Item::Record(r) => &r.name.name,
         Item::Alias(a) => &a.name.name,
         Item::Enum(e) => &e.name.name,
+        Item::Class(c) => &c.name.name,
         Item::Import(_) => "import",
         Item::Test(t) => &t.name,
     }
