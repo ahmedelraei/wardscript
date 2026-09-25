@@ -125,7 +125,7 @@ jobs:
         run: |
           ward="stage/ward"; [[ -f stage/ward.exe ]] && ward="stage/ward.exe"
           "$ward" --version
-          "$ward" check examples/support.wardscript
+          "$ward" check examples/support.ward
       - uses: actions/upload-artifact@v4
         with:
           name: ward-${{ matrix.target }}

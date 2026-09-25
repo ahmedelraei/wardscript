@@ -20,10 +20,10 @@ fn generated_python() {
             (name, rel.to_str().expect("utf-8 path").to_owned())
         })
         .collect();
-    programs.push(("modules".into(), "tests/e2e/modules/main.wardscript".into()));
+    programs.push(("modules".into(), "tests/e2e/modules/main.ward".into()));
     programs.push((
         "support_async".into(),
-        "examples/support.wardscript --async".into(),
+        "examples/support.ward --async".into(),
     ));
     for (name, src) in programs {
         let mut words = src.split_whitespace();
@@ -59,7 +59,7 @@ fn generated_typescript() {
             (name, rel.to_str().expect("utf-8 path").to_owned())
         })
         .collect();
-    programs.push(("modules".into(), "tests/e2e/modules/main.wardscript".into()));
+    programs.push(("modules".into(), "tests/e2e/modules/main.ward".into()));
     for (name, src) in programs {
         let out = common::build_with(
             &format!("codegen_ts_{name}"),

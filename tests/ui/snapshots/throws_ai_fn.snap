@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/throws_ai_fn.wardscript
+description: tests/ui/throws_ai_fn.ward
 ---
 exit: Some(1)
 --- human ---
 [W0130] Error: `ai fn` can't declare `throws`
-   ╭─[ tests/ui/throws_ai_fn.wardscript:1:40 ]
+   ╭─[ tests/ui/throws_ai_fn.ward:1:40 ]
    │
  1 │ ai fn classify(text: String) -> String throws String {
    │                                        ──────┬──────  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: a failed model call is a runtime error, not a declared exception
 ───╯
-error: could not check `tests/ui/throws_ai_fn.wardscript` due to 1 error
+error: could not check `tests/ui/throws_ai_fn.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0130",
-      "file": "tests/ui/throws_ai_fn.wardscript",
+      "file": "tests/ui/throws_ai_fn.ward",
       "help": "a failed model call is a runtime error, not a declared exception",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/throws_ai_fn.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/throws_ai_fn.wardscript"
+  "file": "tests/ui/throws_ai_fn.ward"
 }

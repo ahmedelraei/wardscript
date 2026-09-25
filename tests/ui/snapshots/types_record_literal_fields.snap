@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_record_literal_fields.wardscript
+description: tests/ui/types_record_literal_fields.ward
 ---
 exit: Some(1)
 --- human ---
 [W0113] Error: missing field in `Ticket`: `priority`
-    ╭─[ tests/ui/types_record_literal_fields.wardscript:12:5 ]
+    ╭─[ tests/ui/types_record_literal_fields.ward:12:5 ]
     │
  12 │     Ticket { title: "a", title: "b", urgency: 3 }
     │     ───┬──  
@@ -14,26 +14,26 @@ exit: Some(1)
     │ Help: every field of a record must be given a value
 ────╯
 [W0114] Error: field `title` is set more than once
-    ╭─[ tests/ui/types_record_literal_fields.wardscript:12:26 ]
+    ╭─[ tests/ui/types_record_literal_fields.ward:12:26 ]
     │
  12 │     Ticket { title: "a", title: "b", urgency: 3 }
     │                          ──┬──  
     │                            ╰──── already set earlier
 ────╯
 [W0111] Error: record `Ticket` has no field `urgency`
-    ╭─[ tests/ui/types_record_literal_fields.wardscript:12:38 ]
+    ╭─[ tests/ui/types_record_literal_fields.ward:12:38 ]
     │
  12 │     Ticket { title: "a", title: "b", urgency: 3 }
     │                                      ───┬───  
     │                                         ╰───── unknown field
 ────╯
-error: could not check `tests/ui/types_record_literal_fields.wardscript` due to 3 errors
+error: could not check `tests/ui/types_record_literal_fields.ward` due to 3 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0113",
-      "file": "tests/ui/types_record_literal_fields.wardscript",
+      "file": "tests/ui/types_record_literal_fields.ward",
       "help": "every field of a record must be given a value",
       "labels": [
         {
@@ -70,7 +70,7 @@ error: could not check `tests/ui/types_record_literal_fields.wardscript` due to 
     },
     {
       "code": "W0114",
-      "file": "tests/ui/types_record_literal_fields.wardscript",
+      "file": "tests/ui/types_record_literal_fields.ward",
       "help": null,
       "labels": [
         {
@@ -107,7 +107,7 @@ error: could not check `tests/ui/types_record_literal_fields.wardscript` due to 
     },
     {
       "code": "W0111",
-      "file": "tests/ui/types_record_literal_fields.wardscript",
+      "file": "tests/ui/types_record_literal_fields.ward",
       "help": null,
       "labels": [
         {
@@ -143,5 +143,5 @@ error: could not check `tests/ui/types_record_literal_fields.wardscript` due to 
       }
     }
   ],
-  "file": "tests/ui/types_record_literal_fields.wardscript"
+  "file": "tests/ui/types_record_literal_fields.ward"
 }

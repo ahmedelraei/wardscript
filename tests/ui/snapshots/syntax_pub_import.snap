@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_pub_import.wardscript
+description: tests/ui/syntax_pub_import.ward
 ---
 exit: Some(1)
 --- human ---
 [W0023] Error: imports can't be `pub`
-   ╭─[ tests/ui/syntax_pub_import.wardscript:1:1 ]
+   ╭─[ tests/ui/syntax_pub_import.ward:1:1 ]
    │
  1 │ pub import support.tickets
    │ ─┬─  
@@ -14,7 +14,7 @@ exit: Some(1)
    │ Help: re-exporting imported names isn't supported
 ───╯
 [W0102] Error: cannot find module `support.tickets`
-   ╭─[ tests/ui/syntax_pub_import.wardscript:1:12 ]
+   ╭─[ tests/ui/syntax_pub_import.ward:1:12 ]
    │
  1 │ pub import support.tickets
    │            ───────┬───────  
@@ -22,13 +22,13 @@ exit: Some(1)
    │ 
    │ Help: looked for `tests/ui/support/tickets.ward` and `tests/ui/support/tickets.wardscript`
 ───╯
-error: could not check `tests/ui/syntax_pub_import.wardscript` due to 2 errors
+error: could not check `tests/ui/syntax_pub_import.ward` due to 2 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0023",
-      "file": "tests/ui/syntax_pub_import.wardscript",
+      "file": "tests/ui/syntax_pub_import.ward",
       "help": "re-exporting imported names isn't supported",
       "labels": [
         {
@@ -65,7 +65,7 @@ error: could not check `tests/ui/syntax_pub_import.wardscript` due to 2 errors
     },
     {
       "code": "W0102",
-      "file": "tests/ui/syntax_pub_import.wardscript",
+      "file": "tests/ui/syntax_pub_import.ward",
       "help": "looked for `tests/ui/support/tickets.ward` and `tests/ui/support/tickets.wardscript`",
       "labels": [
         {
@@ -101,5 +101,5 @@ error: could not check `tests/ui/syntax_pub_import.wardscript` due to 2 errors
       }
     }
   ],
-  "file": "tests/ui/syntax_pub_import.wardscript"
+  "file": "tests/ui/syntax_pub_import.ward"
 }

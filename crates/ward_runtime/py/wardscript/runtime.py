@@ -29,7 +29,7 @@ from .schema import Type, decode, encode, json_schema
 @dataclass(frozen=True)
 class ApprovalRequest:
     value: Any
-    #: Where `approve` was called, e.g. `support.wardscript:58:24`.
+    #: Where `approve` was called, e.g. `support.ward:58:24`.
     site: str
     #: The run it's part of; `ward trace show <run>` shows how the value was made.
     run: str | None = None

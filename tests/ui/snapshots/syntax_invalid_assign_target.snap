@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_invalid_assign_target.wardscript
+description: tests/ui/syntax_invalid_assign_target.ward
 ---
 exit: Some(1)
 --- human ---
 [W0020] Error: invalid assignment target
-   ╭─[ tests/ui/syntax_invalid_assign_target.wardscript:2:5 ]
+   ╭─[ tests/ui/syntax_invalid_assign_target.ward:2:5 ]
    │
  2 │     g() = 1
    │     ─┬─  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: only variables, fields and list elements can be assigned to
 ───╯
-error: could not check `tests/ui/syntax_invalid_assign_target.wardscript` due to 1 error
+error: could not check `tests/ui/syntax_invalid_assign_target.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0020",
-      "file": "tests/ui/syntax_invalid_assign_target.wardscript",
+      "file": "tests/ui/syntax_invalid_assign_target.ward",
       "help": "only variables, fields and list elements can be assigned to",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/syntax_invalid_assign_target.wardscript` due to
       }
     }
   ],
-  "file": "tests/ui/syntax_invalid_assign_target.wardscript"
+  "file": "tests/ui/syntax_invalid_assign_target.ward"
 }

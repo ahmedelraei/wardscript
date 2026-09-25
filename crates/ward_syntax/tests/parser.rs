@@ -91,7 +91,7 @@ fn string_with_escaped_quote_is_one_token() {
 
 #[test]
 fn support_example_parses_and_prints() {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/support.wardscript");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/support.ward");
     let src = std::fs::read_to_string(path).expect("read example");
     let printed = assert_round_trips(&src);
     insta::assert_snapshot!(printed);

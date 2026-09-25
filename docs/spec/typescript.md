@@ -5,7 +5,7 @@ Status: implemented in M11 (`ward_codegen_ts`, the `wardscript` npm package in
 [decision 017](../decisions/017-typescript-backend.md).
 
 ```bash
-ward build examples/triage.wardscript --target typescript -o src/generated
+ward build examples/triage.ward --target typescript -o src/generated
 ```
 
 ```ts

@@ -51,7 +51,7 @@ pub fn route(email: Untrusted<String>) -> String
     "{urgent}{queue(ticket)}: {ticket.summary}{order}"
 }
 
-// `ward test examples/triage.wardscript` replays the answers in
+// `ward test examples/triage.ward` replays the answers in
 // `triage.recordings.json`; `ward test --record --model anthropic` records new ones.
 
 test "a crash goes to engineering, urgently" {

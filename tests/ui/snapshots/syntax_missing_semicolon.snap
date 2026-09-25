@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_missing_semicolon.wardscript
+description: tests/ui/syntax_missing_semicolon.ward
 ---
 exit: Some(1)
 --- human ---
 [W0015] Error: expected a line break or `;`, found `let`
-   ╭─[ tests/ui/syntax_missing_semicolon.wardscript:2:13 ]
+   ╭─[ tests/ui/syntax_missing_semicolon.ward:2:13 ]
    │
  2 │     let x = 1 let y = 2
    │             ┬  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: put each statement on its own line, or separate them with `;`
 ───╯
-error: could not check `tests/ui/syntax_missing_semicolon.wardscript` due to 1 error
+error: could not check `tests/ui/syntax_missing_semicolon.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0015",
-      "file": "tests/ui/syntax_missing_semicolon.wardscript",
+      "file": "tests/ui/syntax_missing_semicolon.ward",
       "help": "put each statement on its own line, or separate them with `;`",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/syntax_missing_semicolon.wardscript` due to 1 e
       }
     }
   ],
-  "file": "tests/ui/syntax_missing_semicolon.wardscript"
+  "file": "tests/ui/syntax_missing_semicolon.ward"
 }

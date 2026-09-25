@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_annotation_needed.wardscript
+description: tests/ui/types_annotation_needed.ward
 ---
 exit: Some(1)
 --- human ---
 [W0121] Error: type annotations needed for `items`
-   ╭─[ tests/ui/types_annotation_needed.wardscript:2:5 ]
+   ╭─[ tests/ui/types_annotation_needed.ward:2:5 ]
    │
  2 │     let items = []
    │     ───────┬──────  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: add a type, e.g. `let items: List<String> = ...`
 ───╯
-error: could not check `tests/ui/types_annotation_needed.wardscript` due to 1 error
+error: could not check `tests/ui/types_annotation_needed.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0121",
-      "file": "tests/ui/types_annotation_needed.wardscript",
+      "file": "tests/ui/types_annotation_needed.ward",
       "help": "add a type, e.g. `let items: List<String> = ...`",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/types_annotation_needed.wardscript` due to 1 er
       }
     }
   ],
-  "file": "tests/ui/types_annotation_needed.wardscript"
+  "file": "tests/ui/types_annotation_needed.ward"
 }

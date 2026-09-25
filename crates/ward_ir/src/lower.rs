@@ -351,7 +351,7 @@ fn source(data: &ModuleData, span: Span) -> String {
     data.src.get(span.range()).unwrap_or("?").to_owned()
 }
 
-/// `support/tickets.wardscript`: stable no matter where `ward` was run from.
+/// `support/tickets.ward`: stable no matter where `ward` was run from.
 fn site_path(data: &ModuleData) -> String {
     let ext = std::path::Path::new(&data.path)
         .extension()

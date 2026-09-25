@@ -1,23 +1,23 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_expected_expression.wardscript
+description: tests/ui/syntax_expected_expression.ward
 ---
 exit: Some(1)
 --- human ---
 [W0012] Error: expected an expression, found `;`
-   ╭─[ tests/ui/syntax_expected_expression.wardscript:2:13 ]
+   ╭─[ tests/ui/syntax_expected_expression.ward:2:13 ]
    │
  2 │     let x = ;
    │             ┬  
    │             ╰── expected an expression
 ───╯
-error: could not check `tests/ui/syntax_expected_expression.wardscript` due to 1 error
+error: could not check `tests/ui/syntax_expected_expression.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0012",
-      "file": "tests/ui/syntax_expected_expression.wardscript",
+      "file": "tests/ui/syntax_expected_expression.ward",
       "help": null,
       "labels": [
         {
@@ -53,5 +53,5 @@ error: could not check `tests/ui/syntax_expected_expression.wardscript` due to 1
       }
     }
   ],
-  "file": "tests/ui/syntax_expected_expression.wardscript"
+  "file": "tests/ui/syntax_expected_expression.ward"
 }

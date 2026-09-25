@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_if_without_else.wardscript
+description: tests/ui/types_if_without_else.ward
 ---
 exit: Some(1)
 --- human ---
 [W0110] Error: `if` without `else` has type `()`, but `Int` is expected
-   ╭─[ tests/ui/types_if_without_else.wardscript:2:18 ]
+   ╭─[ tests/ui/types_if_without_else.ward:2:18 ]
    │
  2 │ ╭─▶     let x: Int = if ok {
    ┆ ┆   
@@ -15,13 +15,13 @@ exit: Some(1)
    │     
    │     Help: add an `else` branch that produces a value
 ───╯
-error: could not check `tests/ui/types_if_without_else.wardscript` due to 1 error
+error: could not check `tests/ui/types_if_without_else.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0110",
-      "file": "tests/ui/types_if_without_else.wardscript",
+      "file": "tests/ui/types_if_without_else.ward",
       "help": "add an `else` branch that produces a value",
       "labels": [
         {
@@ -57,5 +57,5 @@ error: could not check `tests/ui/types_if_without_else.wardscript` due to 1 erro
       }
     }
   ],
-  "file": "tests/ui/types_if_without_else.wardscript"
+  "file": "tests/ui/types_if_without_else.ward"
 }

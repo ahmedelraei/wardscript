@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_ai_return_not_schema.wardscript
+description: tests/ui/types_ai_return_not_schema.ward
 ---
 exit: Some(1)
 --- human ---
 [W0120] Error: the return type of `ai fn classify` has no JSON schema
-   ╭─[ tests/ui/types_ai_return_not_schema.wardscript:1:33 ]
+   ╭─[ tests/ui/types_ai_return_not_schema.ward:1:33 ]
    │
  1 │ ai fn classify(text: String) -> Map<Int, String> {
    │                                 ────────┬───────  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: the model's answer is validated against a JSON schema; use strings, numbers, booleans, lists, options, `Map<String, _>`, records and enums
 ───╯
-error: could not check `tests/ui/types_ai_return_not_schema.wardscript` due to 1 error
+error: could not check `tests/ui/types_ai_return_not_schema.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0120",
-      "file": "tests/ui/types_ai_return_not_schema.wardscript",
+      "file": "tests/ui/types_ai_return_not_schema.ward",
       "help": "the model's answer is validated against a JSON schema; use strings, numbers, booleans, lists, options, `Map<String, _>`, records and enums",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/types_ai_return_not_schema.wardscript` due to 1
       }
     }
   ],
-  "file": "tests/ui/types_ai_return_not_schema.wardscript"
+  "file": "tests/ui/types_ai_return_not_schema.ward"
 }

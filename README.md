@@ -110,11 +110,11 @@ irm https://raw.githubusercontent.com/ahmedelraei/wardscript/main/install/instal
 
 ```bash
 cargo run -p ward_cli -- init hello                         # a first project
-cargo run -p ward_cli -- check examples/support.wardscript
-cargo run -p ward_cli -- build examples/triage.wardscript -o build
-cargo run -p ward_cli -- run examples/triage.wardscript route '"My order never came"' --mock answers.json
+cargo run -p ward_cli -- check examples/support.ward
+cargo run -p ward_cli -- build examples/triage.ward -o build
+cargo run -p ward_cli -- run examples/triage.ward route '"My order never came"' --mock answers.json
 cargo run -p ward_cli -- lock examples/inbox/mcp.json       # pin the MCP servers' tool schemas
-cargo run -p ward_cli -- test examples/triage.wardscript      # replay the recorded tests
+cargo run -p ward_cli -- test examples/triage.ward      # replay the recorded tests
 ```
 
 ## Editor support

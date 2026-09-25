@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/names_duplicate_param.wardscript
+description: tests/ui/names_duplicate_param.ward
 ---
 exit: Some(1)
 --- human ---
 [W0103] Error: parameter `x` is defined more than once
-   ╭─[ tests/ui/names_duplicate_param.wardscript:1:16 ]
+   ╭─[ tests/ui/names_duplicate_param.ward:1:16 ]
    │
  1 │ fn add(x: Int, x: Int) -> Int {
    │        ┬       ┬  
@@ -13,13 +13,13 @@ exit: Some(1)
    │                │  
    │                ╰── redefined here
 ───╯
-error: could not check `tests/ui/names_duplicate_param.wardscript` due to 1 error
+error: could not check `tests/ui/names_duplicate_param.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0103",
-      "file": "tests/ui/names_duplicate_param.wardscript",
+      "file": "tests/ui/names_duplicate_param.ward",
       "help": null,
       "labels": [
         {
@@ -71,5 +71,5 @@ error: could not check `tests/ui/names_duplicate_param.wardscript` due to 1 erro
       }
     }
   ],
-  "file": "tests/ui/names_duplicate_param.wardscript"
+  "file": "tests/ui/names_duplicate_param.ward"
 }

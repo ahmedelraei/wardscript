@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/names_unknown_value.wardscript
+description: tests/ui/names_unknown_value.ward
 ---
 exit: Some(1)
 --- human ---
 [W0100] Error: cannot find `tiket` in this scope
-   ╭─[ tests/ui/names_unknown_value.wardscript:2:5 ]
+   ╭─[ tests/ui/names_unknown_value.ward:2:5 ]
    │
  2 │     tiket
    │     ──┬──  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: a similar name exists: `ticket`
 ───╯
-error: could not check `tests/ui/names_unknown_value.wardscript` due to 1 error
+error: could not check `tests/ui/names_unknown_value.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0100",
-      "file": "tests/ui/names_unknown_value.wardscript",
+      "file": "tests/ui/names_unknown_value.ward",
       "help": "a similar name exists: `ticket`",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/names_unknown_value.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/names_unknown_value.wardscript"
+  "file": "tests/ui/names_unknown_value.ward"
 }

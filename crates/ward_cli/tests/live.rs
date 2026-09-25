@@ -11,8 +11,8 @@ fn live_model() {
         eprintln!("skipped: set WARD_LIVE=1 (and an API key) to run against a real model");
         return;
     }
-    let triage = common::build("live_triage", "examples/triage.wardscript");
-    let support = common::build("live_support", "examples/support.wardscript");
+    let triage = common::build("live_triage", "examples/triage.ward");
+    let support = common::build("live_support", "examples/support.ward");
     let mut paths = vec![triage, support.clone()];
     if std::env::var_os("WARD_RUNTIME_INSTALLED").is_none() {
         paths.push(common::runtime_py());

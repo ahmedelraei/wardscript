@@ -1,20 +1,20 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/modules_private/main.wardscript
+description: tests/ui/modules_private/main.ward
 ---
 exit: Some(1)
 --- human ---
 [W0104] Error: `secret` is private
-   ╭─[ tests/ui/modules_private/main.wardscript:4:10 ]
+   ╭─[ tests/ui/modules_private/main.ward:4:10 ]
    │
  4 │     util.secret() + util.helpr()
    │          ───┬──  
    │             ╰──── not visible outside its module
    │ 
-   │ Help: mark it `pub` in `tests/ui/modules_private/util.wardscript`
+   │ Help: mark it `pub` in `tests/ui/modules_private/util.ward`
 ───╯
 [W0105] Error: cannot find `helpr` in module `util`
-   ╭─[ tests/ui/modules_private/main.wardscript:4:26 ]
+   ╭─[ tests/ui/modules_private/main.ward:4:26 ]
    │
  4 │     util.secret() + util.helpr()
    │                          ──┬──  
@@ -22,14 +22,14 @@ exit: Some(1)
    │ 
    │ Help: a similar name exists: `helper`
 ───╯
-error: could not check `tests/ui/modules_private/main.wardscript` due to 2 errors
+error: could not check `tests/ui/modules_private/main.ward` due to 2 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0104",
-      "file": "tests/ui/modules_private/main.wardscript",
-      "help": "mark it `pub` in `tests/ui/modules_private/util.wardscript`",
+      "file": "tests/ui/modules_private/main.ward",
+      "help": "mark it `pub` in `tests/ui/modules_private/util.ward`",
       "labels": [
         {
           "message": "not visible outside its module",
@@ -65,7 +65,7 @@ error: could not check `tests/ui/modules_private/main.wardscript` due to 2 error
     },
     {
       "code": "W0105",
-      "file": "tests/ui/modules_private/main.wardscript",
+      "file": "tests/ui/modules_private/main.ward",
       "help": "a similar name exists: `helper`",
       "labels": [
         {
@@ -101,5 +101,5 @@ error: could not check `tests/ui/modules_private/main.wardscript` due to 2 error
       }
     }
   ],
-  "file": "tests/ui/modules_private/main.wardscript"
+  "file": "tests/ui/modules_private/main.ward"
 }

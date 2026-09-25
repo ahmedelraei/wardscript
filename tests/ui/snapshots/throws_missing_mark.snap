@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/throws_missing_mark.wardscript
+description: tests/ui/throws_missing_mark.ward
 ---
 exit: Some(1)
 --- human ---
 [W0128] Error: `parse` can throw `String`, but this call isn't marked with `?`
-   ╭─[ tests/ui/throws_missing_mark.wardscript:9:5 ]
+   ╭─[ tests/ui/throws_missing_mark.ward:9:5 ]
    │
  9 │     parse(s)
    │     ────┬───  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: write `parse(...)?` to pass the error on, inside a `try` block or a function that `throws String`
 ───╯
-error: could not check `tests/ui/throws_missing_mark.wardscript` due to 1 error
+error: could not check `tests/ui/throws_missing_mark.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0128",
-      "file": "tests/ui/throws_missing_mark.wardscript",
+      "file": "tests/ui/throws_missing_mark.ward",
       "help": "write `parse(...)?` to pass the error on, inside a `try` block or a function that `throws String`",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/throws_missing_mark.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/throws_missing_mark.wardscript"
+  "file": "tests/ui/throws_missing_mark.ward"
 }

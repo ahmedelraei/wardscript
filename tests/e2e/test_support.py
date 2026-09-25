@@ -1,4 +1,4 @@
-# ward: examples/support.wardscript
+# ward: examples/support.ward
 import unittest
 
 import support
@@ -53,7 +53,7 @@ class Support(unittest.TestCase):
         self.assertEqual(support.handle("...", ADA), "sent after review: late parcel")
         [request] = self.approvals
         self.assertEqual(request.value, support.Reply(subject="Hi", body="see https://x"))
-        self.assertEqual(request.site, "support.wardscript:60:24")
+        self.assertEqual(request.site, "support.ward:60:24")
 
     def test_denied_approval_stops_the_run(self):
         self.answer({**TICKET, "refund_requested": True}, {"subject": "Hi", "body": "ok"})

@@ -1,12 +1,12 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/ok_types_tour.wardscript
+description: tests/ui/ok_types_tour.ward
 ---
 exit: Some(0)
 --- human ---
-ok: tests/ui/ok_types_tour.wardscript
+ok: tests/ui/ok_types_tour.ward
 --- json ---
 {
   "diagnostics": [],
-  "file": "tests/ui/ok_types_tour.wardscript"
+  "file": "tests/ui/ok_types_tour.ward"
 }

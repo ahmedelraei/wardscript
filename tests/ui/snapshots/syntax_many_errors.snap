@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_many_errors.wardscript
+description: tests/ui/syntax_many_errors.ward
 ---
 exit: Some(1)
 --- human ---
 [W0015] Error: expected a line break or `;`, found `x`
-   ╭─[ tests/ui/syntax_many_errors.wardscript:4:13 ]
+   ╭─[ tests/ui/syntax_many_errors.ward:4:13 ]
    │
  4 │     let x = 1 x
    │             ┬  
@@ -14,14 +14,14 @@ exit: Some(1)
    │ Help: put each statement on its own line, or separate them with `;`
 ───╯
 [W0013] Error: expected a type, found `)`
-   ╭─[ tests/ui/syntax_many_errors.wardscript:7:9 ]
+   ╭─[ tests/ui/syntax_many_errors.ward:7:9 ]
    │
  7 │ fn b(y: ) -> Int {
    │         ┬  
    │         ╰── expected a type such as `String` or `List<Int>`
 ───╯
 [W0016] Error: expected a prompt string in `ai fn`, found `prompt`
-    ╭─[ tests/ui/syntax_many_errors.wardscript:12:5 ]
+    ╭─[ tests/ui/syntax_many_errors.ward:12:5 ]
     │
  12 │     prompt
     │     ───┬──  
@@ -30,7 +30,7 @@ exit: Some(1)
     │ Help: write the prompt as a string literal, using `{...}` to insert parameters: `{ "Summarize: {text}" }`
 ────╯
 [W0019] Error: comparison operators can't be chained
-    ╭─[ tests/ui/syntax_many_errors.wardscript:16:11 ]
+    ╭─[ tests/ui/syntax_many_errors.ward:16:11 ]
     │
  16 │     1 < 2 < 3
     │       ┬   ┬  
@@ -41,19 +41,19 @@ exit: Some(1)
     │ Help: split it with `&&`, e.g. `a < b && b < c`
 ────╯
 [W0012] Error: expected an expression, found `;`
-    ╭─[ tests/ui/syntax_many_errors.wardscript:20:18 ]
+    ╭─[ tests/ui/syntax_many_errors.ward:20:18 ]
     │
  20 │     let z = (1 + ;
     │                  ┬  
     │                  ╰── expected an expression
 ────╯
-error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
+error: could not check `tests/ui/syntax_many_errors.ward` due to 5 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0015",
-      "file": "tests/ui/syntax_many_errors.wardscript",
+      "file": "tests/ui/syntax_many_errors.ward",
       "help": "put each statement on its own line, or separate them with `;`",
       "labels": [
         {
@@ -90,7 +90,7 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
     },
     {
       "code": "W0013",
-      "file": "tests/ui/syntax_many_errors.wardscript",
+      "file": "tests/ui/syntax_many_errors.ward",
       "help": null,
       "labels": [
         {
@@ -127,7 +127,7 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
     },
     {
       "code": "W0016",
-      "file": "tests/ui/syntax_many_errors.wardscript",
+      "file": "tests/ui/syntax_many_errors.ward",
       "help": "write the prompt as a string literal, using `{...}` to insert parameters: `{ \"Summarize: {text}\" }`",
       "labels": [
         {
@@ -164,7 +164,7 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
     },
     {
       "code": "W0019",
-      "file": "tests/ui/syntax_many_errors.wardscript",
+      "file": "tests/ui/syntax_many_errors.ward",
       "help": "split it with `&&`, e.g. `a < b && b < c`",
       "labels": [
         {
@@ -217,7 +217,7 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
     },
     {
       "code": "W0012",
-      "file": "tests/ui/syntax_many_errors.wardscript",
+      "file": "tests/ui/syntax_many_errors.ward",
       "help": null,
       "labels": [
         {
@@ -253,5 +253,5 @@ error: could not check `tests/ui/syntax_many_errors.wardscript` due to 5 errors
       }
     }
   ],
-  "file": "tests/ui/syntax_many_errors.wardscript"
+  "file": "tests/ui/syntax_many_errors.ward"
 }

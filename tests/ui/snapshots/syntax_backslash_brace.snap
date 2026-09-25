@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_backslash_brace.wardscript
+description: tests/ui/syntax_backslash_brace.ward
 ---
 exit: Some(1)
 --- human ---
 [W0003] Error: unknown escape `\{`
-   ╭─[ tests/ui/syntax_backslash_brace.wardscript:2:17 ]
+   ╭─[ tests/ui/syntax_backslash_brace.ward:2:17 ]
    │
  2 │     "old style: \{x\}"
    │                 ─┬  
@@ -14,7 +14,7 @@ exit: Some(1)
    │ Help: braces are escaped by doubling: write `{{`
 ───╯
 [W0003] Error: unknown escape `\}`
-   ╭─[ tests/ui/syntax_backslash_brace.wardscript:2:20 ]
+   ╭─[ tests/ui/syntax_backslash_brace.ward:2:20 ]
    │
  2 │     "old style: \{x\}"
    │                    ─┬  
@@ -22,13 +22,13 @@ exit: Some(1)
    │ 
    │ Help: braces are escaped by doubling: write `}}`
 ───╯
-error: could not check `tests/ui/syntax_backslash_brace.wardscript` due to 2 errors
+error: could not check `tests/ui/syntax_backslash_brace.ward` due to 2 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0003",
-      "file": "tests/ui/syntax_backslash_brace.wardscript",
+      "file": "tests/ui/syntax_backslash_brace.ward",
       "help": "braces are escaped by doubling: write `{{`",
       "labels": [
         {
@@ -65,7 +65,7 @@ error: could not check `tests/ui/syntax_backslash_brace.wardscript` due to 2 err
     },
     {
       "code": "W0003",
-      "file": "tests/ui/syntax_backslash_brace.wardscript",
+      "file": "tests/ui/syntax_backslash_brace.ward",
       "help": "braces are escaped by doubling: write `}}`",
       "labels": [
         {
@@ -101,5 +101,5 @@ error: could not check `tests/ui/syntax_backslash_brace.wardscript` due to 2 err
       }
     }
   ],
-  "file": "tests/ui/syntax_backslash_brace.wardscript"
+  "file": "tests/ui/syntax_backslash_brace.ward"
 }

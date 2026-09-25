@@ -1,12 +1,12 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/ok_statements.wardscript
+description: tests/ui/ok_statements.ward
 ---
 exit: Some(0)
 --- human ---
-ok: tests/ui/ok_statements.wardscript
+ok: tests/ui/ok_statements.ward
 --- json ---
 {
   "diagnostics": [],
-  "file": "tests/ui/ok_statements.wardscript"
+  "file": "tests/ui/ok_statements.ward"
 }

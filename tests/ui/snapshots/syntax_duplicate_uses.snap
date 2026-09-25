@@ -1,17 +1,17 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_duplicate_uses.wardscript
+description: tests/ui/syntax_duplicate_uses.ward
 ---
 exit: Some(1)
 --- human ---
 [W0018] Error: duplicate `uses` clause
-   ╭─[ tests/ui/syntax_duplicate_uses.wardscript:3:5 ]
+   ╭─[ tests/ui/syntax_duplicate_uses.ward:3:5 ]
    │
  3 │     uses {net.read}
    │     ──┬─  
    │       ╰─── second clause here
    │
-   ├─[ tests/ui/syntax_duplicate_uses.wardscript:3:5 ]
+   ├─[ tests/ui/syntax_duplicate_uses.ward:3:5 ]
    │
  2 │     uses {llm}
    │     ──┬─  
@@ -19,13 +19,13 @@ exit: Some(1)
    │ 
    │ Help: merge them into a single `uses { ... }`
 ───╯
-error: could not check `tests/ui/syntax_duplicate_uses.wardscript` due to 1 error
+error: could not check `tests/ui/syntax_duplicate_uses.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0018",
-      "file": "tests/ui/syntax_duplicate_uses.wardscript",
+      "file": "tests/ui/syntax_duplicate_uses.ward",
       "help": "merge them into a single `uses { ... }`",
       "labels": [
         {
@@ -77,5 +77,5 @@ error: could not check `tests/ui/syntax_duplicate_uses.wardscript` due to 1 erro
       }
     }
   ],
-  "file": "tests/ui/syntax_duplicate_uses.wardscript"
+  "file": "tests/ui/syntax_duplicate_uses.ward"
 }

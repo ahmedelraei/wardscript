@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_variant_pattern_arity.wardscript
+description: tests/ui/types_variant_pattern_arity.ward
 ---
 exit: Some(1)
 --- human ---
 [W0115] Error: variant `Shape.Point` has 0 fields, but this pattern has 1
-   ╭─[ tests/ui/types_variant_pattern_arity.wardscript:8:9 ]
+   ╭─[ tests/ui/types_variant_pattern_arity.ward:8:9 ]
    │
  8 │         Shape.Point(x) => 0.0,
    │         ───────┬──────  
@@ -14,7 +14,7 @@ exit: Some(1)
    │ Help: write `Shape.Point` without parentheses
 ───╯
 [W0115] Error: variant `Shape.Circle` has 1 field, but this pattern has 0
-   ╭─[ tests/ui/types_variant_pattern_arity.wardscript:9:9 ]
+   ╭─[ tests/ui/types_variant_pattern_arity.ward:9:9 ]
    │
  9 │         Shape.Circle => 1.0,
    │         ──────┬─────  
@@ -22,13 +22,13 @@ exit: Some(1)
    │ 
    │ Help: use `_` to ignore fields: `Shape.Circle(_)`
 ───╯
-error: could not check `tests/ui/types_variant_pattern_arity.wardscript` due to 2 errors
+error: could not check `tests/ui/types_variant_pattern_arity.ward` due to 2 errors
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0115",
-      "file": "tests/ui/types_variant_pattern_arity.wardscript",
+      "file": "tests/ui/types_variant_pattern_arity.ward",
       "help": "write `Shape.Point` without parentheses",
       "labels": [
         {
@@ -65,7 +65,7 @@ error: could not check `tests/ui/types_variant_pattern_arity.wardscript` due to 
     },
     {
       "code": "W0115",
-      "file": "tests/ui/types_variant_pattern_arity.wardscript",
+      "file": "tests/ui/types_variant_pattern_arity.ward",
       "help": "use `_` to ignore fields: `Shape.Circle(_)`",
       "labels": [
         {
@@ -101,5 +101,5 @@ error: could not check `tests/ui/types_variant_pattern_arity.wardscript` due to 
       }
     }
   ],
-  "file": "tests/ui/types_variant_pattern_arity.wardscript"
+  "file": "tests/ui/types_variant_pattern_arity.ward"
 }

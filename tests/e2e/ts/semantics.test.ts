@@ -1,4 +1,4 @@
-// ward: tests/e2e/semantics.wardscript
+// ward: tests/e2e/semantics.ward
 // The TypeScript backend agrees with the Python one on the language's semantics.
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";

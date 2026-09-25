@@ -1,23 +1,23 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/names_unknown_record.wardscript
+description: tests/ui/names_unknown_record.ward
 ---
 exit: Some(1)
 --- human ---
 [W0101] Error: cannot find record type `Tikcet`
-   ╭─[ tests/ui/names_unknown_record.wardscript:2:13 ]
+   ╭─[ tests/ui/names_unknown_record.ward:2:13 ]
    │
  2 │     let t = Tikcet { title: "x" }
    │             ───┬──  
    │                ╰──── not found
 ───╯
-error: could not check `tests/ui/names_unknown_record.wardscript` due to 1 error
+error: could not check `tests/ui/names_unknown_record.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0101",
-      "file": "tests/ui/names_unknown_record.wardscript",
+      "file": "tests/ui/names_unknown_record.ward",
       "help": null,
       "labels": [
         {
@@ -53,5 +53,5 @@ error: could not check `tests/ui/names_unknown_record.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/names_unknown_record.wardscript"
+  "file": "tests/ui/names_unknown_record.ward"
 }

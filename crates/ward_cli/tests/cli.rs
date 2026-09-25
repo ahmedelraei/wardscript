@@ -11,12 +11,7 @@ fn help() {
 
 #[test]
 fn build_with_errors_fails() {
-    let out = common::ward(&[
-        "build",
-        "tests/ui/types_mismatch_let.wardscript",
-        "-o",
-        "unused",
-    ]);
+    let out = common::ward(&["build", "tests/ui/types_mismatch_let.ward", "-o", "unused"]);
     assert_eq!(out.status.code(), Some(common::EXIT_DIAGNOSTICS));
     assert!(String::from_utf8_lossy(&out.stderr).contains("could not build"));
     assert!(!common::repo_root().join("unused").exists());
@@ -40,7 +35,7 @@ fn run_calls_a_function() {
     let dir = traces.to_str().expect("utf-8 path");
     let out = common::ward(&[
         "run",
-        "examples/triage.wardscript",
+        "examples/triage.ward",
         "route",
         "\"help\"",
         "--mock",
@@ -74,7 +69,7 @@ fn run_calls_a_function() {
 #[test]
 fn run_reports_failures() {
     let run = |args: &[&str]| {
-        let mut all = vec!["run", "--no-trace", "tests/e2e/semantics.wardscript"];
+        let mut all = vec!["run", "--no-trace", "tests/e2e/semantics.ward"];
         all.extend_from_slice(args);
         common::ward(&all)
     };
@@ -99,7 +94,7 @@ fn run_reports_failures() {
 
 #[test]
 fn unreadable_file_is_an_internal_error() {
-    let out = common::ward(&["check", "examples/missing.wardscript"]);
+    let out = common::ward(&["check", "examples/missing.ward"]);
     assert_eq!(out.status.code(), Some(2));
 }
 
@@ -155,8 +150,8 @@ fn readme_examples_check_ok() {
         .collect();
     assert!(!blocks.is_empty(), "README has no wardscript examples");
     for (i, block) in blocks.iter().enumerate() {
-        let file = std::path::Path::new(env!("CARGO_TARGET_TMPDIR"))
-            .join(format!("readme_{i}.wardscript"));
+        let file =
+            std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("readme_{i}.ward"));
         std::fs::write(&file, block).expect("write example");
         let out = common::ward(&["check", file.to_str().expect("utf-8 path")]);
         assert_eq!(
@@ -270,7 +265,7 @@ fn run_rejects_an_unused_model_alias() {
 
 #[test]
 fn test_replays_the_examples_offline() {
-    for file in ["examples/triage.wardscript", "examples/inbox/main.ward"] {
+    for file in ["examples/triage.ward", "examples/inbox/main.ward"] {
         let out = common::ward(&["test", file]);
         assert_eq!(out.status.code(), Some(0), "{}", common::render(&out));
         let stdout = String::from_utf8_lossy(&out.stdout);
@@ -284,18 +279,18 @@ fn test_fails_on_a_failed_assertion() {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("mkdir");
     let examples = common::repo_root().join("examples");
-    let src = std::fs::read_to_string(examples.join("triage.wardscript")).expect("read example");
+    let src = std::fs::read_to_string(examples.join("triage.ward")).expect("read example");
     let src = src.replace(
         "assert queue(ticket) == \"billing\"",
         "assert queue(ticket) == \"support\" => \"billing goes to support\"",
     );
-    std::fs::write(dir.join("triage.wardscript"), src).expect("write");
+    std::fs::write(dir.join("triage.ward"), src).expect("write");
     std::fs::copy(
         examples.join("triage.recordings.json"),
         dir.join("triage.recordings.json"),
     )
     .expect("copy recordings");
-    let file = dir.join("triage.wardscript");
+    let file = dir.join("triage.ward");
     let out = common::ward(&["test", file.to_str().expect("utf-8")]);
     assert_eq!(out.status.code(), Some(4), "{}", common::render(&out));
     let stdout = String::from_utf8_lossy(&out.stdout);
@@ -313,7 +308,7 @@ fn test_fails_on_a_failed_assertion() {
 
 #[test]
 fn test_record_needs_a_model() {
-    let out = common::ward(&["test", "examples/triage.wardscript", "--record"]);
+    let out = common::ward(&["test", "examples/triage.ward", "--record"]);
     assert_eq!(out.status.code(), Some(2), "{}", common::render(&out));
 }
 

@@ -28,10 +28,10 @@ test "a double charge goes to billing" {
 ## `ward test`
 
 ```bash
-ward test examples/triage.wardscript            # replay: offline, deterministic
-ward test examples/triage.wardscript billing    # only tests whose names contain "billing"
-ward test examples/triage.wardscript --record --model anthropic
-ward test examples/triage.wardscript --record --mock answers.json
+ward test examples/triage.ward            # replay: offline, deterministic
+ward test examples/triage.ward billing    # only tests whose names contain "billing"
+ward test examples/triage.ward --record --model anthropic
+ward test examples/triage.ward --record --mock answers.json
 ```
 
 `ward test FILE [FILTER...]` runs the file's tests, each as its own run (with an

@@ -1,23 +1,23 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_no_method.wardscript
+description: tests/ui/types_no_method.ward
 ---
 exit: Some(1)
 --- human ---
 [W0122] Error: no method `lenght` on type `String`
-   ╭─[ tests/ui/types_no_method.wardscript:2:7 ]
+   ╭─[ tests/ui/types_no_method.ward:2:7 ]
    │
  2 │     s.lenght()
    │       ───┬──  
    │          ╰──── unknown method
 ───╯
-error: could not check `tests/ui/types_no_method.wardscript` due to 1 error
+error: could not check `tests/ui/types_no_method.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0122",
-      "file": "tests/ui/types_no_method.wardscript",
+      "file": "tests/ui/types_no_method.ward",
       "help": null,
       "labels": [
         {
@@ -53,5 +53,5 @@ error: could not check `tests/ui/types_no_method.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/types_no_method.wardscript"
+  "file": "tests/ui/types_no_method.ward"
 }

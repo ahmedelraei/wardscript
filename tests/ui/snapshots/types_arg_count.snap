@@ -1,23 +1,23 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_arg_count.wardscript
+description: tests/ui/types_arg_count.ward
 ---
 exit: Some(1)
 --- human ---
 [W0115] Error: function `add` takes 2 arguments but 1 was given
-   ╭─[ tests/ui/types_arg_count.wardscript:6:5 ]
+   ╭─[ tests/ui/types_arg_count.ward:6:5 ]
    │
  6 │     add(1)
    │     ───┬──  
    │        ╰──── expected 2 arguments
 ───╯
-error: could not check `tests/ui/types_arg_count.wardscript` due to 1 error
+error: could not check `tests/ui/types_arg_count.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0115",
-      "file": "tests/ui/types_arg_count.wardscript",
+      "file": "tests/ui/types_arg_count.ward",
       "help": null,
       "labels": [
         {
@@ -53,5 +53,5 @@ error: could not check `tests/ui/types_arg_count.wardscript` due to 1 error
       }
     }
   ],
-  "file": "tests/ui/types_arg_count.wardscript"
+  "file": "tests/ui/types_arg_count.ward"
 }

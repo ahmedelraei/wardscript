@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/types_unreachable_arm.wardscript
+description: tests/ui/types_unreachable_arm.ward
 ---
 exit: Some(0)
 --- human ---
 [W0127] Warning: unreachable pattern
-    ╭─[ tests/ui/types_unreachable_arm.wardscript:14:9 ]
+    ╭─[ tests/ui/types_unreachable_arm.ward:14:9 ]
     │
  14 │         Priority.High => 1,
     │         ──────┬──────  
@@ -13,13 +13,13 @@ exit: Some(0)
     │ 
     │ Help: an earlier arm already matches every value this one would
 ────╯
-ok: tests/ui/types_unreachable_arm.wardscript (1 warning)
+ok: tests/ui/types_unreachable_arm.ward (1 warning)
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0127",
-      "file": "tests/ui/types_unreachable_arm.wardscript",
+      "file": "tests/ui/types_unreachable_arm.ward",
       "help": "an earlier arm already matches every value this one would",
       "labels": [
         {
@@ -55,5 +55,5 @@ ok: tests/ui/types_unreachable_arm.wardscript (1 warning)
       }
     }
   ],
-  "file": "tests/ui/types_unreachable_arm.wardscript"
+  "file": "tests/ui/types_unreachable_arm.ward"
 }

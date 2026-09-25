@@ -24,7 +24,7 @@ fn redact(text: &str, run: &str) -> String {
 
 #[test]
 fn support_trace() {
-    let out = common::build("trace_support", "examples/support.wardscript");
+    let out = common::build("trace_support", "examples/support.ward");
     let traces = out.join("traces");
     let _ = std::fs::remove_dir_all(&traces);
     let mut paths = vec![out.clone()];

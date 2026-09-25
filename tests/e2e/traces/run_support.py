@@ -1,4 +1,4 @@
-# Runs examples/support.wardscript once, writing its trace to argv[1]; the email asks for
+# Runs examples/support.ward once, writing its trace to argv[1]; the email asks for
 # a refund, so the reply goes to a human before it's sent. See crates/ward_cli/tests/trace.rs.
 import sys
 

@@ -1,4 +1,4 @@
-# ward: examples/support.wardscript --async
+# ward: examples/support.ward --async
 # The support example built with `ward build --async`, run by an asyncio host with async
 # model, approver and tools, and a model that streams its answers.
 import asyncio

@@ -1,11 +1,11 @@
 ---
 source: crates/ward_cli/tests/ui.rs
-description: tests/ui/syntax_invalid_escape.wardscript
+description: tests/ui/syntax_invalid_escape.ward
 ---
 exit: Some(1)
 --- human ---
 [W0003] Error: unknown escape `\q`
-   ╭─[ tests/ui/syntax_invalid_escape.wardscript:2:10 ]
+   ╭─[ tests/ui/syntax_invalid_escape.ward:2:10 ]
    │
  2 │     "tab:\q"
    │          ─┬  
@@ -13,13 +13,13 @@ exit: Some(1)
    │ 
    │ Help: valid escapes are \n \r \t \0 \\ \"
 ───╯
-error: could not check `tests/ui/syntax_invalid_escape.wardscript` due to 1 error
+error: could not check `tests/ui/syntax_invalid_escape.ward` due to 1 error
 --- json ---
 {
   "diagnostics": [
     {
       "code": "W0003",
-      "file": "tests/ui/syntax_invalid_escape.wardscript",
+      "file": "tests/ui/syntax_invalid_escape.ward",
       "help": "valid escapes are \\n \\r \\t \\0 \\\\ \\\"",
       "labels": [
         {
@@ -55,5 +55,5 @@ error: could not check `tests/ui/syntax_invalid_escape.wardscript` due to 1 erro
       }
     }
   ],
-  "file": "tests/ui/syntax_invalid_escape.wardscript"
+  "file": "tests/ui/syntax_invalid_escape.ward"
 }
