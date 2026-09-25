@@ -27,8 +27,9 @@ $Version = $env:WARD_VERSION
 if (-not $Version) {
     if ($env:WARD_DOWNLOAD_BASE) { throw 'WARD_DOWNLOAD_BASE needs WARD_VERSION' }
     # /releases/latest skips pre-releases, and every release is one during the beta.
-    $Releases = Invoke-RestMethod "https://api.github.com/repos/$Repo/releases?per_page=1" -UseBasicParsing
-    $Version = @($Releases)[0].tag_name
+    # Only tags like v1.2.3 count: a release made another way may have no archives.
+    $Releases = Invoke-RestMethod "https://api.github.com/repos/$Repo/releases?per_page=30" -UseBasicParsing
+    $Version = @($Releases | Where-Object { -not $_.draft -and $_.tag_name -match '^v\d' })[0].tag_name
     if (-not $Version) { throw "couldn't find a release of $Repo" }
 }
 $Base = if ($env:WARD_DOWNLOAD_BASE) { $env:WARD_DOWNLOAD_BASE } else { "https://github.com/$Repo/releases/download" }
