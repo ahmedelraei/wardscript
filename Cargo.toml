@@ -12,6 +12,7 @@ default-members = [
     "crates/ward_runtime",
     "crates/ward_lsp",
     "crates/ward_cli",
+    "crates/ward_wasm",
 ]
 
 [workspace.package]
