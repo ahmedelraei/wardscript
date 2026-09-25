@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use ward_syntax::Diagnostic;
 use ward_syntax::ast::{ImportKind, Item};
@@ -37,6 +38,21 @@ pub fn load(
     entry: &Path,
     fs: &dyn FileSystem,
 ) -> Result<(Program, Vec<ProgramDiagnostic>), LoadError> {
+    load_with(entry, fs, &|_, src| {
+        let parse = ward_syntax::parse(src);
+        (Arc::new(parse.module), parse.diagnostics)
+    })
+}
+
+/// Parses a file's source; lets the language server reuse parses of unchanged files.
+pub type ParseFn<'a> = dyn Fn(&Path, &str) -> (Arc<ward_syntax::ast::Module>, Vec<Diagnostic>) + 'a;
+
+/// [`load`], with `parse` in place of `ward_syntax::parse`.
+pub fn load_with(
+    entry: &Path,
+    fs: &dyn FileSystem,
+    parse: &ParseFn<'_>,
+) -> Result<(Program, Vec<ProgramDiagnostic>), LoadError> {
     let src = fs.read(entry).map_err(|error| LoadError {
         path: entry.to_owned(),
         error,
@@ -50,7 +66,7 @@ pub fn load(
     let entry_name = entry
         .file_stem()
         .map_or(String::new(), |s| s.to_string_lossy().into_owned());
-    add_module(&mut modules, &mut diags, entry, entry_name, src);
+    add_module(parse, &mut modules, &mut diags, entry, entry_name, src);
 
     let mut next = 0;
     while next < modules.len() {
@@ -87,7 +103,14 @@ pub fn load(
                     Some((file, src)) => {
                         let target = ModuleId(modules.len() as u32);
                         by_path.insert(file.clone(), target);
-                        add_module(&mut modules, &mut diags, file, segments.join("."), src);
+                        add_module(
+                            parse,
+                            &mut modules,
+                            &mut diags,
+                            file,
+                            segments.join("."),
+                            src,
+                        );
                         target
                     }
                     None => {
@@ -188,6 +211,7 @@ fn lock_diagnostics(modules: &[ModuleData], lock: &ToolLock, diags: &mut Vec<Pro
 }
 
 fn add_module(
+    parse: &ParseFn<'_>,
     modules: &mut Vec<ModuleData>,
     diags: &mut Vec<ProgramDiagnostic>,
     path: &Path,
@@ -195,21 +219,16 @@ fn add_module(
     src: String,
 ) {
     let id = ModuleId(modules.len() as u32);
-    let parse = ward_syntax::parse(&src);
-    diags.extend(
-        parse
-            .diagnostics
-            .into_iter()
-            .map(|diagnostic| ProgramDiagnostic {
-                module: id,
-                diagnostic,
-            }),
-    );
+    let (ast, parse_diags) = parse(path, &src);
+    diags.extend(parse_diags.into_iter().map(|diagnostic| ProgramDiagnostic {
+        module: id,
+        diagnostic,
+    }));
     modules.push(ModuleData {
         name,
         path: path.display().to_string(),
         src,
-        ast: parse.module,
+        ast,
         imports: HashMap::new(),
     });
 }

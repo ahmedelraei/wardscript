@@ -3,16 +3,17 @@
 //! definition. Each open file is checked as the entry of its own program; its imports
 //! are read from open editors first, then from disk.
 
+mod db;
 mod protocol;
 mod uri;
 
-use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::sync::Arc;
 
 use serde_json::{Value, json};
 use ward_check::Analysis;
-use ward_resolve::{FileSystem, ModuleId, TypeRes, ValueRes};
+use ward_resolve::{ModuleId, TypeRes, ValueRes};
 use ward_syntax::ast::Item;
 use ward_syntax::{Severity, Span};
 
@@ -20,20 +21,8 @@ pub use crate::protocol::Message;
 use crate::protocol::{read_message, write_message};
 pub use crate::uri::{path_to_uri, uri_to_path};
 
-/// Open documents, by path; everything else comes from disk.
-struct Overlay<'a>(&'a HashMap<PathBuf, String>);
-
-impl FileSystem for Overlay<'_> {
-    fn read(&self, path: &Path) -> io::Result<String> {
-        match self.0.get(path) {
-            Some(text) => Ok(text.clone()),
-            None => std::fs::read_to_string(path),
-        }
-    }
-}
-
 pub struct Server {
-    docs: HashMap<PathBuf, String>,
+    db: db::Db,
     shutdown: bool,
 }
 
@@ -62,7 +51,7 @@ pub fn serve(input: impl BufRead, mut output: impl Write) -> io::Result<bool> {
 impl Server {
     pub fn new() -> Self {
         Server {
-            docs: HashMap::new(),
+            db: db::Db::default(),
             shutdown: false,
         }
     }
@@ -106,17 +95,23 @@ impl Server {
             }
             "textDocument/didSave" => {
                 let uri = params["textDocument"]["uri"].as_str();
+                // Another open file may import the one just written.
+                self.db.disk_changed();
                 let text = uri
                     .and_then(uri_to_path)
-                    .and_then(|p| self.docs.get(&p).cloned());
+                    .and_then(|p| self.db.text(&p).map(str::to_owned));
                 self.open(uri, text.as_deref())
             }
             "textDocument/didClose" => {
                 let uri = params["textDocument"]["uri"].as_str().unwrap_or_default();
                 if let Some(path) = uri_to_path(uri) {
-                    self.docs.remove(&path);
+                    self.db.close(&path);
                 }
                 vec![publish(uri, Vec::new())]
+            }
+            "workspace/didChangeWatchedFiles" => {
+                self.db.disk_changed();
+                Vec::new()
             }
             "textDocument/hover" => reply(self.at(&params, hover).unwrap_or(Value::Null)),
             "textDocument/definition" => reply(self.at(&params, definition).unwrap_or(Value::Null)),
@@ -139,7 +134,7 @@ impl Server {
         let Some(path) = uri_to_path(uri) else {
             return Vec::new();
         };
-        self.docs.insert(path.clone(), text.to_owned());
+        self.db.set_text(&path, text);
         let diags = match self.analyze(&path) {
             Some(a) => diagnostics(&a),
             None => Vec::new(),
@@ -151,17 +146,17 @@ impl Server {
     /// syntax errors.
     fn format(&self, params: &Value) -> Option<Value> {
         let path = uri_to_path(params["textDocument"]["uri"].as_str()?)?;
-        let src = self.docs.get(&path)?;
+        let src = self.db.text(&path)?;
         let out = ward_syntax::printer::format(src).ok()?;
-        if out == *src {
+        if out == src {
             return Some(json!([]));
         }
         let end = position(src, src.len() as u32);
         Some(json!([{"range": {"start": {"line": 0, "character": 0}, "end": end}, "newText": out}]))
     }
 
-    fn analyze(&self, path: &Path) -> Option<Analysis> {
-        ward_check::analyze(path, &Overlay(&self.docs)).ok()
+    fn analyze(&self, path: &Path) -> Option<Arc<Analysis>> {
+        self.db.analysis(path)
     }
 
     /// Runs `f` on the analysis of the document at the request's position.

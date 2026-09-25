@@ -25,10 +25,10 @@ pub fn read_message(input: &mut impl BufRead) -> io::Result<Option<Message>> {
             }
             continue;
         }
-        if let Some((name, value)) = line.split_once(':') {
-            if name.eq_ignore_ascii_case("content-length") {
-                length = value.trim().parse::<usize>().ok();
-            }
+        if let Some((name, value)) = line.split_once(':')
+            && name.eq_ignore_ascii_case("content-length")
+        {
+            length = value.trim().parse::<usize>().ok();
         }
     }
     let mut body = vec![0; length.unwrap_or(0)];

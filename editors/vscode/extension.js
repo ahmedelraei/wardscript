@@ -12,7 +12,12 @@ function activate(context) {
     "wardscript",
     "Wardscript",
     { run: server, debug: server },
-    { documentSelector: [{ scheme: "file", language: "ward" }] },
+    {
+      documentSelector: [{ scheme: "file", language: "ward" }],
+      synchronize: {
+        fileEvents: vscode.workspace.createFileSystemWatcher("**/{*.ward,*.wardscript,ward.lock}"),
+      },
+    },
   );
   context.subscriptions.push(client);
   client.start().catch((err) => {

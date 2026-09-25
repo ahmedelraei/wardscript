@@ -18,7 +18,8 @@ use std::path::Path;
 
 use la_arena::ArenaMap;
 use ward_resolve::{
-    DefId, FileSystem, LoadError, LocalId, ModuleId, Program, ProgramDiagnostic, Resolution,
+    DefId, FileSystem, LoadError, LocalId, ModuleId, ParseFn, Program, ProgramDiagnostic,
+    Resolution,
 };
 use ward_syntax::ast::{ExprId, Item};
 
@@ -97,14 +98,28 @@ impl Analysis {
 }
 
 pub fn analyze(entry: &Path, fs: &dyn FileSystem) -> Result<Analysis, LoadError> {
-    let (program, mut diags) = ward_resolve::load(entry, fs)?;
+    let (program, diags) = ward_resolve::load(entry, fs)?;
+    Ok(analyze_loaded(program, diags))
+}
+
+/// [`analyze`], parsing each file with `parse`.
+pub fn analyze_with(
+    entry: &Path,
+    fs: &dyn FileSystem,
+    parse: &ParseFn<'_>,
+) -> Result<Analysis, LoadError> {
+    let (program, diags) = ward_resolve::load_with(entry, fs, parse)?;
+    Ok(analyze_loaded(program, diags))
+}
+
+fn analyze_loaded(program: Program, mut diags: Vec<ProgramDiagnostic>) -> Analysis {
     // Name and type errors in code that didn't parse are mostly echoes of the syntax error.
     if diags
         .iter()
         .any(|d| d.diagnostic.severity == ward_syntax::Severity::Error)
     {
         diags.sort_by_key(|d| (d.module, d.diagnostic.span().start));
-        return Ok(Analysis {
+        return Analysis {
             program,
             resolution: Resolution {
                 modules: Vec::new(),
@@ -119,7 +134,7 @@ pub fn analyze(entry: &Path, fs: &dyn FileSystem) -> Result<Analysis, LoadError>
                 overrides: HashMap::new(),
                 trusted_params: HashMap::new(),
             },
-        });
+        };
     }
     let (resolution, resolve_diags) = ward_resolve::resolve(&program);
     diags.extend(resolve_diags);
@@ -138,11 +153,11 @@ pub fn analyze(entry: &Path, fs: &dyn FileSystem) -> Result<Analysis, LoadError>
     }
     diags.sort_by_key(|d| (d.module, d.diagnostic.span().start));
     checked.diagnostics = diags;
-    Ok(Analysis {
+    Analysis {
         program,
         resolution,
         checked,
-    })
+    }
 }
 
 pub fn check(program: &Program, resolution: &Resolution) -> Checked {

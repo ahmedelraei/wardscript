@@ -10,12 +10,13 @@ mod suggest;
 pub mod tools;
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use la_arena::{Arena, ArenaMap, Idx};
 use ward_syntax::Diagnostic;
 use ward_syntax::ast::{ExprId, PatId, StmtId, TypeId};
 
-pub use loader::{FileSystem, LoadError, RealFs, load};
+pub use loader::{FileSystem, LoadError, ParseFn, RealFs, load, load_with};
 pub use resolver::resolve;
 pub use suggest::did_you_mean;
 
@@ -72,7 +73,8 @@ pub struct ModuleData {
     /// The file path as shown in diagnostics.
     pub path: String,
     pub src: String,
-    pub ast: ward_syntax::ast::Module,
+    /// Shared so a cache can hand the same parse to several loads.
+    pub ast: Arc<ward_syntax::ast::Module>,
     /// Target module of each `import a.b` item, by item index.
     pub imports: HashMap<usize, ModuleId>,
 }
