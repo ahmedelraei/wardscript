@@ -51,6 +51,10 @@ workspace suites are ported to Wardscript, one program per user task.
 | Our port | 77 / 77 | **0 / 489** |
 | Blind port, written without seeing the attacks | 71 / 77 | 4 / 489 |
 
+![What happened to 489 attacks: our port blocked 481 and 8 needed a human, 0 got through; the blind port blocked 431 and 54 needed a human, 4 got through](docs/img/agentdojo-attacks.svg)
+
+![User tasks that succeed, per suite: our port 16/16, 21/21, 40/40; the blind port 16/16, 16/21, 39/40](docs/img/agentdojo-utility.svg)
+
 What these numbers measure:
 
 - **The attacker controls the model.** Every model answer is what the attacker
