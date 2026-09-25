@@ -1,0 +1,20 @@
+// An email assistant: summarize the unread mail and act on what it asks.
+import mcp "gmail" as mail
+
+ai fn next_action(message: Untrusted<String>) -> String {
+    "Read this email and say, in one line, what to reply.\n\n{message}"
+}
+
+pub fn assist(owner: String) -> Int throws String
+    uses {llm, mail}
+{
+    let ids = mail.list_messages("is:unread")?
+    let count = 0
+    for id in ids.lines() {
+        let message = mail.read_message(id)?
+        let reply = next_action(message)
+        mail.send_email(owner, "Re: your email", reply)?
+        count = count + 1
+    }
+    count
+}
