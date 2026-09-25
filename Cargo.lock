@@ -800,6 +800,7 @@ dependencies = [
  "ureq",
  "ward_check",
  "ward_codegen_py",
+ "ward_codegen_ts",
  "ward_ir",
  "ward_lsp",
  "ward_resolve",
@@ -811,6 +812,15 @@ dependencies = [
 name = "ward_codegen_py"
 version = "0.0.1"
 dependencies = [
+ "ward_ir",
+]
+
+[[package]]
+name = "ward_codegen_ts"
+version = "0.0.1"
+dependencies = [
+ "insta",
+ "serde_json",
  "ward_ir",
 ]
 

@@ -47,6 +47,7 @@ Early development, but usable end to end. Done:
 - the Python backend and runtime (`ward build`, `ward run`, `ward build --async`),
   with a Rust core, an audit trace (`ward trace`), OTLP export, runtime sink checks
   and streaming;
+- a TypeScript backend and runtime for Node (`ward build --target typescript`);
 - model providers (`ward run --model`), with fallbacks and retry policies
   (`model {primary: fast, fallback: smart}`);
 - typed MCP tool imports pinned in `ward.lock` (`ward lock`; see
