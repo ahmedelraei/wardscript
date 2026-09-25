@@ -1,0 +1,30 @@
+# 018: The AgentDojo port
+
+**Status:** accepted for the banking suite, 2026-09-25.
+
+## Decision
+
+- **One Wardscript function per user task**, written from the request, in
+  `benchmarks/agentdojo/<suite>/main.ward`. The request is the trusted plan; tools and
+  models are untrusted. This is CaMeL's split, with the programmer as the planner.
+- **AgentDojo's environments run as MCP servers**, so the port goes through the
+  same typed imports, `ward.lock` and runtime sink checks as any program.
+- **Security is measured against a fully adversarial model**: every answer is what
+  the injection task needs. It doesn't depend on how persuasive the attack text is
+  or on which model is used, and a result of 0 is a claim about the program. Human
+  approval is reported both ways (careful, and approving everything), so it's clear
+  which results depend on the human.
+- **The naive versions are attack cases** (`tests/attacks/agentdojo_*`) and must
+  fail with W0107. The evaluation also runs as an e2e test.
+
+## Why
+
+AgentDojo's own numbers measure a model's resistance to persuasion. The claim
+Wardscript makes is different: the attacker can control every model answer and
+still not reach a sink. An adversarial mock tests that claim directly and
+deterministically in CI.
+
+## Not done
+
+- The workspace, travel and Slack suites.
+- Runs with real models (`WARD_LIVE=1`), to put utility next to AgentDojo's baselines.

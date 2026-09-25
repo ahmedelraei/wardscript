@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "bank": {
+      "command": "python3",
+      "args": ["bank_server.py"]
+    }
+  }
+}
