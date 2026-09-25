@@ -1,6 +1,6 @@
 [project]
 name = "wardscript"
-version = "0.0.1"
+version = "0.1.0b1"
 description = "Runtime for Python modules compiled from Wardscript"
 requires-python = ">=3.10"
 license = "MIT OR Apache-2.0"

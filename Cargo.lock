@@ -781,7 +781,7 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "ward_check"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 dependencies = [
  "insta",
  "la-arena",
@@ -791,7 +791,7 @@ dependencies = [
 
 [[package]]
 name = "ward_cli"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 dependencies = [
  "ariadne",
  "clap",
@@ -810,14 +810,14 @@ dependencies = [
 
 [[package]]
 name = "ward_codegen_py"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 dependencies = [
  "ward_ir",
 ]
 
 [[package]]
 name = "ward_codegen_ts"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 dependencies = [
  "insta",
  "serde_json",
@@ -826,7 +826,7 @@ dependencies = [
 
 [[package]]
 name = "ward_ir"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 dependencies = [
  "la-arena",
  "thiserror",
@@ -837,7 +837,7 @@ dependencies = [
 
 [[package]]
 name = "ward_lsp"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 dependencies = [
  "serde_json",
  "ward_check",
@@ -847,7 +847,7 @@ dependencies = [
 
 [[package]]
 name = "ward_resolve"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 dependencies = [
  "la-arena",
  "serde",
@@ -857,7 +857,7 @@ dependencies = [
 
 [[package]]
 name = "ward_runtime"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -866,7 +866,7 @@ dependencies = [
 
 [[package]]
 name = "ward_runtime_py"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 dependencies = [
  "pyo3",
  "serde_json",
@@ -875,7 +875,7 @@ dependencies = [
 
 [[package]]
 name = "ward_syntax"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 dependencies = [
  "insta",
  "la-arena",

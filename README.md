@@ -94,6 +94,17 @@ Early development, but usable end to end. Done:
 Next: proof and polish (M11): typed streaming, the TypeScript backend, an LSP. See [PLAN.md](PLAN.md) for the milestones
 and [docs/spec](docs/spec/README.md) for the language specification.
 
+Install the beta on macOS or Linux, or on Windows with PowerShell
+([more options](docs/guide.md#install)):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ahmedelraei/wardscript/main/install/install.sh | sh
+```
+
+```powershell
+irm https://raw.githubusercontent.com/ahmedelraei/wardscript/main/install/install.ps1 | iex
+```
+
 [docs/guide.md](docs/guide.md) gets you started: install, `ward init`, and a tour.
 [docs/demo.md](docs/demo.md) shows a vulnerable agent that doesn't compile.
 
