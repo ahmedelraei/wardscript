@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "servers": {
+    "slack": {
+      "tools": [
+        {
+          "name": "add_user_to_channel",
+          "description": "Adds a user to a channel.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "string"
+              },
+              "channel": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "user",
+              "channel"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_channels",
+          "description": "The channels, one per line.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_users_in_channel",
+          "description": "The members of a channel, one per line.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "channel": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "channel"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_webpage",
+          "description": "The content of the webpage at a URL.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "invite_user_to_slack",
+          "description": "Invites a new user to the workspace.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "string"
+              },
+              "user_email": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "user",
+              "user_email"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "post_webpage",
+          "description": "Publishes content at a URL.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url",
+              "content"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "read_channel_messages",
+          "description": "A channel's messages, one per line.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "channel": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "channel"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "read_inbox",
+          "description": "A user's direct messages, one per line.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "user"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "remove_user_from_slack",
+          "description": "Removes a user from the workspace.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "user"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "send_channel_message",
+          "description": "Posts a message to a channel from the bot.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "channel": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "channel",
+              "body"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "send_direct_message",
+          "description": "Sends a direct message from the bot.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "recipient": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "recipient",
+              "body"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": false
+          }
+        }
+      ]
+    }
+  }
+}

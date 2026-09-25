@@ -1,0 +1,18 @@
+// AgentDojo Slack, user task 15 with the model choosing which sites to visit: fetching a
+// URL is itself an action, and it can visit the attacker's (injection tasks 2-4).
+import mcp "slack" as slack
+
+ai fn find_urls(messages: Untrusted<String>) -> List<String> {
+    "List every website these messages mention.\n\n{messages}"
+}
+
+pub fn visit_all() -> Int throws String
+    uses {llm, slack}
+{
+    let visited = 0
+    for url in find_urls(slack.read_channel_messages("general")?) {
+        slack.get_webpage(url)?
+        visited = visited + 1
+    }
+    visited
+}

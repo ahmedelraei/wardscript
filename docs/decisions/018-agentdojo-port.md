@@ -1,6 +1,6 @@
 # 018: The AgentDojo port
 
-**Status:** accepted for the banking suite, 2026-09-25.
+**Status:** accepted; banking and Slack suites ported, 2026-09-25.
 
 ## Decision
 
@@ -9,8 +9,11 @@
   models are untrusted. This is CaMeL's split, with the programmer as the planner.
 - **AgentDojo's environments run as MCP servers**, so the port goes through the
   same typed imports, `ward.lock` and runtime sink checks as any program.
-- **Security is measured against a fully adversarial model**: every answer is what
-  the injection task needs. It doesn't depend on how persuasive the attack text is
+- **Security is measured against an adversarial model**: it lies in every answer, or
+  answers honestly except at one point (one function, one record field, one extra list
+  element), and an attack counts if any strategy reaches the goal. A blanket lie trips
+  the first check, so on its own it overstates security; the single deviations found the
+  Slack invitation that only the approver stops. It doesn't depend on how persuasive the attack text is
   or on which model is used, and a result of 0 is a claim about the program. Human
   approval is reported both ways (careful, and approving everything), so it's clear
   which results depend on the human.
@@ -26,5 +29,5 @@ deterministically in CI.
 
 ## Not done
 
-- The workspace, travel and Slack suites.
+- The workspace and travel suites.
 - Runs with real models (`WARD_LIVE=1`), to put utility next to AgentDojo's baselines.
