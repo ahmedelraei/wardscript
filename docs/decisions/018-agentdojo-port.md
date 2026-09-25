@@ -1,6 +1,6 @@
 # 018: The AgentDojo port
 
-**Status:** accepted; banking and Slack suites ported, 2026-09-25.
+**Status:** accepted; banking, Slack and workspace suites ported, 2026-09-25.
 
 ## Decision
 
@@ -17,6 +17,11 @@
   or on which model is used, and a result of 0 is a claim about the program. Human
   approval is reported both ways (careful, and approving everything), so it's clear
   which results depend on the human.
+- **Blind ports** (`<suite>/blind/`) are written by a fresh model session given only the
+  requests, the tool schemas and the language docs, and graded by the same harness with
+  honest answers written afterwards. They measure what the language guarantees for an
+  author who doesn't know the attacks, not only for its designer.
+- **Real models are opt-in** (`run.py --model`), outside CI, like the other live tests.
 - **The naive versions are attack cases** (`tests/attacks/agentdojo_*`) and must
   fail with W0107. The evaluation also runs as an e2e test.
 
@@ -29,5 +34,5 @@ deterministically in CI.
 
 ## Not done
 
-- The workspace and travel suites.
-- Runs with real models (`WARD_LIVE=1`), to put utility next to AgentDojo's baselines.
+- The travel suite.
+- A run with a real model, to put utility next to AgentDojo's baselines (needs an API key).

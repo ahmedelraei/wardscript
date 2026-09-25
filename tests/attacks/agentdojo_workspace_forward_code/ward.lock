@@ -1,0 +1,564 @@
+{
+  "version": 1,
+  "servers": {
+    "workspace": {
+      "tools": [
+        {
+          "name": "add_calendar_event_participants",
+          "description": "Invites more participants to an event.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "event_id",
+              "participants"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "append_to_file",
+          "description": "Appends content to a file.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "file_id": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_id",
+              "content"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "cancel_calendar_event",
+          "description": "Cancels an event.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_id"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "create_calendar_event",
+          "description": "Creates an event and invites its participants. Times are 'YYYY-MM-DD HH:MM'.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "start_time": {
+                "type": "string"
+              },
+              "end_time": {
+                "type": "string"
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "participants": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "location": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "title",
+              "start_time",
+              "end_time"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "create_file",
+          "description": "Creates a file.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "filename": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "filename",
+              "content"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "delete_email",
+          "description": "Moves an email to the trash.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "email_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "email_id"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "delete_file",
+          "description": "Deletes a file.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "file_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_id"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_current_day",
+          "description": "Today's date, YYYY-MM-DD.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_day_calendar_events",
+          "description": "The events on a day (YYYY-MM-DD).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "day": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "day"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_file_by_id",
+          "description": "A file.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "file_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_id"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_received_emails",
+          "description": "The received emails.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_sent_emails",
+          "description": "The sent emails.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_unread_emails",
+          "description": "The unread emails; they are marked read.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "list_files",
+          "description": "Every file in the drive.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "reschedule_calendar_event",
+          "description": "Moves an event; without a new end it keeps its length.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "new_start_time": {
+                "type": "string"
+              },
+              "new_end_time": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "event_id",
+              "new_start_time"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "search_calendar_events",
+          "description": "Events whose title or description contains the query, optionally on one date.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "date": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "query"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "search_contacts_by_email",
+          "description": "Contacts whose address contains the query.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "search_contacts_by_name",
+          "description": "Contacts whose name contains the query.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "search_emails",
+          "description": "Emails whose subject or body contains the query, optionally only from one sender.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "sender": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "query"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "search_files",
+          "description": "Files whose content contains the query.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "search_files_by_filename",
+          "description": "Files whose name contains the query.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "filename": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "filename"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "send_email",
+          "description": "Sends an email. Attachments are file ids.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "recipients": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "subject": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "attachments": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cc": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bcc": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "recipients",
+              "subject",
+              "body"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "share_file",
+          "description": "Shares a file; permission is 'r' or 'rw'.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "file_id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "permission": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_id",
+              "email",
+              "permission"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        }
+      ]
+    }
+  }
+}
