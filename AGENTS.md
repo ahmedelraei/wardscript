@@ -22,6 +22,7 @@ crates/
   ward_runtime     # runtime core (Rust) + py/ (the Python package, PyO3/maturin) + ts/ (the npm package)
   ward_lsp         # language server (`ward lsp`)
   ward_cli         # `ward` binary
+  ward_wasm        # checker + codegen for the browser (the website's playground)
 tests/
   ui/            # .ward programs + expected diagnostics (insta snapshots)
   attacks/       # injection programs that MUST fail to compile

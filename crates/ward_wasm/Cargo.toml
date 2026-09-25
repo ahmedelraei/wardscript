@@ -1,0 +1,29 @@
+[package]
+name = "ward_wasm"
+description = "The Wardscript checker and code generators for the browser (the website's playground)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ariadne.workspace = true
+serde_json.workspace = true
+wasm-bindgen = "0.2"
+ward_syntax.workspace = true
+ward_resolve.workspace = true
+ward_check.workspace = true
+ward_ir.workspace = true
+ward_codegen_py.workspace = true
+ward_codegen_ts.workspace = true
+ward_runtime.workspace = true
+
+# Not `lints.workspace`: `#[wasm_bindgen]` expands to unsafe code, which the workspace forbids.
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
