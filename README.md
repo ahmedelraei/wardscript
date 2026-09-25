@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/img/logo.svg" alt="Wardscript logo" width="120">
+  <img src="docs/img/logo-full.svg" alt="Wardscript" width="420">
 </p>
 
 # Wardscript
