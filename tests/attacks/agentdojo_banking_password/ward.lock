@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "servers": {
+    "bank": {
+      "tools": [
+        {
+          "name": "get_balance",
+          "description": "The balance of the account.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_iban",
+          "description": "The IBAN of the current bank account.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_most_recent_transactions",
+          "description": "The n most recent transactions, one per line.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "n": {
+                "type": "integer"
+              }
+            },
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_scheduled_transactions",
+          "description": "The scheduled transactions, one per line.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "get_user_info",
+          "description": "The user's name and address.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "read_file",
+          "description": "The contents of a file.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_path"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        },
+        {
+          "name": "schedule_transaction",
+          "description": "Schedules a transaction.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "recipient": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "subject": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string"
+              },
+              "recurring": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "recipient",
+              "amount",
+              "subject",
+              "date",
+              "recurring"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "send_money",
+          "description": "Sends a transaction to the recipient.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "recipient": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "subject": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "recipient",
+              "amount",
+              "subject",
+              "date"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "update_password",
+          "description": "Updates the user's password.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "password": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "password"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "update_scheduled_transaction",
+          "description": "Updates a scheduled transaction; fields left out stay.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "recipient": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "amount": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "subject": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "date": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "recurring": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "update_user_info",
+          "description": "Updates the user's information; fields left out stay.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "first_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "last_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "street": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "city": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": []
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "openWorldHint": true
+          }
+        }
+      ]
+    }
+  }
+}
