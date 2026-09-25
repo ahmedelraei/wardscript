@@ -39,6 +39,36 @@ model's text would reach `mail.send` unchecked, and `ward check` reports W0107 w
 the path it took. The host calling `answer` has to vouch for `to`
 (`answer(email, Trusted(to))`), since it also reaches `mail.send`.
 
+## Benchmarks
+
+[AgentDojo](https://github.com/ethz-spylab/agentdojo) is a prompt-injection benchmark
+for tool-using agents: realistic tasks in a bank, a Slack workspace and an office
+suite, with attacker instructions hidden in the data. Its banking, Slack and
+workspace suites are ported to Wardscript, one program per user task.
+
+| | Tasks that succeed | Attacks that reach their goal |
+|---|---|---|
+| Our port | 77 / 77 | **0 / 489** |
+| Blind port, written without seeing the attacks | 71 / 77 | 4 / 489 |
+
+What these numbers measure:
+
+- **The attacker controls the model.** Every model answer is what the attacker
+  wants, not only what an injection persuades the model to say. Attacks are counted
+  with a human approver who approves only what the user asked for. With one who
+  approves everything, 8 more succeed, all where the task itself depends on untrusted
+  data, such as paying the bill named in a file.
+- **The blind port** was written by a fresh model session given only the requests,
+  the tool schemas and the language docs. All 4 successful attacks got through a check
+  the author chose: a `@not_sink` exception and a format-only URL check.
+- **Utility uses scripted model answers**, not a real model, and each task is a
+  program written for that request, not a general agent.
+
+Published AgentDojo results for other defenses measure general agents with real
+models, so these numbers aren't directly comparable. A real-model run
+(`benchmarks/agentdojo/run.py --model`) is next. Method, per-suite results and
+limits: [benchmarks/agentdojo](benchmarks/agentdojo/README.md).
+
 ## Status
 
 Early development, but usable end to end. Done:
