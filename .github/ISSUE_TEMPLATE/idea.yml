@@ -1,6 +1,6 @@
 name: Idea or language change
 description: Propose a feature or a change to the language
-labels: [idea]
+labels: [enhancement]
 body:
   - type: markdown
     attributes:
