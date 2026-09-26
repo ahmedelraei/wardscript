@@ -1,6 +1,7 @@
 # Plan: rules for using AI in contributions
 
-**Status:** Plan, not yet adopted.
+**Status:** Implemented, except enabling private vulnerability reporting (a
+repository setting) and the website link.
 
 Wardscript has rules for coding agents (`AGENTS.md`) but no rules for the *people*
 who use them, and no `CONTRIBUTING.md` at all. This plan adds a short AI policy, based on

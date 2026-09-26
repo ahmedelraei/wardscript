@@ -42,6 +42,15 @@ editors/vscode/  # VS Code extension: grammar + `ward lsp` client
 - Changes to syntax, types, trust, effects, backend output or diagnostic meanings need a WEP first (`docs/weps/000-process.md`). Write it as a Draft before the code, and mark it Final once the spec is updated.
 - Tests with real LLMs are opt-in (`WARD_LIVE=1`). CI uses a deterministic mock model.
 
+## Contribution rules
+These come from [docs/ai-policy.md](docs/ai-policy.md) and [CONTRIBUTING.md](CONTRIBUTING.md), and apply to agents too.
+- Never run `cargo insta accept` in bulk. Review snapshots one by one, and list every changed `.snap` file with the reason in the PR description.
+- Never edit or delete a `tests/attacks/` case to make it pass. Add a new case instead. CI fails PRs that modify or remove one.
+- Never change a test so a failing change passes; fix the code.
+- Never invent benchmark or AgentDojo numbers. Report only what a run produced, and how it was run.
+- Never put API keys or unredacted recorded model responses in the repo.
+- Say in the PR description that an AI tool was used and what it did.
+
 ## Commands
 ```
 cargo build

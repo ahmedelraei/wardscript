@@ -1,0 +1,27 @@
+name: Attack tests
+
+# Programs in tests/attacks/ must fail to compile. Adding cases is fine; editing or
+# removing one needs the maintainer to add the `attack-test-change` label.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  unchanged:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'attack-test-change') }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Check that no attack case was modified or removed
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          changed=$(git diff --name-only --diff-filter=MDR "$BASE"...HEAD -- tests/attacks ":!tests/attacks/README.md")
+          if [ -n "$changed" ]; then
+            echo "These attack cases were modified or removed:"
+            echo "$changed"
+            echo "Add new cases instead, or ask the maintainer for the attack-test-change label."
+            exit 1
+          fi

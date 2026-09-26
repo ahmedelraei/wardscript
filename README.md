@@ -135,6 +135,12 @@ cargo run -p ward_cli -- test examples/triage.ward      # replay the recorded te
 definition. [editors/vscode](editors/vscode) is a VS Code extension with
 highlighting that starts it; other editors can run `ward lsp` over stdio.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), the [AI policy](docs/ai-policy.md) and the
+[roadmap](ROADMAP.md). Report security problems privately: see
+[SECURITY.md](SECURITY.md).
+
 ## License
 
 Licensed under either of
