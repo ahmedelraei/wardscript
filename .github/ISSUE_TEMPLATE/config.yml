@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/ahmedelraei/wardscript/security/advisories/new
+    about: Report privately. Don't open a public issue.
+  - name: Contributing guide
+    url: https://github.com/ahmedelraei/wardscript/blob/main/CONTRIBUTING.md
+    about: How to build, test and send changes.

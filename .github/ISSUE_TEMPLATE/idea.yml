@@ -1,0 +1,26 @@
+name: Idea or language change
+description: Propose a feature or a change to the language
+labels: [idea]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Changes to syntax, types, trust, effects, backend output or diagnostic meanings need a [WEP](https://github.com/ahmedelraei/wardscript/blob/main/docs/weps/000-process.md). Use this issue to discuss the idea first.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you can't do today. A .ward program helps.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+    validations:
+      required: true
+  - type: textarea
+    id: trust
+    attributes:
+      label: Trust and security
+      description: Could this let untrusted data take a new path? How would the checker still see it?

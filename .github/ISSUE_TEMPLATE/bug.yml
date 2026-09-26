@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in ward, the checker, a backend or the runtime doesn't work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security problems, such as a program that compiles but lets untrusted data reach a sink, go to [private reporting](https://github.com/ahmedelraei/wardscript/security/advisories/new), not here.
+  - type: textarea
+    id: program
+    attributes:
+      label: Program
+      description: A minimal .ward program that shows the problem.
+      render: rust
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      placeholder: ward check example.ward
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual output
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ward --version and OS
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I ran this program and command myself and saw this output.
+          required: true
