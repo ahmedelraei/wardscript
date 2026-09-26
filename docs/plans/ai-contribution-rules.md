@@ -17,6 +17,7 @@ CPython's "Guidelines for using AI tools" and adapted to what can go wrong here.
 | Changed diagnostic meanings | Codes (`W0xxx`) are stable by rule; agents renumber or reword them freely. |
 | Fabricated benchmark numbers | The README's AgentDojo table is a claim. Numbers must come from a run, not from a model. |
 | Live-model tests and secrets | `WARD_LIVE=1` needs API keys; agents may paste keys or recorded responses containing them. |
+| Generated security reports | A security tool attracts LLM-written "prompt injection bypasses the checker" reports that describe a bypass without showing one. Each takes maintainer time to disprove. |
 | Issue and PR spam | Generated "bug reports" against a small project with one maintainer. |
 
 ## 2. Proposed deliverables
@@ -55,7 +56,12 @@ About one screen long:
    author's own reasoning.
 6. **Issues.** Reproduce before filing: include a `.ward` snippet and the actual
    `ward check` output. Don't file unverified generated reports.
-7. **Maintainer discretion.** Unproductive issues and PRs may be closed without
+7. **Security reports.** Verify before reporting. A report must include a `.ward`
+   program that compiles but shouldn't, or that lets untrusted data reach a sink
+   at runtime, plus the `ward` version and the exact command. Reports that only
+   describe a bypass in theory, or cite APIs or flags that don't exist, are closed.
+   Details live in `SECURITY.md` (2.8).
+8. **Maintainer discretion.** Unproductive issues and PRs may be closed without
    explanation, AI or not. Repeated ones may lead to a block.
 
 ### 2.3 `.github/pull_request_template.md` (new)
@@ -95,9 +101,32 @@ The docs sync copies only `docs/weps/` and `docs/img/`. Link the policy from the
 site's docs index (a "Contributing" link to the GitHub file) rather than syncing
 it, so there's one copy.
 
+### 2.8 `SECURITY.md` (new)
+
+The repo has no security policy. Add one, recognized by GitHub's "Security" tab:
+
+- **How to report:** GitHub private vulnerability reporting, not public issues.
+- **What counts:** a checker bypass (untrusted data reaching a `sink` argument
+  without `validate`, `approve` or `declassify`), a runtime sink check that doesn't
+  fire, an implicit-flow leak, an effect or Rule of Two violation that passes, or a
+  bug in generated Python/TypeScript that drops a check. Bugs in user programs, or
+  LLMs misbehaving inside correctly checked code, don't count.
+- **Report format:** a few plain-text sentences; a minimal `.ward` proof of concept
+  that shows the bypass with `ward check` or `ward run` (mock model, not
+  `WARD_LIVE=1`); versions tested; no severity score, which the maintainer assigns.
+- **AI-assisted reports:** allowed, but the reporter must have run the proof of
+  concept themselves and checked that every API, flag and diagnostic code named in
+  it exists. Batches of generated reports without proofs of concept are closed.
+- **After a fix:** the proof of concept becomes a `tests/attacks/` case, so the
+  bypass can't come back.
+- **Supported versions:** only the latest release, until there's a stable 1.0.
+
+Then enable private vulnerability reporting in the repository settings.
+
 ## 3. Rollout
 
-1. Open a PR with 2.1, 2.2, 2.3 and 2.5. No WEP is needed: the WEP process covers
+1. Open a PR with 2.1, 2.2, 2.3, 2.5 and 2.8, and turn on private vulnerability
+   reporting. No WEP is needed: the WEP process covers
    the language, not contribution rules.
 2. Maintainer review of the policy wording, in particular the disclosure rule
    (required vs. appreciated) and whether rule 5 (WEPs) is too strict.
